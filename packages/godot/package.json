@@ -10,5 +10,9 @@
   },
   "dependencies": {
     "execa": "^9.5.2"
+  },
+  "devDependencies": {
+    "@gamedream/core": "workspace:*",
+    "@gamedream/testing": "workspace:*"
   }
 }

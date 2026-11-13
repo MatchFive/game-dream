@@ -170,6 +170,14 @@ remains browser- and headless-compatible.
   content sizes/SHA-256 hashes (the manifest itself is excluded). See
   [docs/deploy-web.md](docs/deploy-web.md).
 
+## Godot release
+
+- `dream godot package --path ./game --out ./release/game-source` copies a clean
+  source release (modules/game/content/presets) with `release.json` hashes.
+- `dream godot export --path ./game --preset "Windows Desktop" --out ./build/game.exe`
+  runs a native export when matching Godot 4.4 export templates are installed.
+  Missing templates exit 3 with guidance. See [docs/release-godot.md](docs/release-godot.md).
+
 ## Prompt evaluation
 
 `dream eval` runs 20 prompt → GameSpec → template cases from

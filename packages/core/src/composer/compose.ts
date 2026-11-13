@@ -13,6 +13,7 @@ import { generateInputMap } from './generate-input-map.js';
 import { generateMainScene } from './generate-main-scene.js';
 import { generateMainScript } from './generate-main-script.js';
 import { generateSaveSections } from './generate-save-sections.js';
+import { generateExportPresets } from './generate-export-presets.js';
 import { generateScreenshotScript } from './generate-screenshot-script.js';
 import { mergeProjectGodot } from './merge-project-godot.js';
 import { writeGameManifest } from './write-game-manifest.js';
@@ -46,10 +47,14 @@ export async function composeProject(options: ComposeOptions): Promise<ComposeRe
   const saveSectionsFile = join(generatedDir, 'save_sections.json');
   const mainScene = join(generatedDir, 'main.tscn');
   const screenshotScript = join(generatedDir, 'screenshot.gd');
+  const exportPresets = join(options.outDir, 'export_presets.cfg');
   const projectGodot = join(options.outDir, 'project.godot');
 
   writeFileSync(mainScript, generateMainScript(resolution.modules), 'utf8');
   writeFileSync(screenshotScript, generateScreenshotScript(), 'utf8');
+  if (!existsSync(exportPresets)) {
+    writeFileSync(exportPresets, generateExportPresets(spec.project.name), 'utf8');
+  }
   writeFileSync(gameScript, generateGameScript(), 'utf8');
   writeFileSync(inputMapScript, generateInputMap(resolution.modules), 'utf8');
   writeFileSync(saveSectionsFile, generateSaveSections(resolution.modules), 'utf8');
@@ -96,6 +101,7 @@ export async function composeProject(options: ComposeOptions): Promise<ComposeRe
       saveSectionsFile,
       mainScene,
       screenshotScript,
+      exportPresets,
       manifestPath,
     ],
   };

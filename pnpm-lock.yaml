@@ -83,6 +83,13 @@ importers:
       execa:
         specifier: ^9.5.2
         version: 9.6.1
+    devDependencies:
+      '@gamedream/core':
+        specifier: workspace:*
+        version: link:../core
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
 
   packages/testing:
     dependencies:

@@ -1,5 +1,10 @@
 import { Command } from 'commander';
-import { detectGodot } from '@gamedream/godot';
+import {
+  detectGodot,
+  exportProject,
+  importProject,
+  packageGodotProject,
+} from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { composeCommand } from './commands/compose.js';
 import {
@@ -170,6 +175,91 @@ export function createProgram(): Command {
       if (result.stderr) printLine(result.stderr);
       process.exitCode = result.exitCode;
     });
+
+  const godotCommand = program
+    .command('godot')
+    .description('Package or export a generated Godot project');
+
+  godotCommand
+    .command('package')
+    .requiredOption('--path <dir>')
+    .requiredOption('--out <dir>')
+    .option('--force', 'overwrite an existing package directory')
+    .option('--json', 'print JSON')
+    .action((options: { path: string; out: string; force?: boolean; json?: boolean }) => {
+      try {
+        const result = packageGodotProject({
+          projectDir: options.path,
+          outDir: options.out,
+          force: options.force,
+        });
+        if (options.json) printJson(result);
+        else {
+          printLine(
+            `Godot package: ${result.outDir} (${result.files.length} files, ${result.bytes} content bytes)`,
+          );
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  godotCommand
+    .command('export')
+    .requiredOption('--path <dir>')
+    .requiredOption('--out <file>')
+    .option('--preset <name>', 'export preset name', 'Windows Desktop')
+    .option('--debug', 'use the debug export template')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: {
+        path: string;
+        out: string;
+        preset: string;
+        debug?: boolean;
+        json?: boolean;
+      }) => {
+        try {
+          const godot = await detectGodot();
+          if (!godot) {
+            printLine('Godot not found; set GODOT_BIN.');
+            process.exitCode = 3;
+            return;
+          }
+          const imported = await importProject(options.path, godot);
+          if (imported.exitCode !== 0) {
+            printLine(imported.stderr || imported.stdout || `Godot import exited ${imported.exitCode}`);
+            process.exitCode = 1;
+            return;
+          }
+          const result = await exportProject({
+            projectDir: options.path,
+            godot,
+            preset: options.preset,
+            outPath: options.out,
+            debug: options.debug,
+          });
+          if (options.json) printJson(result);
+          else if (result.missingTemplates) {
+            printLine(
+              'Godot export templates are not installed. Install the matching 4.4 export templates, or use `dream godot package` for a source release.',
+            );
+          } else if (!result.outputExists) {
+            printLine('Godot export did not write the expected output.');
+            if (result.stderr) printLine(result.stderr);
+          } else {
+            printLine(`Godot export: ${options.out}`);
+          }
+          process.exitCode = result.missingTemplates ? 3 : result.outputExists ? 0 : 1;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
 
   program
     .command('eval')
