@@ -6,12 +6,17 @@ extends CanvasLayer
 
 func _ready() -> void:
 	visible = false
+	add_to_group("pause_menu")
 	resume_button.pressed.connect(_resume)
 	save_button.pressed.connect(_save)
 	quit_button.pressed.connect(_quit)
 
+func _main_menu_open() -> bool:
+	var menu = get_tree().get_first_node_in_group("main_menu")
+	return menu != null and menu.visible
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
+	if event.is_action_pressed("pause") and not _main_menu_open():
 		if visible:
 			_resume()
 		else:
@@ -24,8 +29,8 @@ func _resume() -> void:
 
 func _save() -> void:
 	var save = Game.get_service("save")
-	if save:
-		save.save_game()
+	var ok := bool(save.save_game()) if save else false
+	save_button.text = "Saved" if ok else "Save failed"
 
 func _quit() -> void:
 	get_tree().quit()

@@ -15,6 +15,7 @@ export * from './composer/generate-input-map.js';
 export * from './composer/generate-project-godot.js';
 export * from './composer/generate-main-scene.js';
 export * from './composer/generate-main-script.js';
+export * from './composer/generate-save-sections.js';
 export * from './composer/write-game-manifest.js';
 export * from './spec/load-game-spec.js';
 export * from './spec/load-template.js';

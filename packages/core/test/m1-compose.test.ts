@@ -50,6 +50,13 @@ describe('m1 composition', () => {
     expect(input).toContain('_add("toggle_skills"');
     expect(input).toContain('_add("pause"');
 
+    const saveSections = JSON.parse(
+      readFileSync(join(outDir, 'game/_generated/save_sections.json'), 'utf8'),
+    );
+    expect(saveSections.sections).toEqual(
+      expect.arrayContaining(['inventory', 'progression', 'equipment']),
+    );
+
     const manifest = JSON.parse(
       readFileSync(join(outDir, 'game/game.manifest.json'), 'utf8'),
     );
