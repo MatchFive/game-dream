@@ -48,6 +48,9 @@ importers:
       '@gamedream/godot':
         specifier: workspace:*
         version: link:../godot
+      '@gamedream/web':
+        specifier: workspace:*
+        version: link:../web
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -86,6 +89,12 @@ importers:
       yaml:
         specifier: ^2.6.1
         version: 2.9.1
+
+  packages/web:
+    devDependencies:
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
 
 packages:
 

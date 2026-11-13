@@ -12,6 +12,7 @@ import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
+import { webComposeCommand, webVerifyCommand } from './commands/web.js';
 import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
@@ -206,6 +207,62 @@ export function createProgram(): Command {
         }
       },
     );
+
+  const webCommand = program
+    .command('web')
+    .description('Compose and verify the Web M0 canvas project');
+
+  webCommand
+    .command('compose')
+    .requiredOption('--out <dir>')
+    .option('--templates <dir>', 'web template directory', 'templates/web-m0')
+    .option('--name <name>', 'game name', 'web-m0')
+    .option('--force', 'overwrite existing project')
+    .option('--json', 'print JSON')
+    .action(
+      (options: {
+        out: string;
+        templates: string;
+        name: string;
+        force?: boolean;
+        json?: boolean;
+      }) => {
+        try {
+          const result = webComposeCommand({
+            outDir: options.out,
+            templatesDir: options.templates,
+            name: options.name,
+            force: options.force,
+          });
+          if (options.json) printJson(result);
+          else printLine(`Web project: ${result.outDir}`);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  webCommand
+    .command('verify')
+    .requiredOption('--path <dir>')
+    .option('--frames <count>', 'simulation frame budget', '600')
+    .option('--json', 'print JSON')
+    .action((options: { path: string; frames: string; json?: boolean }) => {
+      const result = webVerifyCommand({
+        projectDir: options.path,
+        frames: Number(options.frames),
+      });
+      if (options.json) printJson(result);
+      else if (result.passed) printLine('WEB_BOOT_OK\nWEB_WIN');
+      else {
+        printLine(`Web verification failed: ${result.message ?? 'unknown error'}`);
+        if (result.stdout) printLine(result.stdout);
+        if (result.stderr) printLine(result.stderr);
+      }
+      process.exitCode = result.passed ? 0 : 1;
+    });
 
   const mapCommand = program
     .command('map')

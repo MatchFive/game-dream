@@ -14,6 +14,7 @@
     "@gamedream/agent": "workspace:*",
     "@gamedream/core": "workspace:*",
     "@gamedream/godot": "workspace:*",
+    "@gamedream/web": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {

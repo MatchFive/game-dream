@@ -138,6 +138,18 @@ G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
 multi-frame review are deferred. `--vision fake` keeps the image local;
 `--vision openai` uploads it to the configured vision endpoint.
 
+## Web M0 (Canvas)
+
+The second engine track is a dependency-free Web M0 prototype: a pure ESM
+simulation plus a Canvas renderer and keyboard controls. `dream web compose`
+writes `index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `game.js`, and
+`game.json`; `dream web verify` runs the deterministic simulation and checks
+`WEB_BOOT_OK`/`WEB_WIN`. Phaser and browser screenshot verification are deferred
+renderer/verification swaps; the simulation contract stays.
+
+- `dream web compose --out ./web-game [--force]`
+- `dream web verify --path ./web-game`
+
 ## Prompt evaluation
 
 `dream eval` runs 20 prompt → GameSpec → template cases from
