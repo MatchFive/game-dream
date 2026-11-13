@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseGameSpec } from '../src/schemas/game-spec.js';
-import { parseModuleManifest, parseTemplate } from '../src/schemas/index.js';
+import { parseGameManifest, parseLockfile, parseModuleManifest, parseTemplate } from '../src/schemas/index.js';
 
 const valid = {
   version: 1,
@@ -92,6 +92,45 @@ describe('TemplateManifest schema', () => {
         view: 'top-down',
         modules: { required: [] },
       }),
+    ).toThrow();
+  });
+});
+
+describe('Lockfile schema', () => {
+  it('parses a valid lockfile', () => {
+    const lockfile = parseLockfile({
+      version: 1,
+      modules: [
+        { id: 'core.events', version: '1.0.0', source: 'local', hash: 'sha256:abc' },
+      ],
+    });
+    expect(lockfile.modules[0].id).toBe('core.events');
+  });
+
+  it('rejects a module without a hash', () => {
+    expect(() =>
+      parseLockfile({
+        version: 1,
+        modules: [{ id: 'core.events', version: '1.0.0', source: 'local' }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('GameManifest schema', () => {
+  it('parses managed and user globs', () => {
+    const manifest = parseGameManifest({
+      version: 1,
+      managed: ['game/_generated/**'],
+      user: ['game/content/**'],
+      hashes: { 'game/_generated/main.tscn': 'sha256:abc' },
+    });
+    expect(manifest.user).toEqual(['game/content/**']);
+  });
+
+  it('rejects an empty managed list', () => {
+    expect(() =>
+      parseGameManifest({ version: 1, managed: [], user: [], hashes: {} }),
     ).toThrow();
   });
 });
