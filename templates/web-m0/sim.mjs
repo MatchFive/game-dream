@@ -24,6 +24,7 @@ export function createSim(config) {
     time: 0,
     finished: null,
     bossPhase: false,
+    lootRng: 42,
     inventory: {},
     quests: (config.quests ?? []).map((quest) => ({
       ...quest,
@@ -46,6 +47,7 @@ export function createSim(config) {
 export function startLevel(state, index) {
   const level = state.levels[index];
   state.levelIndex = index;
+  if (index === 0) state.bossPhase = false;
   state.map = level.map;
   const height = level.map
     ? level.map.rows.length * level.map.tile_size
@@ -64,8 +66,8 @@ export function startLevel(state, index) {
     cooldown: 0,
     speed: level.enemy.speed,
     damage: level.enemy.attack_damage,
-    attack_range: level.enemy.attack_range ?? 40,
-    attack_cooldown: level.enemy.attack_cooldown ?? 1,
+    attack_range: level.enemy.attack_range ?? state.config.enemy.attack_range ?? 40,
+    attack_cooldown: level.enemy.attack_cooldown ?? state.config.enemy.attack_cooldown ?? 1,
     phase: false,
   };
   snapToFloor(state, state.player, 12);
@@ -147,11 +149,18 @@ function moveActor(state, actor, dx, dy, half) {
   if (!isWall(state, actor.x, nextY, half)) actor.y = nextY;
 }
 
+function nextLootRoll(state) {
+  state.lootRng = (Math.imul(state.lootRng, 1664525) + 1013904223) >>> 0;
+  return state.lootRng / 4294967296;
+}
+
 function addLoot(state, kind) {
   const table = state.config.loot?.[kind];
   if (Array.isArray(table)) {
     for (const drop of table) {
-      if (drop.chance < 1 || !drop.item_id) continue;
+      if (!drop.item_id) continue;
+      const chance = Number.isFinite(drop.chance) ? drop.chance : 0;
+      if (chance < 1 && nextLootRoll(state) > chance) continue;
       const name = state.config.items?.[drop.item_id] ?? drop.item_id;
       state.inventory[name] = (state.inventory[name] ?? 0) + 1;
     }
@@ -199,7 +208,7 @@ export function step(state, input, rawDt) {
   }
 
   const gap = distance(player, enemy);
-  if (gap > enemy.attack_range) {
+  if (gap > enemy.attack_range || !hasLineOfSight(state, player, enemy)) {
     const ex = player.x - enemy.x;
     const ey = player.y - enemy.y;
     const el = Math.hypot(ex, ey) || 1;
@@ -235,7 +244,8 @@ export function step(state, input, rawDt) {
 
   if (
     enemy.kind === 'boss' &&
-    !state.bossPhase &&
+    !enemy.phase &&
+    enemy.hp > 0 &&
     enemy.hp <= enemy.max_hp * 0.5
   ) {
     state.bossPhase = true;

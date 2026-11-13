@@ -94,6 +94,8 @@ describe('web M0', () => {
     expect(game).toContain('setBounds');
     expect(game).toContain('cameraZoom');
     expect(game).toContain('this.textures.exists(enemyKind)');
+    expect(game).toContain('ENRAGED');
+    expect(game).toContain('clearTint');
     expect(game).toContain('centerOn');
     expect(game).toContain('resetView');
     expect(game).toMatch(/ensureActors[\s\S]{0,400}configureCamera/);

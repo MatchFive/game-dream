@@ -70,6 +70,8 @@ export function restoreState(state, save) {
 
 export function resetState(state) {
   startLevel(state, 0);
+  state.bossPhase = false;
+  state.lootRng = 42;
   state.inventory = {};
   state.finished = null;
   for (const quest of state.quests) {

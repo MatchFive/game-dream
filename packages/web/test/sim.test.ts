@@ -92,6 +92,50 @@ describe('web sim', () => {
     expect(sim.isWall(state, 272, 176, 21.6)).toBe(true);
   });
 
+  it('uses configured ranges, phases a boss once, and resets the run state', async () => {
+    const sim = await loadSim();
+    const state = sim.createSim({
+      ...config,
+      levels: [
+        {
+          id: 'boss',
+          name: 'Boss',
+          map: null,
+          enemy: {
+            kind: 'boss',
+            max_hp: 30,
+            attack_damage: 5,
+            attack_range: 120,
+            speed: 70,
+            x: 140,
+            y: 80,
+            scale: 1,
+          },
+        },
+      ],
+    });
+    expect(state.enemy.attack_range).toBe(120);
+    state.player.x = 100;
+    state.player.y = 80;
+    sim.step(state, { attack: true }, 1 / 60);
+    expect(state.bossPhase).toBe(true);
+    expect(state.enemy.phase).toBe(true);
+    const speed = state.enemy.speed;
+    sim.step(state, { attack: true }, 1 / 60);
+    expect(state.enemy.speed).toBe(speed);
+
+    const save = await import('../../../templates/web-m0/save.mjs');
+    save.resetState(state);
+    expect(state.bossPhase).toBe(false);
+    expect(state.enemy.phase).toBe(false);
+  });
+
+  it('uses the configured attack range when no level data exists', async () => {
+    const sim = await loadSim();
+    const state = sim.createSim({ ...config, enemy: { ...config.enemy, attack_range: 90 } });
+    expect(state.enemy.attack_range).toBe(90);
+  });
+
   it('adds boss loot and completes kill quests', async () => {
     const sim = await loadSim();
     const state = sim.createSim({

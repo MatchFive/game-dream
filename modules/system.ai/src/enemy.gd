@@ -26,7 +26,8 @@ func _physics_process(delta: float) -> void:
 		return
 	var player = players[0]
 	var distance = global_position.distance_to(player.global_position)
-	if distance > attack_range:
+	var line_of_sight := _has_line_of_sight(player)
+	if distance > attack_range or not line_of_sight:
 		var direction = (player.global_position - global_position).normalized()
 		velocity = direction * speed
 		move_and_slide()
@@ -39,6 +40,14 @@ func _physics_process(delta: float) -> void:
 			if player_health:
 				player_health.take_damage(attack_damage)
 	_update_animation(velocity.length() > 0.1)
+
+func _has_line_of_sight(player: CollisionObject2D) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(
+		global_position,
+		player.global_position,
+	)
+	query.exclude = [get_rid(), player.get_rid()]
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 func _update_boss_phase() -> void:
 	if _boss_phase or enemy_kind != "boss":

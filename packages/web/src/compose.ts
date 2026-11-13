@@ -40,6 +40,7 @@ export interface WebLevel {
     max_hp: number;
     attack_damage: number;
     attack_range: number;
+    attack_cooldown: number;
     speed: number;
     x: number;
     y: number;
@@ -213,6 +214,7 @@ export function readContent(contentDir: string, modulesDir: string): EmbeddedCon
         max_hp: finiteNumber(enemy.max_hp, 'enemy.max_hp', 30),
         attack_damage: finiteNumber(enemy.attack_damage, 'enemy.attack_damage', 5),
         attack_range: finiteNumber(enemy.attack_range, 'enemy.attack_range', 40),
+        attack_cooldown: finiteNumber(enemy.attack_cooldown, 'enemy.attack_cooldown', 1),
         speed: finiteNumber(enemy.speed, 'enemy.speed', 80),
         x: finiteNumber(enemy.x, 'enemy.x', 600),
         y: finiteNumber(enemy.y, 'enemy.y', 240),
@@ -256,8 +258,15 @@ export function readContent(contentDir: string, modulesDir: string): EmbeddedCon
       const drops = Array.isArray(table.drops) ? table.drops : [];
       loot[tableId] = drops.map((drop) => ({
         item_id: String((drop as Record<string, unknown>).item_id ?? ''),
-        chance: finiteNumber((drop as Record<string, unknown>).chance, 'loot.chance', 1),
+        chance: finiteNumber((drop as Record<string, unknown>).chance, 'loot.chance', 0),
       }));
+    }
+  }
+  for (const [tableId, drops] of Object.entries(loot)) {
+    for (const drop of drops) {
+      if (!items[drop.item_id]) {
+        throw new Error(`invalid content: loot ${tableId} references unknown item ${drop.item_id}`);
+      }
     }
   }
 

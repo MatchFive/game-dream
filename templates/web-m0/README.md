@@ -30,7 +30,8 @@ and requires no external audio assets.
 node sim-run.mjs --frames 1800
 ```
 
-prints `WEB_BOOT_OK` and `WEB_WIN`.
+prints `WEB_BOOT_OK`, `WEB_MAP_OK`, `WEB_QUEST_COMPLETE`,
+`WEB_BOSS_PHASE`, and `WEB_WIN` when content includes levels/quests/boss.
 
 ## Screenshot
 

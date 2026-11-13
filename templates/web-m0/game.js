@@ -518,6 +518,12 @@ try {
       }
       this.playerActor.setPosition(state.player.x, state.player.y);
       this.enemyActor.setPosition(state.enemy.x, state.enemy.y);
+      if (state.enemy.phase) {
+        if (this.enemyActor.setTint) this.enemyActor.setTint(0xff8a8a);
+        else if (this.enemyActor.setFillStyle) this.enemyActor.setFillStyle(0xff8a8a, 1);
+      } else if (this.enemyActor.clearTint) {
+        this.enemyActor.clearTint();
+      }
       this.updateHud();
     }
 
@@ -535,12 +541,13 @@ try {
       renderList(questList, questEntries, 'No quests');
       questLine.textContent = questEntries.join(' · ');
       const warning = saveWarning ? ' · save unavailable' : '';
+      const enraged = state.enemy.phase ? ' · ENRAGED' : '';
       status.textContent =
         state.finished === 'win'
           ? `Victory · Level ${state.levelIndex + 1}/${state.levels.length} · Items ${items}${warning}`
           : state.finished === 'lose'
             ? `Defeat · R restart${warning}`
-            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J · O settings · R reset${warning}`;
+            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J · O settings · R reset${enraged}${warning}`;
     }
   }
 

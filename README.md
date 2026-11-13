@@ -157,7 +157,8 @@ remains browser- and headless-compatible.
 - `dream web compose --out ./web-game --content templates/rpg-action-m1/content --modules modules`
   embeds the five levels, maps, quests, enemy variants, and player/enemy/boss/wisp/guardian SVG assets.
 - `dream web verify --path ./web-game` requires `WEB_MAP_OK`/`WEB_QUEST_COMPLETE`
-  when the embedded config has levels/quests.
+  when the embedded config has levels/quests, and `WEB_BOSS_PHASE` when a boss
+  level is embedded.
 - `dream web verify --path ./web-game --visual` captures a 1280×720 real browser
   screenshot and checks non-black pixels/colors. Set `GAMEDREAM_BROWSER` if
   Chrome/Edge is not auto-detected. Exit codes: 0 pass, 1 infrastructure,
