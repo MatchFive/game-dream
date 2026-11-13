@@ -2,9 +2,8 @@ export const SETTINGS_KEY = 'gamedream-settings';
 export const DEFAULT_SETTINGS = Object.freeze({ music: 0.35, sfx: 0.7, fullscreen: false });
 
 function clamp(value, fallback) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return fallback;
-  return Math.min(1, Math.max(0, number));
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(1, Math.max(0, value));
 }
 
 export function normalizeSettings(raw) {

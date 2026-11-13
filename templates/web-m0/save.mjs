@@ -3,9 +3,23 @@ import { startLevel } from './sim.mjs';
 export const SAVE_VERSION = 1;
 export const SAVE_KEY = 'gamedream-save';
 
+export function saveKeyFor(config) {
+  const identity = JSON.stringify({
+    levels: (config.levels ?? []).map((level) => level.id),
+    quests: (config.quests ?? []).map((quest) => quest.id),
+  });
+  let hash = 2166136261;
+  for (let i = 0; i < identity.length; i += 1) {
+    hash ^= identity.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `gamedream:${config.name}:${(hash >>> 0).toString(36)}:save`;
+}
+
 export function snapshot(state) {
   return {
     version: SAVE_VERSION,
+    game: state.config?.name,
     level: state.levelIndex,
     hp: state.player.hp,
     inventory: { ...state.inventory },
@@ -34,7 +48,7 @@ function validSave(state, save) {
 }
 
 export function restoreState(state, save) {
-  if (!validSave(state, save)) return false;
+  if (!validSave(state, save) || save.game !== state.config?.name) return false;
   startLevel(state, save.level);
   state.player.hp = Math.min(state.config.player.hp, Math.max(1, save.hp));
   state.inventory = {};
@@ -48,7 +62,7 @@ export function restoreState(state, save) {
     if (!quest) continue;
     const progress = Number.isFinite(saved.progress) ? Math.max(0, Math.floor(saved.progress)) : 0;
     quest.progress = Math.min(quest.count, progress);
-    quest.completed = Boolean(saved.completed) || quest.progress >= quest.count;
+    quest.completed = quest.progress >= quest.count;
   }
   state.finished = null;
   return true;
@@ -75,10 +89,14 @@ export function readSave(storage, key = SAVE_KEY) {
   }
 }
 
-export function writeSave(storage, key, state) {
+export function writeSave(storage, key = SAVE_KEY, state) {
+  if (state === undefined && key && typeof key === 'object') {
+    state = key;
+    key = SAVE_KEY;
+  }
   try {
-    storage?.setItem(key, JSON.stringify(snapshot(state)));
-    return true;
+    const result = storage?.setItem(key, JSON.stringify(snapshot(state)));
+    return result !== false;
   } catch {
     return false;
   }
@@ -86,9 +104,9 @@ export function writeSave(storage, key, state) {
 
 export function clearSave(storage, key = SAVE_KEY) {
   try {
-    storage?.removeItem(key);
+    return storage?.removeItem(key) !== false;
   } catch {
-    // Storage can be unavailable in private contexts.
+    return false;
   }
 }
 

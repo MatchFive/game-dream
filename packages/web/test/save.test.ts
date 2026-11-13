@@ -61,6 +61,22 @@ describe('web save', () => {
     expect(state.quests[0].progress).toBe(1);
   });
 
+  it('uses content-specific save keys and clamps edge values', async () => {
+    const { sim, save } = await modules();
+    const first = { ...config, levels: [{ ...config.levels[0], id: 'first' }] };
+    const second = { ...config, levels: [{ ...config.levels[0], id: 'second' }] };
+    expect(save.saveKeyFor(first)).not.toBe(save.saveKeyFor(second));
+
+    const state = sim.createSim(config);
+    state.player.hp = 1;
+    state.levelIndex = 0;
+    const restored = sim.createSim(config);
+    expect(save.restoreState(restored, { ...save.snapshot(state), hp: 999, level: 0 })).toBe(true);
+    expect(restored.player.hp).toBe(config.player.hp);
+    expect(save.restoreState(restored, { ...save.snapshot(state), level: 99 })).toBe(false);
+    expect(save.restoreState(restored, { ...save.snapshot(state), version: 0 })).toBe(false);
+  });
+
   it('persists, loads, rejects corrupt saves, and resets', async () => {
     const { sim, save } = await modules();
     const storage = new MemoryStorage();
@@ -81,6 +97,20 @@ describe('web save', () => {
     expect(loaded.levelIndex).toBe(0);
     expect(loaded.inventory).toEqual({});
     expect(loaded.quests[0].progress).toBe(0);
+
+    const throwing = {
+      getItem() {
+        return null;
+      },
+      setItem() {
+        throw new Error('quota');
+      },
+      removeItem() {
+        throw new Error('quota');
+      },
+    };
+    expect(save.writeSave(throwing, 'save', state)).toBe(false);
+    expect(save.clearSave(throwing, 'save')).toBe(false);
   });
 });
 
@@ -89,6 +119,8 @@ describe('web settings', () => {
     const { settings } = await modules();
     const storage = new MemoryStorage();
     expect(settings.readSettings(storage)).toMatchObject({ music: 0.35, sfx: 0.7 });
+    storage.setItem('bad', JSON.stringify({ music: null, sfx: true, fullscreen: 'yes' }));
+    expect(settings.readSettings(storage, 'bad')).toEqual({ music: 0.35, sfx: 0.7, fullscreen: false });
     const normalized = settings.writeSettings(storage, { music: 9, sfx: -1, fullscreen: true });
     expect(normalized).toEqual({ music: 1, sfx: 0, fullscreen: true });
     expect(settings.readSettings(storage)).toEqual(normalized);

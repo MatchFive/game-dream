@@ -3,6 +3,7 @@ import {
   clearSave,
   loadState,
   resetState,
+  saveKeyFor,
   snapshot,
   writeSave,
 } from './save.mjs';
@@ -33,15 +34,17 @@ const storage = {
   setItem(key, value) {
     try {
       window.localStorage.setItem(key, value);
+      return true;
     } catch {
-      // Storage can be unavailable in private contexts.
+      return false;
     }
   },
   removeItem(key) {
     try {
       window.localStorage.removeItem(key);
+      return true;
     } catch {
-      // Storage can be unavailable in private contexts.
+      return false;
     }
   },
 };
@@ -53,7 +56,10 @@ const audio = {
   musicGain: null,
   sfxGain: null,
   init() {
-    if (this.ctx) return;
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') this.ctx.resume?.();
+      return;
+    }
     const AudioContext = window.AudioContext ?? window.webkitAudioContext;
     if (!AudioContext) return;
     try {
@@ -80,6 +86,13 @@ const audio = {
   },
   play(name) {
     if (!this.ctx || settings.sfx <= 0) return;
+    try {
+      this.playTone(name);
+    } catch {
+      // Audio is optional and must never block gameplay.
+    }
+  },
+  playTone(name) {
     const tones = {
       attack: [220, 0.05],
       hit: [90, 0.08],
@@ -122,9 +135,10 @@ function color(value, fallback) {
 try {
   const config = await fetch('./game.json').then((response) => response.json());
   const state = createSim(config);
-  const saveKey = `gamedream:${config.name}:save`;
+  const saveKey = saveKeyFor(config);
   const restored = loadState(storage, saveKey, state);
   let lastSave = restored ? JSON.stringify(snapshot(state)) : '';
+  let saveWarning = false;
 
   function worldSize() {
     return {
@@ -141,6 +155,7 @@ try {
   const height = initialSize.height;
 
   function applySettings() {
+    settings.fullscreen = Boolean(document.fullscreenElement);
     settings = writeSettings(storage, settings);
     musicInput.value = String(settings.music);
     sfxInput.value = String(settings.sfx);
@@ -150,28 +165,45 @@ try {
 
   function saveProgress() {
     if (state.finished) {
-      clearSave(storage, saveKey);
-      lastSave = '';
+      if (lastSave) {
+        clearSave(storage, saveKey);
+        lastSave = '';
+      }
       return;
     }
     const signature = JSON.stringify(snapshot(state));
     if (signature === lastSave) return;
-    if (writeSave(storage, saveKey, state)) lastSave = signature;
+    if (writeSave(storage, saveKey, state)) {
+      lastSave = signature;
+      saveWarning = false;
+    } else {
+      saveWarning = true;
+    }
   }
 
   function resetGame() {
     resetState(state);
     clearSave(storage, saveKey);
     lastSave = '';
+    saveWarning = false;
     audio.play('reset');
   }
+  document.addEventListener('fullscreenchange', () => {
+    settings.fullscreen = Boolean(document.fullscreenElement);
+    fullscreenInput.checked = settings.fullscreen;
+    writeSettings(storage, settings);
+  });
 
   applySettings();
 
   window.addEventListener('pointerdown', () => audio.init());
   window.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
+    const inPanel =
+      event.target instanceof Element &&
+      Boolean(event.target.closest('#inventory, #quests, #settings'));
     audio.init();
+    if (inPanel && key !== 'escape') return;
     if (!event.repeat && key === 'i') inventoryPanel.classList.toggle('hidden');
     if (!event.repeat && key === 'q') questsPanel.classList.toggle('hidden');
     if (!event.repeat && key === 'o') settingsPanel.classList.toggle('hidden');
@@ -180,6 +212,15 @@ try {
       inventoryPanel.classList.add('hidden');
       questsPanel.classList.add('hidden');
       settingsPanel.classList.add('hidden');
+    }
+    if (
+      document.activeElement instanceof Element &&
+      document.activeElement.closest('.panel') &&
+      (inventoryPanel.classList.contains('hidden') &&
+        questsPanel.classList.contains('hidden') &&
+        settingsPanel.classList.contains('hidden'))
+    ) {
+      document.activeElement.blur();
     }
     if (key === 'j' || key === ' ') audio.play('attack');
   });
@@ -193,14 +234,14 @@ try {
     applySettings();
   });
   fullscreenInput.addEventListener('change', async () => {
-    settings.fullscreen = fullscreenInput.checked;
-    applySettings();
+    const wanted = fullscreenInput.checked;
     try {
-      if (settings.fullscreen) await document.documentElement.requestFullscreen();
-      else await document.exitFullscreen();
+      if (wanted) await document.documentElement.requestFullscreen();
+      else if (document.fullscreenElement) await document.exitFullscreen();
     } catch {
-      // Fullscreen requires a user gesture and may be unavailable.
+      fullscreenInput.checked = false;
     }
+    applySettings();
   });
 
   class GameScene extends Phaser.Scene {
@@ -284,26 +325,29 @@ try {
       const beforeHp = state.enemy.hp;
       const beforeLevel = state.levelIndex;
       const wasFinished = state.finished;
+      const blocked =
+        document.activeElement instanceof Element &&
+        Boolean(document.activeElement.closest('#inventory, #quests, #settings'));
       let steps = 0;
       while (this.accumulator >= 1 / 60 && steps < 5) {
         step(
           state,
           {
-            left: this.cursors.left.isDown || this.cursors.a.isDown,
-            right: this.cursors.right.isDown || this.cursors.d.isDown,
-            up: this.cursors.up.isDown || this.cursors.w.isDown,
-            down: this.cursors.down.isDown || this.cursors.s.isDown,
-            attack: this.cursors.j.isDown || this.cursors.space.isDown,
+            left: !blocked && (this.cursors.left.isDown || this.cursors.a.isDown),
+            right: !blocked && (this.cursors.right.isDown || this.cursors.d.isDown),
+            up: !blocked && (this.cursors.up.isDown || this.cursors.w.isDown),
+            down: !blocked && (this.cursors.down.isDown || this.cursors.s.isDown),
+            attack: !blocked && (this.cursors.j.isDown || this.cursors.space.isDown),
           },
           1 / 60,
         );
         this.accumulator -= 1 / 60;
         steps += 1;
       }
-      if (state.enemy.hp < beforeHp) audio.play('hit');
+      saveProgress();
+      if (state.levelIndex === beforeLevel && state.enemy.hp < beforeHp) audio.play('hit');
       if (state.levelIndex !== beforeLevel) audio.play('level');
       if (state.finished && !wasFinished) audio.play(state.finished === 'win' ? 'win' : 'lose');
-      saveProgress();
       if (this.renderedLevel !== state.levelIndex) {
         const size = worldSize();
         if (size.width !== this.scale.width || size.height !== this.scale.height) {
@@ -330,12 +374,13 @@ try {
       );
       renderList(questList, questEntries, 'No quests');
       questLine.textContent = questEntries.join(' · ');
+      const warning = saveWarning ? ' · save unavailable' : '';
       status.textContent =
         state.finished === 'win'
-          ? `Victory · Level ${state.levelIndex + 1}/${state.levels.length} · Items ${items}`
+          ? `Victory · Level ${state.levelIndex + 1}/${state.levels.length} · Items ${items}${warning}`
           : state.finished === 'lose'
-            ? 'Defeat · R restart'
-            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J · O settings · R reset`;
+            ? `Defeat · R restart${warning}`
+            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J · O settings · R reset${warning}`;
     }
   }
 
