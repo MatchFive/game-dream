@@ -126,7 +126,7 @@ public sealed class GameBootstrap : MonoBehaviour
             y -= 1f;
         }
         bool attack = Input.GetKey(KeyCode.J) || Input.GetKey(KeyCode.Space);
-        _sim.Step(x, y, attack, Time.deltaTime);
+        _sim.Step(x, y, attack, Mathf.Min(Time.deltaTime, 0.05f));
         SyncActors();
 
         if (_sim.Won && !_reportedWin)

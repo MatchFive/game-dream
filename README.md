@@ -149,6 +149,8 @@ dream unity compose --out ./unity-game
 dream unity verify --path ./unity-game
 dream unity verify --path ./unity-game --runtime
 dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
+dream unity build --path ./unity-game
+dream unity screenshot --path ./unity-game
 ```
 
 `unity compose` generates a Unity 6 (`6000.x`) source project with a pure C#
@@ -164,6 +166,13 @@ Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
 `UNITY_TIMEOUT`; it does not boot the scene, so a pass is not a screenshot.
 Open the project in Unity and press Play to use the runtime bootstrap (no scene
 asset is required).
+
+`unity build` generates/updates `Assets/Scenes/Main.unity` and
+`ProjectSettings/EditorBuildSettings.asset`, then writes a Windows player
+(default `Builds/Windows/GameDream.exe`). `unity screenshot` enters play mode,
+renders the arena to a PNG, and exits. Both require a fresh output file and
+`UNITY_BUILD_OK` / `UNITY_SCREENSHOT_OK`; use a short project path on Windows to
+avoid Unity's long-path build issues.
 
 ## Web M0 (Phaser)
 

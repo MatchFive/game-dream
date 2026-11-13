@@ -11,10 +11,18 @@ const SCRIPT_META_FILES = [
   'Assets/Scripts/GameConfig.cs.meta',
   'Assets/Scripts/GameSim.cs.meta',
   'Assets/Scripts/GameBootstrap.cs.meta',
+  'Assets/Scripts/ScreenshotRunner.cs.meta',
   'Assets/Editor/EditorVerifier.cs.meta',
+  'Assets/Editor/ProjectBuilder.cs.meta',
+  'Assets/Editor/ScreenshotCapture.cs.meta',
 ] as const;
 
-const REQUIRED_MODULES = ['com.unity.modules.imgui', 'com.unity.modules.jsonserialize'];
+const REQUIRED_MODULES = [
+  'com.unity.modules.imageconversion',
+  'com.unity.modules.imgui',
+  'com.unity.modules.jsonserialize',
+  'com.unity.modules.screencapture',
+];
 
 function read(path: string): string {
   return readFileSync(path, 'utf8');
@@ -54,6 +62,10 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
     if (!(module in dependencies)) {
       return { passed: false, message: `Packages/manifest.json is missing ${module}` };
     }
+  }
+  const buildSettings = read(join(projectDir, 'ProjectSettings/EditorBuildSettings.asset'));
+  if (!buildSettings.includes('path: Assets/Scenes/Main.unity')) {
+    return { passed: false, message: 'EditorBuildSettings.asset does not include Main.unity' };
   }
 
   let config: Record<string, unknown>;
@@ -118,6 +130,40 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
     ],
   );
   if (verifierError) return { passed: false, message: verifierError };
+
+  const builderError = checkContains(
+    'Assets/Editor/ProjectBuilder.cs',
+    read(join(projectDir, 'Assets/Editor/ProjectBuilder.cs')),
+    [
+      'class ProjectBuilder',
+      'BuildWindows',
+      'BuildPipeline.BuildPlayer',
+      'StandaloneWindows64',
+      'UNITY_BUILD_OK',
+      'EnsureScene',
+    ],
+  );
+  if (builderError) return { passed: false, message: builderError };
+
+  const screenshotError = checkContains(
+    'Assets/Editor/ScreenshotCapture.cs',
+    read(join(projectDir, 'Assets/Editor/ScreenshotCapture.cs')),
+    ['class ScreenshotCapture', 'GAMEDREAM_SCREENSHOT_OUT', 'EnterPlaymode'],
+  );
+  if (screenshotError) return { passed: false, message: screenshotError };
+
+  const runnerError = checkContains(
+    'Assets/Scripts/ScreenshotRunner.cs',
+    read(join(projectDir, 'Assets/Scripts/ScreenshotRunner.cs')),
+    [
+      'class ScreenshotRunner',
+      'RenderTexture',
+      'EncodeToPNG',
+      'UNITY_SCREENSHOT_OK',
+      'UNITY_SCREENSHOT_TIMEOUT',
+    ],
+  );
+  if (runnerError) return { passed: false, message: runnerError };
 
   const guids = new Set<string>();
   for (const file of SCRIPT_META_FILES) {

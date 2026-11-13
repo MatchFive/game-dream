@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
@@ -6,11 +7,21 @@ import {
   composeUnityProject,
   detectUnity,
   hasUnityMarker,
+  runUnityBuild,
+  runUnityScreenshot,
   runUnityVerifier,
 } from '../src/index.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const unityBin = process.env.UNITY_BIN;
+
+function buildDir(): string {
+  if (process.platform === 'win32') {
+    mkdirSync('C:\\temp', { recursive: true });
+    return join('C:\\temp', `gd-unity-${process.pid}-${Date.now()}`, 'unity game');
+  }
+  return join(makeTempDir('gamedream unity artifacts '), 'unity game');
+}
 
 describe('unity runtime parsing', () => {
   it('matches only exact marker lines', () => {
@@ -40,4 +51,31 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(result.stdout).toContain('UNITY_SIM_OK');
     expect(result.stdout).toContain('UNITY_WIN');
   }, 200_000);
+
+  it('builds and screenshots fresh artifacts', () => {
+    const outDir = buildDir();
+    composeUnityProject({
+      outDir,
+      templatesDir: join(root, 'templates/unity-2d-m0'),
+      name: 'artifacts',
+    });
+    const unity = detectUnity({ bin: unityBin });
+    expect(unity).not.toBeNull();
+    const build = runUnityBuild({
+      projectDir: outDir,
+      unityBin: unity!.bin,
+      timeoutMs: 300_000,
+    });
+    expect(build.message).toBeUndefined();
+    expect(build.passed).toBe(true);
+    expect(existsSync(build.outputPath)).toBe(true);
+    const shot = runUnityScreenshot({
+      projectDir: outDir,
+      unityBin: unity!.bin,
+      timeoutMs: 180_000,
+    });
+    expect(shot.message).toBeUndefined();
+    expect(shot.passed).toBe(true);
+    expect(existsSync(shot.imagePath)).toBe(true);
+  }, 400_000);
 });

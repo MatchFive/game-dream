@@ -3,7 +3,12 @@ import { unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
-import { unityComposeCommand, unityVerifyCommand } from '../src/commands/unity.js';
+import {
+  unityBuildCommand,
+  unityComposeCommand,
+  unityScreenshotCommand,
+  unityVerifyCommand,
+} from '../src/commands/unity.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -23,6 +28,16 @@ describe('unity commands', () => {
     });
     expect(missingUnity.passed).toBe(false);
     expect(missingUnity.exitCode).toBe(3);
+    const missingBuild = unityBuildCommand({
+      projectDir: outDir,
+      unityBin: join(outDir, 'missing-unity.exe'),
+    });
+    expect(missingBuild.exitCode).toBe(3);
+    const missingShot = unityScreenshotCommand({
+      projectDir: outDir,
+      unityBin: join(outDir, 'missing-unity.exe'),
+    });
+    expect(missingShot.exitCode).toBe(3);
     unlinkSync(join(outDir, 'Assets/Editor/EditorVerifier.cs'));
     const failed = unityVerifyCommand({ projectDir: outDir });
     expect(failed.passed).toBe(false);

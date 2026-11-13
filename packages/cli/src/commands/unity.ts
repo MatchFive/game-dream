@@ -1,6 +1,8 @@
 import {
   composeUnityProject,
   detectUnity,
+  runUnityBuild,
+  runUnityScreenshot,
   runUnityVerifier,
   verifyUnityProject,
   type ComposeUnityOptions,
@@ -54,6 +56,50 @@ export function unityVerifyCommand(options: UnityVerifyOptions): UnityVerifyComm
     message: runtime.message,
     runtime,
   };
+}
+
+export function unityBuildCommand(options: {
+  projectDir: string;
+  outPath?: string;
+  unityBin?: string;
+  timeoutMs?: number;
+}) {
+  const staticResult = verifyUnityProject({ projectDir: options.projectDir });
+  if (!staticResult.passed) {
+    return { passed: false, exitCode: 1, message: staticResult.message };
+  }
+  const unity = detectUnity({ bin: options.unityBin });
+  if (!unity) {
+    return { passed: false, exitCode: 3, message: 'Unity 6000+ not found; set UNITY_BIN or pass --unity' };
+  }
+  return runUnityBuild({
+    projectDir: options.projectDir,
+    unityBin: unity.bin,
+    outPath: options.outPath,
+    timeoutMs: options.timeoutMs,
+  });
+}
+
+export function unityScreenshotCommand(options: {
+  projectDir: string;
+  outPath?: string;
+  unityBin?: string;
+  timeoutMs?: number;
+}) {
+  const staticResult = verifyUnityProject({ projectDir: options.projectDir });
+  if (!staticResult.passed) {
+    return { passed: false, exitCode: 1, message: staticResult.message };
+  }
+  const unity = detectUnity({ bin: options.unityBin });
+  if (!unity) {
+    return { passed: false, exitCode: 3, message: 'Unity 6000+ not found; set UNITY_BIN or pass --unity' };
+  }
+  return runUnityScreenshot({
+    projectDir: options.projectDir,
+    unityBin: unity.bin,
+    outPath: options.outPath,
+    timeoutMs: options.timeoutMs,
+  });
 }
 
 export type { UnityGameConfig };

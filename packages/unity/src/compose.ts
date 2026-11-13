@@ -13,11 +13,17 @@ import { join, resolve, sep } from 'node:path';
 
 export const UNITY_PROJECT_FILES = [
   'ProjectSettings/ProjectVersion.txt',
+  'ProjectSettings/EditorBuildSettings.asset',
   'Packages/manifest.json',
+  'Assets/Scenes/Main.unity',
+  'Assets/Scenes/Main.unity.meta',
   'Assets/Scripts/GameConfig.cs',
   'Assets/Scripts/GameSim.cs',
   'Assets/Scripts/GameBootstrap.cs',
+  'Assets/Scripts/ScreenshotRunner.cs',
   'Assets/Editor/EditorVerifier.cs',
+  'Assets/Editor/ProjectBuilder.cs',
+  'Assets/Editor/ScreenshotCapture.cs',
   'Assets/Resources/GameConfig.json',
   'README.md',
 ] as const;

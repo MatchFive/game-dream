@@ -50,6 +50,7 @@ namespace GameDream
             {
                 return;
             }
+            dt = Math.Min(dt, 0.05f);
             float length = (float)Math.Sqrt(moveX * moveX + moveY * moveY);
             if (length > 1f)
             {

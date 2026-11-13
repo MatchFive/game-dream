@@ -27,7 +27,12 @@ import {
   webVerifyVisualCommand,
 } from './commands/web.js';
 import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
-import { unityComposeCommand, unityVerifyCommand } from './commands/unity.js';
+import {
+  unityBuildCommand,
+  unityComposeCommand,
+  unityScreenshotCommand,
+  unityVerifyCommand,
+} from './commands/unity.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
 
@@ -654,6 +659,92 @@ export function createProgram(): Command {
             if (result.runtime?.stderr) printLine(result.runtime.stderr);
           }
           process.exitCode = result.exitCode;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  unityCommand
+    .command('build')
+    .requiredOption('--path <dir>')
+    .option('--out <exe>', 'Windows player output path')
+    .option('--unity <path>', 'Unity executable or Editor directory')
+    .option('--timeout <ms>', 'Unity build timeout', '300000')
+    .option('--json', 'print JSON')
+    .action(
+      (options: {
+        path: string;
+        out?: string;
+        unity?: string;
+        timeout: string;
+        json?: boolean;
+      }) => {
+        try {
+          const timeoutMs = Number(options.timeout);
+          if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            printLine('--timeout must be a positive number');
+            process.exitCode = 1;
+            return;
+          }
+          const result = unityBuildCommand({
+            projectDir: options.path,
+            outPath: options.out,
+            unityBin: options.unity,
+            timeoutMs,
+          });
+          if (options.json) printJson(result);
+          else if (result.passed && 'outputPath' in result) {
+            printLine(`Unity build: ${result.outputPath}`);
+          } else {
+            printLine(`Unity build failed: ${result.message ?? 'unknown error'}`);
+          }
+          process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  unityCommand
+    .command('screenshot')
+    .requiredOption('--path <dir>')
+    .option('--out <png>', 'screenshot output path')
+    .option('--unity <path>', 'Unity executable or Editor directory')
+    .option('--timeout <ms>', 'Unity screenshot timeout', '180000')
+    .option('--json', 'print JSON')
+    .action(
+      (options: {
+        path: string;
+        out?: string;
+        unity?: string;
+        timeout: string;
+        json?: boolean;
+      }) => {
+        try {
+          const timeoutMs = Number(options.timeout);
+          if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            printLine('--timeout must be a positive number');
+            process.exitCode = 1;
+            return;
+          }
+          const result = unityScreenshotCommand({
+            projectDir: options.path,
+            outPath: options.out,
+            unityBin: options.unity,
+            timeoutMs,
+          });
+          if (options.json) printJson(result);
+          else if (result.passed && 'imagePath' in result) {
+            printLine(`Screenshot: ${result.imagePath}`);
+          } else {
+            printLine(`Unity screenshot failed: ${result.message ?? 'unknown error'}`);
+          }
+          process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

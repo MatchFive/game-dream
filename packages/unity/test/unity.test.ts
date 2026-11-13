@@ -84,6 +84,11 @@ describe('unity M0 scaffold', () => {
         content: '{}\n',
         message: 'name/arena',
       },
+      {
+        file: 'ProjectSettings/EditorBuildSettings.asset',
+        content: '%YAML 1.1\n--- !u!1045 &1\nEditorBuildSettings:\n  m_Scenes: []\n',
+        message: 'Main.unity',
+      },
     ];
     for (const item of cases) {
       const outDir = join(makeTempDir('gamedream unity bad '), 'unity game');

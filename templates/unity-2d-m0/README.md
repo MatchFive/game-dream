@@ -14,6 +14,17 @@ Runtime markers: `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`.
 Headless markers: `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
 `UNITY_TIMEOUT`. A compile error exits before any marker appears.
 
+## Build and screenshot
+
+```text
+dream unity build --path <this-folder> --out <this-folder>/Builds/Windows/GameDream.exe
+dream unity screenshot --path <this-folder> --out <this-folder>/Screenshots/unity.png
+```
+
+`build` creates/updates `Assets/Scenes/Main.unity` and `EditorBuildSettings.asset`,
+then builds a Windows 64-bit player. `screenshot` enters play mode, renders the
+arena to a PNG, and exits. Both require Unity 6000.x and are opt-in slow runs.
+
 ## Headless verification
 
 With Unity installed:
