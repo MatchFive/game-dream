@@ -164,6 +164,9 @@ remains browser- and headless-compatible.
   `O` settings, `P` pause, `R` reset, and runtime WebAudio music/SFX with
   persisted volumes. Coarse-pointer/narrow viewports get touch D-pad, attack,
   panel, and pause controls with a responsive canvas/panel layout.
+- `dream web package --path ./web-game --out ./release/web-game` validates the
+  project and writes a deployable static directory plus `deployment.json` with
+  file sizes/SHA-256 hashes. See [docs/deploy-web.md](docs/deploy-web.md).
 
 ## Prompt evaluation
 

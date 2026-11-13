@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import {
   webComposeCommand,
+  webPackageCommand,
   webScreenshotCommand,
   webVerifyCommand,
   webVerifyVisualCommand,
@@ -21,6 +22,15 @@ describe('web CLI commands', () => {
     });
     const result = webVerifyCommand({ projectDir: outDir });
     expect(result.passed).toBe(true);
+  });
+
+  it('packages a verified project', () => {
+    const outDir = join(makeTempDir('gamedream web cli package '), 'web game');
+    webComposeCommand({ outDir, templatesDir: join(root, 'templates/web-m0') });
+    const release = join(makeTempDir('gamedream web cli release '), 'release');
+    const result = webPackageCommand({ projectDir: outDir, outDir: release });
+    expect(result.entry).toBe('index.html');
+    expect(result.files.length).toBeGreaterThan(8);
   });
 
   it('surfaces missing browsers for screenshot commands', async () => {

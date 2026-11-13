@@ -1,6 +1,7 @@
 import {
   captureWebScreenshot,
   composeWebProject,
+  packageWebProject,
   verifyWebProject,
   verifyWebVisual,
 } from '@gamedream/web';
@@ -20,6 +21,14 @@ export function webComposeCommand(options: WebComposeOptions) {
 
 export function webVerifyCommand(options: { projectDir: string; frames?: number }) {
   return verifyWebProject(options);
+}
+
+export function webPackageCommand(options: {
+  projectDir: string;
+  outDir: string;
+  force?: boolean;
+}) {
+  return packageWebProject(options);
 }
 
 export function webScreenshotCommand(options: {

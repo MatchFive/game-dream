@@ -36,3 +36,9 @@ prints `WEB_BOOT_OK` and `WEB_WIN`.
 Open the page in Chrome/Edge, or run `dream web screenshot --path .` for a
 headless screenshot. `dream web verify --path . --visual` also checks that the
 page is not blank.
+
+## Publish
+
+`dream web package --path . --out ../release` writes a validated static release
+with `deployment.json` (sizes and SHA-256 hashes). Upload the release directory
+to any static host; see the root `docs/deploy-web.md`.

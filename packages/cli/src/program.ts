@@ -14,6 +14,7 @@ import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
 import {
   webComposeCommand,
+  webPackageCommand,
   webScreenshotCommand,
   webVerifyCommand,
   webVerifyVisualCommand,
@@ -323,6 +324,35 @@ export function createProgram(): Command {
           if (visual.stderr) printLine(visual.stderr);
         }
         process.exitCode = combined.exitCode;
+      },
+    );
+
+  webCommand
+    .command('package')
+    .description('Copy a validated Web project into a deployable directory')
+    .requiredOption('--path <dir>')
+    .requiredOption('--out <dir>')
+    .option('--force', 'overwrite an existing package directory')
+    .option('--json', 'print JSON')
+    .action(
+      (options: { path: string; out: string; force?: boolean; json?: boolean }) => {
+        try {
+          const result = webPackageCommand({
+            projectDir: options.path,
+            outDir: options.out,
+            force: options.force,
+          });
+          if (options.json) printJson(result);
+          else {
+            printLine(
+              `Package: ${result.outDir} (${result.files.length} files, ${result.bytes} bytes)`,
+            );
+          }
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
       },
     );
 
