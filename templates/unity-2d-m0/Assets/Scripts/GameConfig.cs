@@ -68,10 +68,19 @@ namespace GameDream
     }
 
     [Serializable]
+    public sealed class ItemBonusConfig
+    {
+        public int attack_damage;
+        public int max_hp;
+    }
+
+    [Serializable]
     public sealed class ItemConfig
     {
         public string id;
         public string name;
+        public string slot;
+        public ItemBonusConfig bonuses = new ItemBonusConfig();
     }
 
     [Serializable]

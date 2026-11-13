@@ -13,6 +13,7 @@ const SCRIPT_META_FILES = [
   'Assets/Scripts/GameBootstrap.cs.meta',
   'Assets/Scripts/ScreenshotRunner.cs.meta',
   'Assets/Scripts/SmokeRunner.cs.meta',
+  'Assets/Scripts/SaveStore.cs.meta',
   'Assets/Editor/EditorVerifier.cs.meta',
   'Assets/Editor/ProjectBuilder.cs.meta',
   'Assets/Editor/ScreenshotCapture.cs.meta',
@@ -97,8 +98,11 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'bool Lost',
       'PlayerAttackRange',
       'Inventory',
+      'Equipment',
+      'PlayerDamage',
       'LootTableConfig',
       'AddLoot',
+      'Restore(',
     ],
   );
   if (simError) return { passed: false, message: simError };
@@ -108,6 +112,7 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
     read(join(projectDir, 'Assets/Scripts/GameConfig.cs')),
     [
       'class ItemConfig',
+      'class ItemBonusConfig',
       'class LootDropConfig',
       'item_id',
       'chance',
@@ -135,6 +140,13 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
   );
   if (bootstrapError) return { passed: false, message: bootstrapError };
 
+  const saveError = checkContains(
+    'Assets/Scripts/SaveStore.cs',
+    read(join(projectDir, 'Assets/Scripts/SaveStore.cs')),
+    ['class SaveData', 'class SaveStore', 'static bool Save', 'static bool Load', 'persistentDataPath'],
+  );
+  if (saveError) return { passed: false, message: saveError };
+
   const verifierError = checkContains(
     'Assets/Editor/EditorVerifier.cs',
     read(join(projectDir, 'Assets/Editor/EditorVerifier.cs')),
@@ -150,6 +162,7 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'UNITY_QUEST_COMPLETE',
       'UNITY_BOSS_PHASE',
       'UNITY_LOOT_OK',
+      'UNITY_SAVE_OK',
       'EditorApplication.Exit',
     ],
   );

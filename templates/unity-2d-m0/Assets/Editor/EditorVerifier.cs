@@ -49,6 +49,15 @@ public static class EditorVerifier
                 Debug.Log("UNITY_QUEST_COMPLETE");
             }
         }
+        if (SaveStore.Save(sim, "__verify"))
+        {
+            var restored = new GameSim(GameConfigLoader.Load());
+            if (SaveStore.Load(restored, "__verify") && restored.LevelIndex == sim.LevelIndex)
+            {
+                Debug.Log("UNITY_SAVE_OK");
+            }
+            SaveStore.Clear();
+        }
         if (sim.Won)
         {
             Debug.Log("UNITY_WIN");

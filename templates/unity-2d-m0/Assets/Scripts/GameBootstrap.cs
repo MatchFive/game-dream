@@ -1,3 +1,4 @@
+using System;
 using GameDream;
 using UnityEngine;
 
@@ -17,12 +18,12 @@ public sealed class GameBootstrap : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        if (Object.FindFirstObjectByType<GameBootstrap>() != null)
+        if (UnityEngine.Object.FindFirstObjectByType<GameBootstrap>() != null)
         {
             return;
         }
         GameObject root = new GameObject("GameDream");
-        Object.DontDestroyOnLoad(root);
+        UnityEngine.Object.DontDestroyOnLoad(root);
         root.AddComponent<GameBootstrap>();
     }
 
@@ -30,6 +31,11 @@ public sealed class GameBootstrap : MonoBehaviour
     {
         _config = GameConfigLoader.Load();
         _sim = new GameSim(_config);
+        bool smoke = Environment.GetEnvironmentVariable("GAMEDREAM_SMOKE_OUT") == "1";
+        if (!Application.isEditor && !smoke && SaveStore.Load(_sim, _config.name))
+        {
+            Debug.Log("UNITY_SAVE_LOADED");
+        }
         Debug.Log("UNITY_BOOT_OK");
         _mapRoot = new GameObject("MapRoot");
         SetupCamera();
@@ -174,6 +180,10 @@ public sealed class GameBootstrap : MonoBehaviour
         if (_sim.LevelIndex != _lastLevel)
         {
             BuildLevelVisuals();
+            if (!Application.isEditor)
+            {
+                SaveStore.Save(_sim, _config.name);
+            }
         }
         if (Input.GetKeyDown(KeyCode.I))
         {
@@ -183,10 +193,16 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             _showQuests = !_showQuests;
         }
+        if (Input.GetKeyDown(KeyCode.F5) && !Application.isEditor)
+        {
+            SaveStore.Save(_sim, _config.name);
+            Debug.Log("UNITY_SAVE_OK");
+        }
         if (_sim.Won || _sim.Lost)
         {
             if (Input.GetKey(KeyCode.R))
             {
+                SaveStore.Clear();
                 _sim.Reset();
                 _lastLevel = -1;
                 _reportedWin = false;
@@ -222,6 +238,10 @@ public sealed class GameBootstrap : MonoBehaviour
         if (_sim.Won && !_reportedWin)
         {
             _reportedWin = true;
+            if (!Application.isEditor)
+            {
+                SaveStore.Save(_sim, _config.name);
+            }
             Debug.Log("UNITY_WIN");
         }
         if (_sim.Lost && !_reportedLose)
@@ -266,7 +286,7 @@ public sealed class GameBootstrap : MonoBehaviour
         );
         GUI.Label(
             new Rect(16f, 42f, 900f, 24f),
-            "WASD/Arrows move   J/Space attack   I inventory   Q quests   R restart"
+            $"WASD/Arrows move   J/Space attack   I inventory   Q quests   F5 save   R restart   DMG {_sim.PlayerDamage}   MAX {_sim.PlayerMaxHp}"
         );
         string items = "";
         foreach (var entry in _sim.Inventory)

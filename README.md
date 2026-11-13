@@ -157,8 +157,11 @@ dream unity screenshot --path ./unity-game
 
 `unity compose` generates a Unity 6 (`6000.x`) source project with a pure C#
 `GameSim`, runtime bootstrap, and `EditorVerifier`. With `--content` it embeds the
-same five-level campaign, maps, quests, items and loot used by Godot/Web; without
-it, the M0 single-arena fallback is used. No Unity binary is bundled.
+same five-level campaign, maps, quests, items and loot used by Godot/Web; item
+slot/bonuses are auto-equipped, and player builds save inventory/equipment/
+level/quests under `Application.persistentDataPath` (headless verification and
+editor screenshots never load saves). Without content, the M0 single-arena
+fallback is used. No Unity binary is bundled.
 `unity verify` is a fast static file/marker check. `--runtime` launches
 `Unity.exe -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run
 -logFile -` and requires `UNITY_SIM_OK` + `UNITY_WIN`; it auto-detects common
@@ -168,8 +171,8 @@ static/runtime marker failure, 3 Unity missing.
 Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
 `EditorVerifier` prints `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
 `UNITY_TIMEOUT`; M1 content additionally requires `UNITY_MAP_OK`,
-`UNITY_QUEST_COMPLETE`, `UNITY_BOSS_PHASE`, and `UNITY_LOOT_OK`. It does not boot
-the scene, so a pass is not a screenshot.
+`UNITY_QUEST_COMPLETE`, `UNITY_BOSS_PHASE`, `UNITY_LOOT_OK`, and
+`UNITY_SAVE_OK`. It does not boot the scene, so a pass is not a screenshot.
 Open the project in Unity and press Play to use the runtime bootstrap (no scene
 asset is required).
 

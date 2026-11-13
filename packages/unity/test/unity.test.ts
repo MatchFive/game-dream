@@ -41,6 +41,10 @@ describe('unity M0 scaffold', () => {
     expect(result.config.levels?.[2].enemy.attack_range).toBe(180);
     expect(result.config.levels?.[0].map?.rows.length).toBe(20);
     expect(result.config.items).toHaveLength(6);
+    expect(result.config.items?.find((item) => item.id === 'rusty_sword')).toMatchObject({
+      slot: 'weapon',
+      bonuses: { attack_damage: 5, max_hp: 0 },
+    });
     expect(result.config.loot).toHaveLength(4);
     expect(result.config.loot?.find((table) => table.id === 'wisp')?.drops[0].item_id).toBe(
       'wisp_essence',

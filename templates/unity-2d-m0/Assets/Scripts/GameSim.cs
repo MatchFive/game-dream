@@ -39,11 +39,14 @@ namespace GameDream
         public string MapWallColor { get; private set; } = "181c2f";
         public readonly List<QuestState> Quests = new List<QuestState>();
         public readonly Dictionary<string, int> Inventory = new Dictionary<string, int>();
+        public readonly Dictionary<string, string> Equipment = new Dictionary<string, string>();
+        public int PlayerDamage => _config.player.damage + Bonus("attack_damage");
+        public int PlayerMaxHp => _config.player.hp + Bonus("max_hp");
         public float PlayerAttackRange => _config.player.attack_range;
         public float PlayerSpeed => _config.player.speed;
 
         private readonly GameConfig _config;
-        private readonly Dictionary<string, string> _itemNames = new Dictionary<string, string>();
+        private readonly Dictionary<string, ItemConfig> _items = new Dictionary<string, ItemConfig>();
         private readonly Dictionary<string, LootTableConfig> _loot =
             new Dictionary<string, LootTableConfig>();
         private LevelConfig[] _levels;
@@ -71,7 +74,7 @@ namespace GameDream
             {
                 foreach (ItemConfig item in _config.items)
                 {
-                    _itemNames[item.id] = string.IsNullOrEmpty(item.name) ? item.id : item.name;
+                    _items[item.id] = item;
                 }
             }
             if (_config.loot != null)
@@ -133,6 +136,7 @@ namespace GameDream
                 }
             }
             Inventory.Clear();
+            Equipment.Clear();
             _lootRng = 42;
             Won = false;
             Lost = false;
@@ -177,7 +181,7 @@ namespace GameDream
             EnemyY = _enemyConfig.y;
             PlayerX = 100f;
             PlayerY = ArenaHeight / 2f;
-            PlayerHp = _config.player.hp;
+            PlayerHp = PlayerMaxHp;
             _playerCooldown = 0f;
             _enemyCooldown = 0f;
             BossPhase = false;
@@ -223,7 +227,7 @@ namespace GameDream
             ))
             {
                 _playerCooldown = 0.25f;
-                EnemyHp -= _config.player.damage;
+                EnemyHp -= PlayerDamage;
                 gap = Distance(PlayerX, PlayerY, EnemyX, EnemyY);
             }
 
@@ -291,6 +295,103 @@ namespace GameDream
             }
         }
 
+        private int Bonus(string stat)
+        {
+            int total = 0;
+            foreach (string itemId in Equipment.Values)
+            {
+                ItemConfig item;
+                if (_items.TryGetValue(itemId, out item) && item.bonuses != null)
+                {
+                    if (stat == "attack_damage")
+                    {
+                        total += item.bonuses.attack_damage;
+                    }
+                    else if (stat == "max_hp")
+                    {
+                        total += item.bonuses.max_hp;
+                    }
+                }
+            }
+            return total;
+        }
+
+        private void AutoEquip(string itemId)
+        {
+            ItemConfig item;
+            if (
+                !_items.TryGetValue(itemId, out item) ||
+                string.IsNullOrEmpty(item.slot) ||
+                Equipment.ContainsKey(item.slot)
+            )
+            {
+                return;
+            }
+            int before = PlayerMaxHp;
+            Equipment[item.slot] = itemId;
+            int gained = PlayerMaxHp - before;
+            if (gained > 0)
+            {
+                PlayerHp += gained;
+            }
+        }
+
+        public bool Restore(
+            int levelIndex,
+            int playerHp,
+            string[] inventoryNames,
+            int[] inventoryCounts,
+            string[] equipmentSlots,
+            string[] equipmentIds,
+            int[] questProgress,
+            bool[] questCompleted
+        )
+        {
+            if (levelIndex < 0 || levelIndex >= _levels.Length)
+            {
+                return false;
+            }
+            Inventory.Clear();
+            Equipment.Clear();
+            if (equipmentSlots != null && equipmentIds != null)
+            {
+                int count = Math.Min(equipmentSlots.Length, equipmentIds.Length);
+                for (int i = 0; i < count; i += 1)
+                {
+                    if (!string.IsNullOrEmpty(equipmentSlots[i]))
+                    {
+                        Equipment[equipmentSlots[i]] = equipmentIds[i];
+                    }
+                }
+            }
+            StartLevel(levelIndex);
+            if (inventoryNames != null && inventoryCounts != null)
+            {
+                int count = Math.Min(inventoryNames.Length, inventoryCounts.Length);
+                for (int i = 0; i < count; i += 1)
+                {
+                    if (!string.IsNullOrEmpty(inventoryNames[i]) && inventoryCounts[i] > 0)
+                    {
+                        Inventory[inventoryNames[i]] = inventoryCounts[i];
+                    }
+                }
+            }
+            if (questProgress != null && questCompleted != null)
+            {
+                int count = Math.Min(
+                    Math.Min(questProgress.Length, questCompleted.Length),
+                    Quests.Count
+                );
+                for (int i = 0; i < count; i += 1)
+                {
+                    Quests[i].Progress = questProgress[i];
+                    Quests[i].Completed = questCompleted[i];
+                }
+            }
+            PlayerHp = Math.Max(1, Math.Min(playerHp, PlayerMaxHp));
+            return true;
+        }
+
         private void AddLoot(string kind)
         {
             LootTableConfig table;
@@ -309,12 +410,12 @@ namespace GameDream
                 {
                     continue;
                 }
-                string name;
-                if (!_itemNames.TryGetValue(drop.item_id, out name))
-                {
-                    name = drop.item_id;
-                }
+                ItemConfig item;
+                string name = _items.TryGetValue(drop.item_id, out item)
+                    ? (string.IsNullOrEmpty(item.name) ? item.id : item.name)
+                    : drop.item_id;
                 Inventory[name] = (Inventory.ContainsKey(name) ? Inventory[name] : 0) + 1;
+                AutoEquip(drop.item_id);
             }
         }
 

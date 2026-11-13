@@ -22,6 +22,7 @@ export const UNITY_PROJECT_FILES = [
   'Assets/Scripts/GameBootstrap.cs',
   'Assets/Scripts/ScreenshotRunner.cs',
   'Assets/Scripts/SmokeRunner.cs',
+  'Assets/Scripts/SaveStore.cs',
   'Assets/Editor/EditorVerifier.cs',
   'Assets/Editor/ProjectBuilder.cs',
   'Assets/Editor/ScreenshotCapture.cs',
@@ -62,9 +63,16 @@ export interface UnityQuest {
   count: number;
 }
 
+export interface UnityItemBonus {
+  attack_damage: number;
+  max_hp: number;
+}
+
 export interface UnityItem {
   id: string;
   name: string;
+  slot: string;
+  bonuses: UnityItemBonus;
 }
 
 export interface UnityLootDrop {
@@ -205,7 +213,16 @@ export function readUnityContent(contentDir: string): {
     for (const file of readdirSync(itemDir).filter((name) => name.endsWith('.json'))) {
       const item = readJson(join(itemDir, file));
       const id = String(item.id ?? file.replace(/\.json$/, ''));
-      items.push({ id, name: String(item.name ?? id) });
+      const bonuses = (item.bonuses ?? {}) as Record<string, unknown>;
+      items.push({
+        id,
+        name: String(item.name ?? id),
+        slot: String(item.slot ?? ''),
+        bonuses: {
+          attack_damage: finite(bonuses.attack_damage, 'item.bonus.attack_damage', 0),
+          max_hp: finite(bonuses.max_hp, 'item.bonus.max_hp', 0),
+        },
+      });
       itemIds.add(id);
     }
   }
