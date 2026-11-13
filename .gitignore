@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.gamedream/
+.superpowers/
+.tools/
+tmp/
+*.log
+.DS_Store
