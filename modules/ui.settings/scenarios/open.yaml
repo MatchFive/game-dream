@@ -1,0 +1,6 @@
+id: settings_ui.open
+module: ui.settings
+when:
+  - emit: settings.open
+then:
+  - assert_node_visible: Settings

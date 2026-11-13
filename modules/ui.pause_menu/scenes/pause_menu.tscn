@@ -23,5 +23,8 @@ text = "Resume"
 [node name="Save" type="Button" parent="Panel/VBox"]
 text = "Save"
 
+[node name="Settings" type="Button" parent="Panel/VBox"]
+text = "Settings"
+
 [node name="Quit" type="Button" parent="Panel/VBox"]
 text = "Quit"

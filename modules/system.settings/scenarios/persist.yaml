@@ -1,0 +1,7 @@
+id: settings.persist
+module: system.settings
+when:
+  - call: settings.set_music_volume
+    args: [0.5]
+then:
+  - assert_signal: changed

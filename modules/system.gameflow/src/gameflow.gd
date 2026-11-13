@@ -12,11 +12,13 @@ var _level2_reported := false
 var _boss_reported := false
 var _map_reported := false
 var _sprite_reported := false
+var _audio_reported := false
 
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
 	_apply_level()
 	call_deferred("_report_sprites")
+	call_deferred("_report_audio")
 	Game.events.event_emitted.connect(_on_event)
 	if DisplayServer.get_name() == "headless":
 		_headless_start()
@@ -131,6 +133,14 @@ func _report_sprites() -> void:
 	if sprites and sprites.has_applied("player") and sprites.has_applied("enemy"):
 		_sprite_reported = true
 		print("GAMEDREAM_SPRITE_OK")
+
+func _report_audio() -> void:
+	if _audio_reported:
+		return
+	var audio = Game.get_service("audio")
+	if audio and audio.initialized:
+		_audio_reported = true
+		print("GAMEDREAM_AUDIO_OK")
 
 func _headless_start() -> void:
 	var dialogue = Game.get_service("dialogue")

@@ -21,11 +21,14 @@ modules:
     - system.levels
     - system.map
     - system.sprites
+    - system.settings
+    - system.audio
     - system.inventory
     - ui.hud
     - ui.quest_tracker
     - ui.dialogue_box
     - ui.level_transition
+    - ui.settings
     - ui.result_screen
     - ui.inventory_screen
     - ui.equipment_screen
@@ -48,4 +51,4 @@ acceptance:
   - "暂停菜单可保存"
   - "三关切换并击败 Boss"
   - "胜利/失败结算可重开"
-acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_MAP_OK, GAMEDREAM_SPRITE_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_BOSS, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_VICTORY, GAMEDREAM_WIN]
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_MAP_OK, GAMEDREAM_SPRITE_OK, GAMEDREAM_AUDIO_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_BOSS, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_VICTORY, GAMEDREAM_WIN]

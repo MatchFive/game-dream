@@ -1,0 +1,17 @@
+id: system.settings
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action]
+depends: {}
+provides:
+  services: [settings]
+autoloads:
+  - name: SettingsService
+    path: src/settings_service.gd
+    order: 7
+scenarios: [scenarios/persist.yaml]
+ai_skill: skills/settings.md
+docs: api.md
+license: Apache-2.0

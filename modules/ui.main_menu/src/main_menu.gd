@@ -2,12 +2,14 @@ extends CanvasLayer
 
 @onready var new_game_button: Button = $Panel/VBox/NewGame
 @onready var continue_button: Button = $Panel/VBox/Continue
+@onready var settings_button: Button = $Panel/VBox/Settings
 @onready var quit_button: Button = $Panel/VBox/Quit
 
 func _ready() -> void:
 	add_to_group("main_menu")
 	new_game_button.pressed.connect(_start)
 	continue_button.pressed.connect(_continue)
+	settings_button.pressed.connect(_settings)
 	quit_button.pressed.connect(_quit)
 	if DisplayServer.get_name() == "headless":
 		visible = false
@@ -36,6 +38,9 @@ func _continue() -> void:
 		Game.events.emit_event("game.started", {"new_game": false})
 	else:
 		continue_button.text = "No save"
+
+func _settings() -> void:
+	Game.events.emit_event("settings.open", {})
 
 func _quit() -> void:
 	get_tree().quit()

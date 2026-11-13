@@ -76,7 +76,7 @@ campaign with a boss, tile maps, animated sprites, a player, health/combat,
 progression, loot, equipment, a skill, quests, and dialogue. Desktop controls:
 **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
 Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
-`GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
+`GAMEDREAM_AUDIO_OK`, `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
 `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_BOSS`,
 `GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and `GAMEDREAM_WIN`. The intro
 dialogue, slime/boss quests, three-level campaign, maps, and sprite configs come
@@ -88,8 +88,17 @@ Restart resets levels, health, inventory, progression, equipment, quests, and
 skills, then rebuilds level 1.
 
 UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
-The pause menu saves to `user://save.json`; the main menu offers New Game /
-Continue on desktop. Headless runs hide the menu and autoplay.
+The pause menu saves to `user://save.json`; the main and pause menus open
+**Settings**. The main menu offers New Game / Continue on desktop. Headless runs
+hide the menu and autoplay.
+
+## Audio and settings
+
+`system.audio` generates music and SFX at runtime (no audio assets), routes them
+through Music/SFX buses, and plays hit/pickup/level/skill/quest/win/lose/dialogue
+sounds. `system.settings` persists music volume, SFX volume, and fullscreen in
+`user://settings.json`; `ui.settings` exposes sliders and a fullscreen toggle
+from both menus. M1 prints `GAMEDREAM_AUDIO_OK`.
 
 Content is data-driven under `game/content/`:
 

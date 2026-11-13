@@ -1,0 +1,19 @@
+id: system.audio
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action]
+depends:
+  core.events: "^1.0.0"
+  system.settings: "^1.0.0"
+provides:
+  services: [audio]
+autoloads:
+  - name: AudioService
+    path: src/audio_service.gd
+    order: 50
+scenarios: [scenarios/play.yaml]
+ai_skill: skills/audio.md
+docs: api.md
+license: Apache-2.0

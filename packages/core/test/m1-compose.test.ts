@@ -36,6 +36,8 @@ describe('m1 composition', () => {
     expect(project).toContain('SaveService=');
     expect(project).toContain('MapService=');
     expect(project).toContain('SpriteService=');
+    expect(project).toContain('SettingsService=');
+    expect(project).toContain('AudioService=');
     expect(project).toContain('ScreenshotCapture=');
     const capture = readFileSync(
       join(outDir, 'game/_generated/screenshot.gd'),
@@ -51,6 +53,7 @@ describe('m1 composition', () => {
     expect(main).toContain('ui.quest_tracker/scenes/quest_tracker.tscn');
     expect(main).toContain('ui.dialogue_box/scenes/dialogue_box.tscn');
     expect(main).toContain('ui.level_transition/scenes/level_transition.tscn');
+    expect(main).toContain('ui.settings/scenes/settings.tscn');
     expect(main).toContain('ui.result_screen/scenes/result_screen.tscn');
     expect(main).toContain('ui.inventory_screen/scenes/inventory_screen.tscn');
     expect(main).toContain('ui.equipment_screen/scenes/equipment_screen.tscn');
@@ -78,6 +81,7 @@ describe('m1 composition', () => {
       'GAMEDREAM_BOOT_OK',
       'GAMEDREAM_MAP_OK',
       'GAMEDREAM_SPRITE_OK',
+      'GAMEDREAM_AUDIO_OK',
       'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',

@@ -16,6 +16,7 @@ const sourceFiles: Record<string, string> = {
   'core.save': 'save_service.gd',
   'core.stats': 'stats_service.gd',
   'system.ai': 'enemy.gd',
+  'system.audio': 'audio_service.gd',
   'system.combat': 'health_component.gd',
   'system.dialogue': 'dialogue_service.gd',
   'system.equipment': 'equipment_service.gd',
@@ -27,6 +28,7 @@ const sourceFiles: Record<string, string> = {
   'system.player': 'player.gd',
   'system.progression': 'progression_service.gd',
   'system.quests': 'quest_service.gd',
+  'system.settings': 'settings_service.gd',
   'system.skills': 'skill_service.gd',
   'system.sprites': 'sprite_service.gd',
   'ui.dialogue_box': 'dialogue_box.gd',
@@ -38,6 +40,7 @@ const sourceFiles: Record<string, string> = {
   'ui.pause_menu': 'pause_menu.gd',
   'ui.quest_tracker': 'quest_tracker.gd',
   'ui.result_screen': 'result_screen.gd',
+  'ui.settings': 'settings.gd',
   'ui.skill_screen': 'skill_screen.gd',
 };
 
@@ -53,6 +56,7 @@ describe('fixture content', () => {
       'core.save',
       'core.stats',
       'system.ai',
+      'system.audio',
       'system.combat',
       'system.dialogue',
       'system.equipment',
@@ -64,6 +68,7 @@ describe('fixture content', () => {
       'system.player',
       'system.progression',
       'system.quests',
+      'system.settings',
       'system.skills',
       'system.sprites',
       'ui.dialogue_box',
@@ -75,6 +80,7 @@ describe('fixture content', () => {
       'ui.pause_menu',
       'ui.quest_tracker',
       'ui.result_screen',
+      'ui.settings',
       'ui.skill_screen',
     ]);
     for (const id of ids) {
@@ -102,6 +108,7 @@ describe('fixture content', () => {
       'core.save': ['save_game', 'load_game', 'serialize', 'clear'],
       'core.stats': ['register_service', 'set_stat', 'get_stat'],
       'system.ai': ['move_and_slide', 'attack_damage', 'enemies', 'enemy.died', 'AnimatedSprite2D', 'sprites.apply'],
+      'system.audio': ['AudioStreamWAV', 'AudioServer', 'play_sfx', 'enemy.died', 'initialized'],
       'system.combat': ['take_damage', 'set_max_hp', 'heal_full', 'health_changed', 'died'],
       'system.equipment': ['equip', 'get_bonus', 'loot.dropped', 'reset'],
       'system.gameflow': [
@@ -138,6 +145,7 @@ describe('fixture content', () => {
       'system.dialogue': ['dialogue.line', 'dialogue.finished', 'advance', 'get_current_line'],
       'system.progression': ['add_xp', 'leveled_up', 'enemy.died', 'reset'],
       'system.quests': ['enemy.died', 'quest.completed', 'completed_count', 'serialize', 'reset'],
+      'system.settings': ['music_volume', 'sfx_volume', 'fullscreen', 'set_music_volume', 'save'],
       'system.skills': ['cast', 'cooldown', 'skill.cast', 'reset'],
       'system.sprites': ['AnimatedSprite2D', 'SpriteFrames', 'AtlasTexture', 'apply', 'has_applied'],
       'ui.dialogue_box': ['dialogue.line', 'advance'],
@@ -151,10 +159,11 @@ describe('fixture content', () => {
       ],
       'ui.inventory_screen': ['toggle_inventory', 'items()', 'Equip'],
       'ui.level_transition': ['level.transition', 'create_tween'],
-      'ui.main_menu': ['NewGame', 'load_game', 'paused', 'game.started'],
-      'ui.pause_menu': ['pause', 'save_game', 'paused'],
+      'ui.main_menu': ['NewGame', 'load_game', 'paused', 'game.started', 'settings.open'],
+      'ui.pause_menu': ['pause', 'save_game', 'paused', 'settings.open'],
       'ui.quest_tracker': ['begins_with("quest.")', 'get_active'],
       'ui.result_screen': ['game.won', 'game.lost', 'game.restart', 'PROCESS_MODE_ALWAYS'],
+      'ui.settings': ['settings.open', 'music_volume', 'fullscreen', 'PROCESS_MODE_ALWAYS'],
       'ui.skill_screen': ['toggle_skills', 'get_skill', 'cooldown'],
     };
     for (const [id, tokens] of Object.entries(expected)) {

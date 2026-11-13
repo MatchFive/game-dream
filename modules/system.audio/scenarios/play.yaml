@@ -1,0 +1,7 @@
+id: audio.play
+module: system.audio
+when:
+  - call: audio.play_sfx
+    args: [hit]
+then:
+  - assert_signal: initialized

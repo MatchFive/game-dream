@@ -26,6 +26,8 @@ describe('m0 composition', () => {
 
     expect(project).not.toContain('MapService=');
     expect(project).not.toContain('SpriteService=');
+    expect(project).not.toContain('SettingsService=');
+    expect(project).not.toContain('AudioService=');
 
     const input = readFileSync(join(outDir, 'game/_generated/input_map.gd'), 'utf8');
     expect(input).toContain('_add("move_left"');
@@ -40,6 +42,7 @@ describe('m0 composition', () => {
     expect(main).not.toContain('ui.dialogue_box');
     expect(main).not.toContain('ui.level_transition');
     expect(main).not.toContain('ui.result_screen');
+    expect(main).not.toContain('ui.settings');
 
     const mainScript = readFileSync(join(outDir, 'game/_generated/main.gd'), 'utf8');
     expect(mainScript).toContain('missing input action');

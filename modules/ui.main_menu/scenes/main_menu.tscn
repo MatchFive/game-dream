@@ -23,5 +23,8 @@ text = "New Game"
 [node name="Continue" type="Button" parent="Panel/VBox"]
 text = "Continue"
 
+[node name="Settings" type="Button" parent="Panel/VBox"]
+text = "Settings"
+
 [node name="Quit" type="Button" parent="Panel/VBox"]
 text = "Quit"

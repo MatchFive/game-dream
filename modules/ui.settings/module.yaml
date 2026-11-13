@@ -1,0 +1,19 @@
+id: ui.settings
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike, action]
+depends:
+  core.events: "^1.0.0"
+  system.settings: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: settings
+    scene: scenes/settings.tscn
+    layer: 44
+scenarios: [scenarios/open.yaml]
+ai_skill: skills/settings_ui.md
+docs: api.md
+license: Apache-2.0
