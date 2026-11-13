@@ -56,10 +56,13 @@ describe('web M0', () => {
     expect(html).toContain('id="inventory"');
     expect(html).toContain('id="quests"');
     expect(html).toContain('class="panel hidden"');
+    expect(html).toContain('vendor/phaser.min.js');
+    expect(existsSync(join(outDir, 'vendor/phaser.min.js'))).toBe(true);
     const game = readFileSync(join(outDir, 'game.js'), 'utf8');
     expect(game).toContain("key === 'i'");
     expect(game).toContain("key === 'q'");
     expect(game).toContain("key === 'escape'");
+    expect(game).toContain('new Phaser.Game');
     expect(game).toContain('Object.values(state.inventory).reduce');
 
     const verified = verifyWebProject({ projectDir: outDir, frames: 900 });

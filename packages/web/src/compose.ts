@@ -8,6 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve, sep } from 'node:path';
 
 export const WEB_PROJECT_FILES = [
@@ -18,6 +19,7 @@ export const WEB_PROJECT_FILES = [
   'game.js',
   'game.json',
   'README.md',
+  'vendor/phaser.min.js',
 ] as const;
 
 export interface WebMap {
@@ -117,6 +119,25 @@ const DEFAULT_CONFIG: WebGameConfig = {
     attack_cooldown: 1,
   },
 };
+
+function phaserBundle(): string {
+  const require = createRequire(import.meta.url);
+  let entry: string;
+  try {
+    entry = require.resolve('phaser');
+  } catch (error) {
+    throw new Error(`phaser is not installed: ${(error as Error).message}`);
+  }
+  const candidates = [
+    join(dirname(entry), 'phaser.min.js'),
+    join(dirname(entry), '..', 'dist', 'phaser.min.js'),
+  ];
+  const bundle = candidates.find((candidate) => existsSync(candidate));
+  if (!bundle) {
+    throw new Error(`phaser bundle not found: ${candidates.join(', ')}`);
+  }
+  return bundle;
+}
 
 function readJson(path: string): Record<string, unknown> {
   try {
@@ -270,6 +291,9 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
   mkdirSync(options.outDir, { recursive: true });
   try {
     cpSync(templatesDir, options.outDir, { recursive: true });
+    const vendor = join(options.outDir, 'vendor/phaser.min.js');
+    mkdirSync(dirname(vendor), { recursive: true });
+    copyFileSync(phaserBundle(), vendor);
     const missing = WEB_PROJECT_FILES.filter(
       (file) => file !== 'game.json' && !existsSync(join(options.outDir, file)),
     );

@@ -106,7 +106,7 @@ describe.skipIf(!browser)('web screenshot browser', () => {
     expect(visual.passed).toBe(true, visual.message);
   }, 30_000);
 
-  it('captures a non-blank M1 Canvas screenshot', async () => {
+  it('captures a non-blank M1 Phaser screenshot', async () => {
     const outDir = join(makeTempDir('gamedream web screenshot '), 'web game');
     composeWebProject({
       outDir,

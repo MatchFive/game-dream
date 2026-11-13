@@ -138,15 +138,16 @@ G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
 multi-frame review are deferred. `--vision fake` keeps the image local;
 `--vision openai` uploads it to the configured vision endpoint.
 
-## Web M0 (Canvas)
+## Web M0 (Phaser)
 
-The second engine track is a dependency-free Web M0 prototype: a pure ESM
-simulation plus a Canvas renderer and keyboard controls. `dream web compose`
-writes `index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `game.js`, and
-`game.json`; `dream web verify` runs the deterministic simulation and checks
+The second engine track is a Web M0 prototype: a pure ESM simulation plus a
+vendored Phaser 3 renderer and keyboard controls. `dream web compose` writes
+`index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `game.js`, `game.json`, and
+`vendor/phaser.min.js`; `dream web verify` runs the deterministic simulation and checks
 `WEB_BOOT_OK`/`WEB_WIN`. Serve the generated directory over HTTP (ES modules and
 `fetch` do not work from `file://`); the generated `README.md` shows the command.
-Phaser is a deferred renderer swap; the simulation contract stays.
+The generated project vendors `vendor/phaser.min.js`; the simulation contract
+remains browser- and headless-compatible.
 
 - `dream web compose --out ./web-game [--force]`
 - `dream web compose --out ./web-game --content templates/rpg-action-m1/content --modules modules`

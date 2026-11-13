@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "@gamedream/testing": "workspace:*"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
   }
 }
