@@ -176,7 +176,9 @@ remains browser- and headless-compatible.
   source release (modules/game/content/presets) with `release.json` hashes.
 - `dream godot export --path ./game --preset "Windows Desktop" --out ./build/game.exe`
   runs a native export when matching Godot 4.4 export templates are installed.
-  Missing templates exit 3 with guidance. See [docs/release-godot.md](docs/release-godot.md).
+  Missing templates exit 3 with guidance. `dream godot templates` reports the
+  expected directory/platforms. See [docs/release-godot.md](docs/release-godot.md)
+  and [docs/ci.md](docs/ci.md).
 
 ## Prompt evaluation
 

@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import {
   detectGodot,
   exportProject,
+  findExportTemplates,
   importProject,
   packageGodotProject,
 } from '@gamedream/godot';
@@ -44,7 +45,15 @@ export function createProgram(): Command {
         printLine(
           `Godot: ${report.godot ? `${report.godot.version} (${report.godot.bin})` : 'not found'}`,
         );
+        printLine(
+          `Export templates: ${
+            report.templates
+              ? `${report.templates.installed ? 'installed' : 'missing'} (${report.templates.dir})`
+              : 'unknown'
+          }`,
+        );
         for (const problem of report.problems) printLine(problem);
+        for (const warning of report.warnings) printLine(`warning: ${warning}`);
       }
       if (!report.ok) process.exitCode = 3;
     });
@@ -179,6 +188,37 @@ export function createProgram(): Command {
   const godotCommand = program
     .command('godot')
     .description('Package or export a generated Godot project');
+
+  godotCommand
+    .command('templates')
+    .description('Check installed Godot export templates')
+    .option('--json', 'print JSON')
+    .action(async (options: { json?: boolean }) => {
+      const godot = await detectGodot();
+      if (!godot) {
+        printLine('Godot not found; set GODOT_BIN.');
+        process.exitCode = 3;
+        return;
+      }
+      const status = findExportTemplates(godot.version);
+      if (options.json) printJson({ godot: godot.version, ...status });
+      else {
+        printLine(`Godot: ${godot.version}`);
+        printLine(`Templates: ${status.installed ? 'installed' : 'missing'} (${status.dir})`);
+        printLine(
+          `Platforms: ${Object.entries(status.platforms)
+            .filter(([, present]) => present)
+            .map(([name]) => name)
+            .join(', ') || 'none'}`,
+        );
+        if (!status.installed) {
+          printLine(
+            'Install the matching Godot 4.4 export templates from the Godot editor or the official download page, then re-run this command.',
+          );
+        }
+      }
+      process.exitCode = status.installed ? 0 : 1;
+    });
 
   godotCommand
     .command('package')

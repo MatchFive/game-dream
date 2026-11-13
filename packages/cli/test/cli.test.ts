@@ -47,6 +47,14 @@ describe('doctor', () => {
     expect(report.ok).toBe(true);
   });
 
+  it('reports export template status as a warning without changing doctor ok', async () => {
+    const env = { GODOT_BIN: 'godot', APPDATA: makeTempDir('gamedream doctor templates ') };
+    const report = await doctorCommand({ env, runner: fakeGodot });
+    expect(report.templates?.installed).toBe(false);
+    expect(report.ok).toBe(true);
+    expect(report.warnings.join(' ')).toContain('export templates');
+  });
+
   it('fails when the detected Godot is older than 4.4', async () => {
     const oldGodot: CommandRunner = {
       async run(command, args) {

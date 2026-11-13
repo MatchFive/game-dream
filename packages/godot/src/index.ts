@@ -7,3 +7,4 @@ export * from './run-screenshot.js';
 export * from './logs.js';
 export * from './package.js';
 export * from './export-project.js';
+export * from './templates.js';
