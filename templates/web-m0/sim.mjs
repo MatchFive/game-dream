@@ -143,8 +143,8 @@ function moveActor(state, actor, dx, dy, half) {
 }
 
 function addLoot(state, kind) {
-  const item = kind === 'boss' ? 'Boss Core' : 'Slime Gel';
-  state.inventory[item] = (state.inventory[item] ?? 0) + 1;
+  if (kind !== 'slime') return;
+  state.inventory['Slime Gel'] = (state.inventory['Slime Gel'] ?? 0) + 1;
 }
 
 function completeKillQuests(state, kind) {

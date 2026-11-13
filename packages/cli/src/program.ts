@@ -422,7 +422,7 @@ export function createProgram(): Command {
   webCommand
     .command('verify')
     .requiredOption('--path <dir>')
-    .option('--frames <count>', 'simulation frame budget', '600')
+    .option('--frames <count>', 'simulation frame budget', '1800')
     .option('--visual', 'run a real browser screenshot gate')
     .option('--screenshot-out <png>', 'visual screenshot path')
     .option('--browser <path>', 'Chrome/Edge executable')

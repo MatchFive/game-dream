@@ -48,7 +48,7 @@ describe('web package', () => {
     expect(deployment.entry).toBe('index.html');
     expect(deployment.bytes).toBe(result.bytes);
     expect(deployment.files).toEqual(result.files);
-    expect(verifyWebProject({ projectDir: out, frames: 900 }).passed).toBe(true);
+    expect(verifyWebProject({ projectDir: out }).passed).toBe(true);
   });
 
   it('requires force to overwrite and rejects incomplete projects', () => {

@@ -44,7 +44,7 @@ jobs:
             --content templates/rpg-action-m1/content \
             --modules modules \
             --name gamedream-m1
-          node packages/cli/dist/index.js web verify --path dist/web --frames 900
+          node packages/cli/dist/index.js web verify --path dist/web --frames 1800
           node packages/cli/dist/index.js web package --path dist/web --out dist/web-release
       - uses: actions/upload-artifact@v4
         with:

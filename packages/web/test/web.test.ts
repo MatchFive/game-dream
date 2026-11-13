@@ -90,6 +90,7 @@ describe('web M0', () => {
     expect(game).toContain('startFollow');
     expect(game).toContain('setBounds');
     expect(game).toContain('cameraZoom');
+    expect(game).toContain('this.textures.exists(enemyKind)');
     expect(game).toContain('centerOn');
     expect(game).toContain('resetView');
     expect(game).toMatch(/ensureActors[\s\S]{0,400}configureCamera/);
@@ -99,7 +100,7 @@ describe('web M0', () => {
     expect(css).toContain('body.paused #touch-controls');
     expect(game).toContain('Object.values(state.inventory).reduce');
 
-    const verified = verifyWebProject({ projectDir: outDir, frames: 900 });
+    const verified = verifyWebProject({ projectDir: outDir });
     expect(verified.passed).toBe(true);
     expect(verified.stdout).toContain('WEB_MAP_OK');
     expect(verified.stdout).toContain('WEB_QUEST_COMPLETE');

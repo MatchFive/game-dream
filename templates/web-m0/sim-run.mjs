@@ -3,7 +3,7 @@ import { createSim, distance, step } from './sim.mjs';
 
 const config = JSON.parse(readFileSync(new URL('./game.json', import.meta.url), 'utf8'));
 const frameIndex = process.argv.indexOf('--frames');
-const frames = Number(frameIndex === -1 ? 600 : process.argv[frameIndex + 1]);
+const frames = Number(frameIndex === -1 ? 1800 : process.argv[frameIndex + 1]);
 if (!Number.isFinite(frames) || frames <= 0) {
   console.error('invalid --frames');
   process.exit(2);

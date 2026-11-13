@@ -60,7 +60,7 @@ export function verifyWebProject(options: {
     [
       join(projectDir, 'sim-run.mjs'),
       '--frames',
-      String(options.frames ?? 600),
+      String(options.frames ?? 1800),
     ],
     { cwd: projectDir, encoding: 'utf8', timeout: 30_000 },
   );

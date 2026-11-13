@@ -464,8 +464,10 @@ try {
       this.enemyActor?.destroy();
       this.cameraTarget = null;
       this.playerActor = this.createActor('player', state.player, 0x2ec4f1, 1);
+      const enemyKind = state.enemy.kind === 'boss' ? 'boss' : state.enemy.kind;
+      const enemySprite = this.textures.exists(enemyKind) ? enemyKind : 'enemy';
       this.enemyActor = this.createActor(
-        state.enemy.kind === 'boss' ? 'boss' : 'enemy',
+        enemySprite,
         state.enemy,
         0xef5350,
         state.enemy.scale,

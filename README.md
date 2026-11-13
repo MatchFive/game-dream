@@ -71,15 +71,16 @@ verification.
 
 ## Playable M0 slice
 
-Action-RPG prompts now select the `rpg-action-m1` template: a three-level forest
-campaign with a boss, tile maps, animated sprites, a player, health/combat,
-progression, loot, equipment, a skill, quests, and dialogue. Desktop controls:
+Action-RPG prompts now select the `rpg-action-m1` template: a five-level campaign
+through forest, shrine, throne, and sanctum maps with slime/wisp/guardian
+variants and a final boss, tile maps, animated sprites, a player,
+health/combat, progression, loot, equipment, a skill, quests, and dialogue. Desktop controls:
 **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
 Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
 `GAMEDREAM_AUDIO_OK`, `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
 `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_BOSS`,
 `GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and `GAMEDREAM_WIN`. The intro
-dialogue, slime/boss quests, three-level campaign, maps, and sprite configs come
+dialogue, slime/wisp/guardian/boss kill quests, five-level campaign, maps, and sprite configs come
 from `game/content/dialogue`, `game/content/quests`, `game/content/levels`,
 `game/content/maps`, and `game/content/sprites`; the quest tracker is always on.
 
@@ -105,7 +106,7 @@ Content is data-driven under `game/content/`:
 - `items/*.json` — item id, slot, stat bonuses
 - `skills/*.json` — damage, range, cooldown
 - `loot/*.json` — enemy kind → drop table
-- `quests/*.json` — slime and boss kill objectives with XP rewards
+- `quests/*.json` — slime/wisp/guardian/boss kill objectives with XP rewards
 - `dialogue/*.json` — speaker lines
 - `levels/*.json` — per-level map id, enemy stats, and positions
 - `maps/*.json` — tile rows (`#` wall, `.` floor), colors, and tile size
@@ -113,8 +114,10 @@ Content is data-driven under `game/content/`:
 
 The composer copies template content only when a file does not already exist, so
 user edits survive recompose. Existing projects keep their old `campaign.json`
-(including its level count); re-create into a fresh directory to pick up the boss
-level, or merge `levels/campaign.json` and `maps/throne.json` manually.
+(including its level count); re-create into a fresh directory to pick up the M2
+five-level campaign, or merge `levels/campaign.json`, `maps/shrine.json`,
+`maps/sanctum.json`, `quests/kill_wisp.json`, `quests/kill_guardian.json`,
+`sprites/wisp.json`, `sprites/guardian.json`, and the new AI assets manually.
 `rpg-action-m0` and `fixture-minimal` remain available as smaller templates.
 
 ## Screenshots and G6
