@@ -1,6 +1,7 @@
 import { createSim, step } from './sim.mjs';
 
 const status = document.querySelector('#status');
+const questLine = document.querySelector('#quests-line');
 const inventoryPanel = document.querySelector('#inventory');
 const questsPanel = document.querySelector('#quests');
 const inventoryList = document.querySelector('#inventory-list');
@@ -27,12 +28,19 @@ function color(value, fallback) {
 try {
   const config = await fetch('./game.json').then((response) => response.json());
   const state = createSim(config);
-  const width = state.map
-    ? state.map.rows[0].length * state.map.tile_size
-    : config.arena.width;
-  const height = state.map
-    ? state.map.rows.length * state.map.tile_size
-    : config.arena.height;
+  function worldSize() {
+    return {
+      width: state.map
+        ? state.map.rows[0].length * state.map.tile_size
+        : config.arena.width,
+      height: state.map
+        ? state.map.rows.length * state.map.tile_size
+        : config.arena.height,
+    };
+  }
+  const initialSize = worldSize();
+  const width = initialSize.width;
+  const height = initialSize.height;
 
   window.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
@@ -79,7 +87,7 @@ try {
       const graphics = this.graphics;
       graphics.clear();
       if (!state.map) {
-        graphics.fillStyle(0x1b3324, 1).fillRect(0, 0, width, height);
+        graphics.fillStyle(0x1b3324, 1).fillRect(0, 0, this.scale.width, this.scale.height);
         this.renderedLevel = state.levelIndex;
         return;
       }
@@ -139,6 +147,10 @@ try {
         steps += 1;
       }
       if (this.renderedLevel !== state.levelIndex) {
+        const size = worldSize();
+        if (size.width !== this.scale.width || size.height !== this.scale.height) {
+          this.scale.resize(size.width, size.height);
+        }
         this.drawMap();
         this.ensureActors();
       }
@@ -154,14 +166,12 @@ try {
         Object.entries(state.inventory).map(([name, count]) => `${name} × ${count}`),
         'Empty',
       );
-      renderList(
-        questList,
-        state.quests.map(
-          (quest) =>
-            `${quest.title} ${Math.min(quest.progress, quest.count)}/${quest.count}${quest.completed ? ' ✓' : ''}`,
-        ),
-        'No quests',
+      const questEntries = state.quests.map(
+        (quest) =>
+          `${quest.title} ${Math.min(quest.progress, quest.count)}/${quest.count}${quest.completed ? ' ✓' : ''}`,
       );
+      renderList(questList, questEntries, 'No quests');
+      questLine.textContent = questEntries.join(' · ');
       status.textContent =
         state.finished === 'win'
           ? `Victory · Level ${state.levelIndex + 1}/${state.levels.length} · Items ${items}`

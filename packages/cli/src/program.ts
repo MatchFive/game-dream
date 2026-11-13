@@ -215,7 +215,7 @@ export function createProgram(): Command {
 
   const webCommand = program
     .command('web')
-    .description('Compose and verify the Web M0 canvas project');
+    .description('Compose and verify the Web M0 Phaser project');
 
   webCommand
     .command('compose')
