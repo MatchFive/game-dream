@@ -150,7 +150,10 @@ Phaser and browser screenshot verification are deferred renderer/verification
 swaps; the simulation contract stays.
 
 - `dream web compose --out ./web-game [--force]`
-- `dream web verify --path ./web-game`
+- `dream web compose --out ./web-game --content templates/rpg-action-m1/content --modules modules`
+  embeds the three levels, maps, quests, enemy stats, and player/enemy/boss SVG assets.
+- `dream web verify --path ./web-game` requires `WEB_MAP_OK`/`WEB_QUEST_COMPLETE`
+  when the embedded config has levels/quests.
 
 ## Prompt evaluation
 

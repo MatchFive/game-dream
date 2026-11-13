@@ -34,6 +34,30 @@ describe('web M0', () => {
     expect(bare.stdout).toContain('WEB_WIN');
   });
 
+  it('embeds M1 content, sprites, levels, and quests', () => {
+    const outDir = join(makeTempDir('gamedream web content '), 'web game');
+    const result = composeWebProject({
+      outDir,
+      templatesDir,
+      contentDir: join(root, 'templates/rpg-action-m1/content'),
+      modulesDir: join(root, 'modules'),
+      name: 'm1-web',
+    });
+    expect(result.config.levels).toHaveLength(3);
+    expect(result.config.quests).toHaveLength(2);
+    expect(result.config.sprites).toMatchObject({
+      player: 'assets/player.svg',
+      enemy: 'assets/enemy.svg',
+      boss: 'assets/enemy.svg',
+    });
+    expect(existsSync(join(outDir, 'assets/player.svg'))).toBe(true);
+
+    const verified = verifyWebProject({ projectDir: outDir, frames: 900 });
+    expect(verified.passed).toBe(true);
+    expect(verified.stdout).toContain('WEB_MAP_OK');
+    expect(verified.stdout).toContain('WEB_QUEST_COMPLETE');
+  });
+
   it('refuses overwrite unless forced', () => {
     const outDir = join(makeTempDir('gamedream web overwrite '), 'web game');
     composeWebProject({ outDir, templatesDir });

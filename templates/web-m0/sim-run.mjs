@@ -8,8 +8,11 @@ if (!Number.isFinite(frames) || frames <= 0) {
   console.error('invalid --frames');
   process.exit(2);
 }
+
 const state = createSim(config);
 console.log('WEB_BOOT_OK');
+if (config.levels?.length) console.log('WEB_MAP_OK');
+
 for (let frame = 0; frame < frames; frame += 1) {
   const gap = distance(state.player, state.enemy);
   step(
@@ -21,6 +24,10 @@ for (let frame = 0; frame < frames; frame += 1) {
     1 / 60,
   );
   if (state.finished) break;
+}
+
+if (state.quests.some((quest) => quest.completed)) {
+  console.log('WEB_QUEST_COMPLETE');
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');

@@ -216,6 +216,8 @@ export function createProgram(): Command {
     .command('compose')
     .requiredOption('--out <dir>')
     .option('--templates <dir>', 'web template directory', 'templates/web-m0')
+    .option('--content <dir>', 'M1 content directory to embed')
+    .option('--modules <dir>', 'modules directory for sprite assets', 'modules')
     .option('--name <name>', 'game name', 'web-m0')
     .option('--force', 'overwrite existing project')
     .option('--json', 'print JSON')
@@ -223,6 +225,8 @@ export function createProgram(): Command {
       (options: {
         out: string;
         templates: string;
+        content?: string;
+        modules: string;
         name: string;
         force?: boolean;
         json?: boolean;
@@ -231,6 +235,8 @@ export function createProgram(): Command {
           const result = webComposeCommand({
             outDir: options.out,
             templatesDir: options.templates,
+            contentDir: options.content,
+            modulesDir: options.modules,
             name: options.name,
             force: options.force,
           });

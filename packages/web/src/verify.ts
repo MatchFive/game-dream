@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { WEB_PROJECT_FILES } from './compose.js';
@@ -31,6 +31,18 @@ export function verifyWebProject(options: {
       };
     }
   }
+  const config = JSON.parse(
+    readFileSync(join(projectDir, 'game.json'), 'utf8'),
+  ) as { levels?: unknown[]; quests?: unknown[] };
+  const requiredMarkers = ['WEB_BOOT_OK'];
+  if (Array.isArray(config.levels) && config.levels.length > 0) {
+    requiredMarkers.push('WEB_MAP_OK');
+  }
+  if (Array.isArray(config.quests) && config.quests.length > 0) {
+    requiredMarkers.push('WEB_QUEST_COMPLETE');
+  }
+  requiredMarkers.push('WEB_WIN');
+
   const result = spawnSync(
     process.execPath,
     [
@@ -56,9 +68,7 @@ export function verifyWebProject(options: {
           : `sim failed: ${result.error.message}`,
     };
   }
-  const missing = ['WEB_BOOT_OK', 'WEB_WIN'].find(
-    (marker) => !hasMarker(stdout, marker),
-  );
+  const missing = requiredMarkers.find((marker) => !hasMarker(stdout, marker));
   if (exitCode !== 0 || missing) {
     const marker = stdout
       .split(/\r?\n/)
