@@ -28,3 +28,9 @@ func set_max_hp(value: int) -> void:
 		return
 	hp = clampi(hp + max(0, value - old_max), 1, max_hp)
 	health_changed.emit(hp, max_hp)
+
+func heal_full() -> void:
+	if hp <= 0 or hp == max_hp:
+		return
+	hp = max_hp
+	health_changed.emit(hp, max_hp)

@@ -1,0 +1,19 @@
+id: ui.level_transition
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike, action]
+depends:
+  core.events: "^1.0.0"
+  system.levels: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: level_transition
+    scene: scenes/level_transition.tscn
+    layer: 30
+scenarios: [scenarios/fade.yaml]
+ai_skill: skills/level_transition.md
+docs: api.md
+license: Apache-2.0

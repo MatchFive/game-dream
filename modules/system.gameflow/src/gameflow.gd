@@ -1,13 +1,16 @@
 extends Node2D
 
-@onready var player: CharacterBody2D = $Player
-@onready var enemy: CharacterBody2D = $Enemy
+const ENEMY_SCENE := preload("res://modules/system.ai/scenes/enemy.tscn")
 
+@onready var player: CharacterBody2D = $Player
+@onready var enemy_root: Node2D = $EnemyRoot
+
+var enemy = null
 var _finished := false
 
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
-	enemy.get_node("Health").died.connect(_win)
+	_apply_level()
 	Game.events.event_emitted.connect(_on_event)
 	if DisplayServer.get_name() == "headless":
 		_headless_start()
@@ -17,6 +20,32 @@ func _on_event(event_name: String, _payload: Variant) -> void:
 		var dialogue = Game.get_service("dialogue")
 		if dialogue and not dialogue.is_active():
 			dialogue.start("intro")
+	elif event_name == "level.started" and not _finished:
+		var levels = Game.get_service("levels")
+		if levels and levels.current_index == 1:
+			print("GAMEDREAM_LEVEL_2")
+		_apply_level()
+
+func _apply_level() -> void:
+	if is_instance_valid(enemy):
+		enemy.queue_free()
+	enemy = null
+	var level := {}
+	var levels = Game.get_service("levels")
+	if levels:
+		level = levels.current_level()
+	var data_value = level.get("enemy", {})
+	var data: Dictionary = data_value if data_value is Dictionary else {}
+	enemy = ENEMY_SCENE.instantiate()
+	enemy.enemy_kind = str(data.get("kind", "slime"))
+	enemy.speed = float(data.get("speed", 80.0))
+	enemy.attack_damage = int(data.get("attack_damage", 5))
+	enemy.position = Vector2(float(data.get("x", 600)), float(data.get("y", 240)))
+	enemy.get_node("Health").max_hp = int(data.get("max_hp", 30))
+	enemy_root.add_child(enemy)
+	enemy.get_node("Health").died.connect(_on_enemy_died)
+	var health = player.get_node("Health")
+	health.heal_full()
 
 func _headless_start() -> void:
 	var dialogue = Game.get_service("dialogue")
@@ -26,6 +55,15 @@ func _headless_start() -> void:
 			dialogue.advance()
 		print("GAMEDREAM_DIALOGUE")
 	_autoplay()
+
+func _on_enemy_died() -> void:
+	if _finished:
+		return
+	var levels = Game.get_service("levels")
+	if levels and levels.has_next():
+		levels.advance()
+	else:
+		_win()
 
 func _win() -> void:
 	if _finished:
@@ -72,7 +110,7 @@ func _lose() -> void:
 func _autoplay() -> void:
 	await get_tree().create_timer(0.2).timeout
 	Input.action_press("move_right")
-	await get_tree().create_timer(1.4).timeout
+	await get_tree().create_timer(1.0).timeout
 	Input.action_release("move_right")
 	var skills = Game.get_service("skills")
 	if skills:
@@ -84,11 +122,17 @@ func _autoplay() -> void:
 			push_error("GAMEDREAM_SKILL_DAMAGE_MISSING")
 			get_tree().quit(1)
 			return
-	for _i in 3:
-		Input.action_press("attack")
-		await get_tree().create_timer(0.1).timeout
-		Input.action_release("attack")
-		await get_tree().create_timer(0.3).timeout
-	await get_tree().create_timer(0.5).timeout
+	var frames := 0
+	while not _finished and frames < 1200:
+		if is_instance_valid(enemy) and player.global_position.distance_to(enemy.global_position) > 50.0:
+			Input.action_press("move_right")
+			Input.action_release("attack")
+		else:
+			Input.action_release("move_right")
+			Input.action_press("attack")
+		await get_tree().physics_frame
+		frames += 1
+	Input.action_release("attack")
+	Input.action_release("move_right")
 	if not _finished:
 		_lose()

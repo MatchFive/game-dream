@@ -5,6 +5,7 @@ var skills: Dictionary = {}
 var loot_tables: Dictionary = {}
 var quests: Dictionary = {}
 var dialogue: Dictionary = {}
+var levels: Dictionary = {}
 
 func _ready() -> void:
 	Game.register_service("content", self)
@@ -14,6 +15,7 @@ func _ready() -> void:
 	_load_dir("loot_tables", loot_tables, false)
 	_load_dir("quests", quests)
 	_load_dir("dialogue", dialogue)
+	_load_dir("levels", levels)
 
 func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) -> void:
 	var path := "res://game/content/%s" % folder
@@ -33,6 +35,8 @@ func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) ->
 					push_warning("content: quest missing objective in %s/%s" % [path, file])
 				if folder == "dialogue" and not data.get("lines") is Array:
 					push_warning("content: dialogue missing lines in %s/%s" % [path, file])
+				if folder == "levels" and not data.get("levels") is Array:
+					push_warning("content: level set missing levels in %s/%s" % [path, file])
 				target[data["id"]] = data
 			else:
 				push_warning("content: invalid JSON in %s/%s" % [path, file])
@@ -53,3 +57,6 @@ func get_quest(id: String) -> Dictionary:
 
 func get_dialogue(id: String) -> Dictionary:
 	return dialogue.get(id, {})
+
+func get_level(id: String) -> Dictionary:
+	return levels.get(id, {})

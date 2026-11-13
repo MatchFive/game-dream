@@ -40,6 +40,7 @@ describe('m1 composition', () => {
     expect(main).toContain('ui.hud/scenes/hud.tscn');
     expect(main).toContain('ui.quest_tracker/scenes/quest_tracker.tscn');
     expect(main).toContain('ui.dialogue_box/scenes/dialogue_box.tscn');
+    expect(main).toContain('ui.level_transition/scenes/level_transition.tscn');
     expect(main).toContain('ui.inventory_screen/scenes/inventory_screen.tscn');
     expect(main).toContain('ui.equipment_screen/scenes/equipment_screen.tscn');
     expect(main).toContain('ui.skill_screen/scenes/skill_screen.tscn');
@@ -56,7 +57,7 @@ describe('m1 composition', () => {
       readFileSync(join(outDir, 'game/_generated/save_sections.json'), 'utf8'),
     );
     expect(saveSections.sections).toEqual(
-      expect.arrayContaining(['inventory', 'progression', 'equipment', 'quests']),
+      expect.arrayContaining(['inventory', 'progression', 'equipment', 'quests', 'levels']),
     );
 
     const manifest = JSON.parse(
@@ -68,6 +69,7 @@ describe('m1 composition', () => {
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',
       'GAMEDREAM_SKILL_CAST',
+      'GAMEDREAM_LEVEL_2',
       'GAMEDREAM_QUEST_COMPLETE',
       'GAMEDREAM_WIN',
     ]);
@@ -76,6 +78,9 @@ describe('m1 composition', () => {
     ).toBe(true);
     expect(
       existsSync(join(outDir, 'game/content/dialogue/intro.json')),
+    ).toBe(true);
+    expect(
+      existsSync(join(outDir, 'game/content/levels/campaign.json')),
     ).toBe(true);
   });
 });

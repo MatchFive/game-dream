@@ -18,10 +18,12 @@ modules:
     - system.skills
     - system.quests
     - system.dialogue
+    - system.levels
     - system.inventory
     - ui.hud
     - ui.quest_tracker
     - ui.dialogue_box
+    - ui.level_transition
     - ui.inventory_screen
     - ui.equipment_screen
     - ui.skill_screen
@@ -29,8 +31,8 @@ modules:
     - ui.main_menu
   optional: []
 minimum_complete:
-  levels: 1
-  enemies: 1
+  levels: 2
+  enemies: 2
   bosses: 0
   skills: 1
   items: 1
@@ -41,4 +43,5 @@ acceptance:
   - "掉落并自动装备武器"
   - "背包/装备/技能界面可用"
   - "暂停菜单可保存"
-acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_WIN]
+  - "两关切换并清除全部敌人"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_WIN]

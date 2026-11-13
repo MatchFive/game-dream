@@ -1,0 +1,29 @@
+{
+  "id": "campaign",
+  "levels": [
+    {
+      "id": "clearing",
+      "name": "Forest Clearing",
+      "enemy": {
+        "kind": "slime",
+        "max_hp": 30,
+        "attack_damage": 5,
+        "speed": 80,
+        "x": 600,
+        "y": 240
+      }
+    },
+    {
+      "id": "grove",
+      "name": "Deep Grove",
+      "enemy": {
+        "kind": "slime",
+        "max_hp": 45,
+        "attack_damage": 7,
+        "speed": 95,
+        "x": 600,
+        "y": 240
+      }
+    }
+  ]
+}

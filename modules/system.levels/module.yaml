@@ -1,0 +1,22 @@
+id: system.levels
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action]
+depends:
+  core.content: "^1.0.0"
+  core.events: "^1.0.0"
+provides:
+  services: [levels]
+autoloads:
+  - name: LevelService
+    path: src/level_service.gd
+    order: 47
+save_sections:
+  - key: levels
+    serializer: src/level_service.gd
+scenarios: [scenarios/advance.yaml]
+ai_skill: skills/levels.md
+docs: api.md
+license: Apache-2.0

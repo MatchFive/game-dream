@@ -1,0 +1,6 @@
+id: levels.advance
+module: system.levels
+when:
+  - call: levels.advance
+then:
+  - assert_signal: level.started

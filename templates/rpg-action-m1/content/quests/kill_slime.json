@@ -4,7 +4,7 @@
   "objective": {
     "type": "kill",
     "target": "slime",
-    "count": 1
+    "count": 2
   },
   "reward": {
     "xp": 10

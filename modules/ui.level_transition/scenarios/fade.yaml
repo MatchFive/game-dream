@@ -1,0 +1,7 @@
+id: level_transition.fade
+module: ui.level_transition
+when:
+  - emit: level.transition
+    payload: { from: 0, to: 1 }
+then:
+  - assert_node_exists: LevelTransition/Fade

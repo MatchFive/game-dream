@@ -71,13 +71,15 @@ verification.
 
 ## Playable M0 slice
 
-Action-RPG prompts now select the `rpg-action-m1` template: a single arena with a
-player, one enemy, health/combat, progression, loot, equipment, and a skill.
-Desktop controls: **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
+Action-RPG prompts now select the `rpg-action-m1` template: a two-level forest
+campaign with a player, health/combat, progression, loot, equipment, a skill,
+quests, and dialogue. Desktop controls: **WASD** move, **J / Space** attack,
+**K** cast Ember Bolt.
 Headless autoplay prints `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`,
-`GAMEDREAM_EQUIPPED`, `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_QUEST_COMPLETE`, and
-`GAMEDREAM_WIN`. The intro dialogue and kill quest come from
-`game/content/dialogue` and `game/content/quests`; the quest tracker is always on.
+`GAMEDREAM_EQUIPPED`, `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`,
+`GAMEDREAM_QUEST_COMPLETE`, and `GAMEDREAM_WIN`. The intro dialogue, two-kill
+quest, and level campaign come from `game/content/dialogue`,
+`game/content/quests`, and `game/content/levels`; the quest tracker is always on.
 
 UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
 The pause menu saves to `user://save.json`; the main menu offers New Game /
@@ -88,6 +90,9 @@ Content is data-driven under `game/content/`:
 - `items/*.json` — item id, slot, stat bonuses
 - `skills/*.json` — damage, range, cooldown
 - `loot/*.json` — enemy kind → drop table
+- `quests/*.json` — kill objectives and XP rewards
+- `dialogue/*.json` — speaker lines
+- `levels/*.json` — per-level enemy stats and positions
 
 The composer copies template content only when a file does not already exist, so
 user edits survive recompose. `rpg-action-m0` and `fixture-minimal` remain available
