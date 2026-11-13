@@ -141,7 +141,10 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'StandaloneWindows64',
       'UNITY_BUILD_OK',
       'BuildWebGL',
+      'BuildTarget.WebGL',
+      'index.html',
       'UNITY_WEBGL_BUILD_OK',
+      'UNITY_WEBGL_BUILD_MISSING_TARGET',
       'EnsureScene',
     ],
   );
@@ -150,7 +153,13 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
   const smokeError = checkContains(
     'Assets/Scripts/SmokeRunner.cs',
     read(join(projectDir, 'Assets/Scripts/SmokeRunner.cs')),
-    ['class SmokeRunner', 'UNITY_SMOKE_OK', 'GAMEDREAM_SMOKE_OUT', 'Application.Quit'],
+    [
+      '#if !UNITY_EDITOR',
+      'class SmokeRunner',
+      'UNITY_SMOKE_OK',
+      'GAMEDREAM_SMOKE_OUT',
+      'Application.Quit',
+    ],
   );
   if (smokeError) return { passed: false, message: smokeError };
 

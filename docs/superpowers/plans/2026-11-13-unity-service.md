@@ -42,4 +42,13 @@
 
 ## Evidence
 
-- To be recorded after real runs.
+- 2026-11-13, Unity `6000.6.9f1`, generated project `C:\temp\gd-unity-service32`:
+  - Windows build exit 0; `unity smoke` exit 0, log contains `UNITY_BOOT_OK` +
+    `UNITY_SMOKE_OK`.
+  - WebGL build exit 0: fresh `index.html` (6,388 B) + `Build/` with
+    `WebGL.data` 3,840,208 B, `WebGL.wasm` 12,610,775 B, loader/framework
+    (compression disabled; total Build ≈16.75 MB).
+- Optional integration test with `UNITY_BIN`: build + smoke + screenshot passed
+  in 50.1 s.
+- A player without the CLI build stamp is rejected by `unity smoke`; WebGL
+  output paths that equal/contain the project are rejected before deletion.

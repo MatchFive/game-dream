@@ -800,6 +800,7 @@ export function createProgram(): Command {
             printLine(`Log: ${result.logPath}`);
           } else {
             printLine(`Unity player smoke failed: ${result.message ?? 'unknown error'}`);
+            printLine(`Log: ${result.logPath}`);
             if (result.stdout) printUnityDiagnostics(result);
           }
           process.exitCode = result.passed ? 0 : result.exitCode ?? 1;

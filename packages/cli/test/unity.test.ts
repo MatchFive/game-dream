@@ -7,6 +7,7 @@ import {
   unityBuildCommand,
   unityComposeCommand,
   unityScreenshotCommand,
+  unitySmokeCommand,
   unityVerifyCommand,
 } from '../src/commands/unity.js';
 
@@ -38,6 +39,14 @@ describe('unity commands', () => {
       unityBin: join(outDir, 'missing-unity.exe'),
     });
     expect(missingShot.exitCode).toBe(3);
+    const missingWebGL = unityBuildCommand({
+      projectDir: outDir,
+      target: 'webgl',
+      unityBin: join(outDir, 'missing-unity.exe'),
+    });
+    expect(missingWebGL.exitCode).toBe(3);
+    const missingSmoke = unitySmokeCommand({ projectDir: outDir });
+    expect(missingSmoke.exitCode).toBe(1);
     unlinkSync(join(outDir, 'Assets/Editor/EditorVerifier.cs'));
     const failed = unityVerifyCommand({ projectDir: outDir });
     expect(failed.passed).toBe(false);

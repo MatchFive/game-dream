@@ -8,6 +8,8 @@ import {
   findUnityBin,
   parseUnityVersion,
   readUnityConfig,
+  runUnityBuild,
+  runUnitySmoke,
   verifyUnityProject,
 } from '../src/index.js';
 
@@ -65,6 +67,17 @@ describe('unity M0 scaffold', () => {
     writeFileSync(bin, '', 'utf8');
     expect(findUnityBin({ env: { UNITY_BIN: bin } })).toBe(bin);
     expect(findUnityBin({ env: { UNITY_BIN: join(temp, 'missing.exe') } })).toBeNull();
+    expect(() =>
+      runUnityBuild({
+        projectDir: temp,
+        unityBin: join(temp, 'missing.exe'),
+        target: 'webgl',
+        outPath: temp,
+      }),
+    ).toThrow(/refusing to delete/);
+    expect(
+      runUnitySmoke({ projectDir: temp, exePath: join(temp, 'GameDream.exe') }),
+    ).toMatchObject({ passed: false, message: 'player executable not found; run unity build first' });
   });
 
   it('rejects bad project version, manifest, config, and duplicate GUIDs', () => {

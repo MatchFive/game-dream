@@ -24,10 +24,11 @@ dream unity screenshot --path <this-folder> --out <this-folder>/Screenshots/unit
 ```
 
 `build` creates/updates `Assets/Scenes/Main.unity` and `EditorBuildSettings.asset`,
-then builds a Windows 64-bit player or WebGL static output. `smoke` launches the
-Windows player and waits for `UNITY_SMOKE_OK`. `screenshot` enters play mode,
-renders the arena to a PNG, and exits. All require Unity 6000.x and are opt-in
-slow runs.
+then builds a Windows 64-bit player or WebGL static output. WebGL uses
+uncompressed files, so serve the output directory over HTTP, not `file://`.
+`smoke` launches the Windows player and waits for `UNITY_SMOKE_OK`; it rejects a
+player without a fresh build stamp. `screenshot` enters play mode, renders the
+arena to a PNG, and exits. All require Unity 6000.x and are opt-in slow runs.
 
 ## Headless verification
 

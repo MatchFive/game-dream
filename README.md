@@ -175,9 +175,11 @@ asset is required).
 renders the arena to a PNG, and exits. Both require a fresh output file and
 `UNITY_BUILD_OK` / `UNITY_SCREENSHOT_OK`; use a short project path on Windows to
 avoid Unity's long-path build issues. `--target webgl` requires a fresh
-`index.html` + `Build/` directory. `unity smoke` launches the built exe with
+`index.html` + `Build/` directory. WebGL is built with compression disabled, so
+serve `Builds/WebGL` over HTTP (for example `python -m http.server`) rather than
+opening `index.html` via `file://`. `unity smoke` launches the built exe with
 `GAMEDREAM_SMOKE_OUT=1` and requires `UNITY_BOOT_OK` + `UNITY_SMOKE_OK` in its
-log.
+log; a player without a matching build stamp is rejected.
 
 ## Web M0 (Phaser)
 

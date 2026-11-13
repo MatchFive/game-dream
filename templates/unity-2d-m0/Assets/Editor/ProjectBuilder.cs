@@ -26,6 +26,12 @@ public static class ProjectBuilder
                 output = "Builds/WebGL";
             }
             output = Path.GetFullPath(output);
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            if (output == projectRoot || projectRoot.StartsWith(output + Path.DirectorySeparatorChar))
+            {
+                throw new InvalidOperationException("refusing unsafe WebGL output path");
+            }
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
             if (Directory.Exists(output))
             {
                 Directory.Delete(output, true);
@@ -47,7 +53,7 @@ public static class ProjectBuilder
                 EditorApplication.Exit(1);
                 return;
             }
-            Debug.Log("UNITY_WEBGL_BUILD_OK " + output);
+            Debug.Log("UNITY_WEBGL_BUILD_OK " + output + " compression=disabled");
             EditorApplication.Exit(0);
         }
         catch (Exception error)

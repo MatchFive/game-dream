@@ -1,6 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 
 export type UnityBuildTarget = 'windows' | 'webgl';
 
@@ -65,7 +72,18 @@ export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
         ? `${projectDir}/Builds/WebGL`
         : `${projectDir}/Builds/Windows/GameDream.exe`),
   );
+  if (
+    target === 'webgl' &&
+    (outputPath === projectDir ||
+      projectDir.startsWith(outputPath + sep) ||
+      /^[A-Za-z]:[\\/]?$/.test(outputPath) ||
+      outputPath === resolve(process.cwd()))
+  ) {
+    throw new Error('refusing to delete the project, workspace, or filesystem root as WebGL output');
+  }
   mkdirSync(dirname(outputPath), { recursive: true });
+  const stampPath = `${outputPath}.gamedream-build.json`;
+  rmSync(stampPath, { force: true });
   if (target === 'webgl') {
     rmSync(outputPath, { recursive: true, force: true });
     mkdirSync(outputPath, { recursive: true });
@@ -155,6 +173,11 @@ export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
           : 'Unity reported success but produced no player/_Data directory',
     };
   }
+  writeFileSync(
+    stampPath,
+    `${JSON.stringify({ target, outputPath, builtAt: new Date().toISOString() }, null, 2)}\n`,
+    'utf8',
+  );
   return { passed: true, exitCode: 0, target, outputPath, stdout, stderr };
 }
 
@@ -191,6 +214,17 @@ export function runUnitySmoke(options: UnitySmokeOptions): UnitySmokeResult {
       stdout: '',
       stderr: '',
       message: 'player executable not found; run unity build first',
+    };
+  }
+  if (!existsSync(`${exePath}.gamedream-build.json`)) {
+    return {
+      passed: false,
+      exitCode: 1,
+      exePath,
+      logPath,
+      stdout: '',
+      stderr: '',
+      message: 'player has no build stamp; run unity build first',
     };
   }
   const result = spawnSync(exePath, ['-batchmode', '-nographics', '-logFile', logPath], {
