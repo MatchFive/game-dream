@@ -17,14 +17,16 @@ python3 -m http.server 8080
 WASD / arrows move, J / Space attacks, I opens inventory, Q opens quests, Esc
 closes panels. Walls block movement.
 
-## Screenshot
-
-Open the page in Chrome/Edge, or run `dream web screenshot --path .` for a
-headless screenshot. `dream web verify --path . --visual` also checks that the
-page is not blank.
+## Headless verify
 
 ```bash
 node sim-run.mjs --frames 600
 ```
 
 prints `WEB_BOOT_OK` and `WEB_WIN`.
+
+## Screenshot
+
+Open the page in Chrome/Edge, or run `dream web screenshot --path .` for a
+headless screenshot. `dream web verify --path . --visual` also checks that the
+page is not blank.

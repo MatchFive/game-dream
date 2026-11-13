@@ -303,7 +303,13 @@ export function createProgram(): Command {
           outPath: options.screenshotOut,
           browserBin: options.browser,
         });
-        if (options.json) printJson({ ...result, visual });
+        const combined = {
+          ...result,
+          visual,
+          passed: result.passed && visual.passed,
+          exitCode: visual.passed ? 0 : visual.exitCode,
+        };
+        if (options.json) printJson(combined);
         else if (visual.passed) {
           printLine(`Screenshot: ${visual.imagePath}`);
           if (visual.metrics) {
@@ -316,7 +322,7 @@ export function createProgram(): Command {
           if (visual.imagePath) printLine(`Screenshot: ${visual.imagePath}`);
           if (visual.stderr) printLine(visual.stderr);
         }
-        process.exitCode = visual.passed ? 0 : visual.exitCode === 3 ? 3 : 2;
+        process.exitCode = combined.exitCode;
       },
     );
 
@@ -339,8 +345,15 @@ export function createProgram(): Command {
       }) => {
         const width = Number(options.width);
         const height = Number(options.height);
-        if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
-          printLine('--width and --height must be positive numbers');
+        if (
+          !Number.isInteger(width) ||
+          !Number.isInteger(height) ||
+          width < 320 ||
+          height < 240 ||
+          width > 3840 ||
+          height > 2160
+        ) {
+          printLine('--width/--height must be integers within 320x240..3840x2160');
           process.exitCode = 1;
           return;
         }

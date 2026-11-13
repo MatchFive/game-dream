@@ -146,19 +146,19 @@ writes `index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `game.js`, and
 `game.json`; `dream web verify` runs the deterministic simulation and checks
 `WEB_BOOT_OK`/`WEB_WIN`. Serve the generated directory over HTTP (ES modules and
 `fetch` do not work from `file://`); the generated `README.md` shows the command.
-Phaser and browser screenshot verification are deferred renderer/verification
-swaps; the simulation contract stays.
+Phaser is a deferred renderer swap; the simulation contract stays.
 
 - `dream web compose --out ./web-game [--force]`
 - `dream web compose --out ./web-game --content templates/rpg-action-m1/content --modules modules`
   embeds the three levels, maps, quests, enemy stats, and player/enemy/boss SVG assets.
 - `dream web verify --path ./web-game` requires `WEB_MAP_OK`/`WEB_QUEST_COMPLETE`
   when the embedded config has levels/quests.
-- `dream web verify --path ./web-game --visual` captures a real browser screenshot
-  and checks non-black pixels/colors. Set `GAMEDREAM_BROWSER` if Chrome/Edge is
-  not auto-detected.
-- `dream web screenshot --path ./web-game [--out ./web.png]` captures the page
-  without running the marker gate.
+- `dream web verify --path ./web-game --visual` captures a 1280×720 real browser
+  screenshot and checks non-black pixels/colors. Set `GAMEDREAM_BROWSER` if
+  Chrome/Edge is not auto-detected. Exit codes: 0 pass, 1 infrastructure,
+  2 visual gate, 3 browser missing.
+- `dream web screenshot --path ./web-game [--out ./web.png] [--width 1280] [--height 720]`
+  captures the page without running the marker gate.
 
 ## Prompt evaluation
 

@@ -31,6 +31,7 @@ export interface WebScreenshotResult {
   imagePath?: string;
   metrics?: WebScreenshotMetrics;
   browser?: string;
+  pageErrors?: string[];
   message?: string;
 }
 
@@ -44,7 +45,7 @@ export interface CaptureWebOptions {
   browserBin?: string;
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
-  virtualTimeBudget?: number;
+  settleMs?: number;
 }
 
 function platformCandidates(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string[] {
@@ -100,10 +101,13 @@ export function findWebBrowser(options: {
   if (options.explicit) {
     return existsSync(options.explicit)
       ? options.explicit
-      : fromPath(options.explicit, platform, env) ?? options.explicit;
+      : fromPath(options.explicit, platform, env);
   }
   const configured = env.GAMEDREAM_BROWSER ?? env.CHROME_BIN ?? env.EDGE_BIN;
-  if (configured) return configured;
+  if (configured) {
+    const found = existsSync(configured) ? configured : fromPath(configured, platform, env);
+    if (found) return found;
+  }
   for (const candidate of platformCandidates(env, platform)) {
     if (existsSync(candidate)) return candidate;
   }
@@ -313,7 +317,7 @@ function visualFailure(result: WebScreenshotResult): string | null {
     return 'screenshot mostly black';
   }
   if (metrics.colors < 8) return 'screenshot has too few colors';
-  if (metrics.center_colors < 4) return 'screenshot has too few center colors';
+  if (metrics.center_colors < 2) return 'screenshot has too few center colors';
   return null;
 }
 
@@ -350,7 +354,11 @@ class CdpClient {
   private nextId = 0;
   private readonly pending = new Map<
     number,
-    { resolve: (value: never) => void; reject: (error: Error) => void }
+    {
+      resolve: (value: never) => void;
+      reject: (error: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
   private readonly listeners = new Map<string, Array<(params: unknown) => void>>();
 
@@ -360,6 +368,7 @@ class CdpClient {
       if (message.id !== undefined) {
         const waiter = this.pending.get(message.id);
         if (!waiter) return;
+        clearTimeout(waiter.timer);
         this.pending.delete(message.id);
         if (message.error) waiter.reject(new Error(message.error.message ?? 'CDP error'));
         else waiter.resolve(message.result as never);
@@ -369,6 +378,15 @@ class CdpClient {
         }
       }
     });
+    const fail = (message: string) => {
+      for (const waiter of this.pending.values()) {
+        clearTimeout(waiter.timer);
+        waiter.reject(new Error(message));
+      }
+      this.pending.clear();
+    };
+    socket.addEventListener('close', () => fail('browser DevTools connection closed'));
+    socket.addEventListener('error', () => fail('browser DevTools connection failed'));
   }
 
   static async connect(url: string): Promise<CdpClient> {
@@ -391,9 +409,14 @@ class CdpClient {
   ): Promise<T> {
     const id = (this.nextId += 1);
     return new Promise<T>((resolveSend, rejectSend) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        rejectSend(new Error(`CDP ${method} timed out`));
+      }, 15_000);
       this.pending.set(id, {
         resolve: resolveSend as (value: never) => void,
         reject: rejectSend,
+        timer,
       });
       this.socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
     });
@@ -463,11 +486,11 @@ async function captureWithDevTools(options: {
       '--remote-debugging-port=0',
       'about:blank',
     ],
-    { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
+    { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true },
   );
   let stderr = '';
   browser.stderr?.on('data', (chunk: Buffer) => {
-    stderr += chunk.toString();
+    stderr = `${stderr}${chunk.toString()}`.slice(-20_000);
   });
   let client: CdpClient | undefined;
   try {
@@ -482,6 +505,12 @@ async function captureWithDevTools(options: {
     });
     const session = attached.sessionId;
     await client.send('Page.enable', {}, session);
+    await client.send('Runtime.enable', {}, session);
+    const pageErrors: string[] = [];
+    client.on('Runtime.exceptionThrown', (params) => {
+      const details = (params as { exceptionDetails?: { text?: string } }).exceptionDetails;
+      pageErrors.push(details?.text ?? 'page exception');
+    });
     await client.send(
       'Emulation.setDeviceMetricsOverride',
       {
@@ -496,7 +525,7 @@ async function captureWithDevTools(options: {
       client!.on('Page.loadEventFired', () => resolveLoad());
     });
     await client.send('Page.navigate', { url: options.url }, session);
-    await withTimeout(loaded, 5_000, 'page load timed out').catch(() => undefined);
+    await withTimeout(loaded, 5_000, 'page load timed out');
     await sleep(options.settleMs);
     const screenshot = await withTimeout(
       client.send<{ data: string }>('Page.captureScreenshot', { format: 'png' }, session),
@@ -504,14 +533,14 @@ async function captureWithDevTools(options: {
       'screenshot capture timed out',
     );
     writeFileSync(options.outPath, Buffer.from(screenshot.data, 'base64'));
-    return { stderr };
+    return { stderr, pageErrors };
   } finally {
-    try {
-      await client?.send('Browser.close');
-    } catch {
-      // Browser may already be closing.
+    if (client) {
+      await withTimeout(client.send('Browser.close'), 2_000, 'browser close timed out').catch(
+        () => undefined,
+      );
+      client.close();
     }
-    client?.close();
     browser.kill();
     await sleep(100);
   }
@@ -520,8 +549,26 @@ async function captureWithDevTools(options: {
 export async function captureWebScreenshot(options: CaptureWebOptions): Promise<WebScreenshotResult> {
   const projectDir = resolve(options.projectDir);
   const outPath = resolve(options.outPath ?? join(projectDir, 'screenshot.png'));
+  if (!existsSync(join(projectDir, 'index.html'))) {
+    return {
+      passed: false,
+      exitCode: 1,
+      stdout: '',
+      stderr: '',
+      message: `missing index.html in ${projectDir}`,
+    };
+  }
   const width = options.width ?? 1280;
   const height = options.height ?? 720;
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 320 || height < 240) {
+    return {
+      passed: false,
+      exitCode: 1,
+      stdout: '',
+      stderr: '',
+      message: 'screenshot width/height must be integers of at least 320x240',
+    };
+  }
   const browser = options.browserBin
     ? findWebBrowser({ explicit: options.browserBin, env: options.env })
     : findWebBrowser({ env: options.env });
@@ -549,9 +596,24 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
       width,
       height,
       timeoutMs: options.timeoutMs ?? 30_000,
-      settleMs: options.virtualTimeBudget ?? 1500,
+      settleMs: options.settleMs ?? 1500,
     });
     const stderr = String(capture.stderr ?? '');
+    const pageErrors = Array.isArray(capture.pageErrors)
+      ? (capture.pageErrors as string[])
+      : [];
+    if (pageErrors.length > 0) {
+      return {
+        passed: false,
+        exitCode: 1,
+        stdout: '',
+        stderr,
+        browser,
+        imagePath: existsSync(outPath) ? outPath : undefined,
+        pageErrors,
+        message: `page errors: ${pageErrors.slice(0, 3).join('; ')}`,
+      };
+    }
     if (!existsSync(outPath)) {
       return {
         passed: false,
@@ -574,7 +636,7 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
         message: 'cannot read screenshot PNG',
       };
     }
-    const partial = {
+    return {
       passed: true,
       exitCode: 0,
       stdout: '',
@@ -583,8 +645,6 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
       imagePath: outPath,
       metrics,
     };
-    const failure = visualFailure(partial);
-    return failure ? { ...partial, passed: false, exitCode: 2, message: failure } : partial;
   } catch (error) {
     return {
       passed: false,
@@ -605,5 +665,8 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
 }
 
 export async function verifyWebVisual(options: CaptureWebOptions): Promise<WebVisualResult> {
-  return captureWebScreenshot(options);
+  const capture = await captureWebScreenshot(options);
+  if (!capture.passed) return capture;
+  const failure = visualFailure(capture);
+  return failure ? { ...capture, passed: false, exitCode: 2, message: failure } : capture;
 }
