@@ -19,7 +19,7 @@ public static class ProjectBuilder
             ))
             {
                 Debug.LogError("UNITY_BUILD_MISSING_TARGET: install Windows Build Support");
-                EditorApplication.Exit(3);
+                EditorApplication.Exit(1);
                 return;
             }
             EnsureScene();

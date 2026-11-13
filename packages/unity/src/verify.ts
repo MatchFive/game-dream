@@ -21,7 +21,6 @@ const REQUIRED_MODULES = [
   'com.unity.modules.imageconversion',
   'com.unity.modules.imgui',
   'com.unity.modules.jsonserialize',
-  'com.unity.modules.screencapture',
 ];
 
 function read(path: string): string {

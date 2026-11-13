@@ -1,9 +1,9 @@
-using System;
-using System.IO;
-using UnityEngine;
 #if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
-#endif
+using UnityEngine;
 
 public sealed class ScreenshotRunner : MonoBehaviour
 {
@@ -55,7 +55,6 @@ public sealed class ScreenshotRunner : MonoBehaviour
         }
         if (File.Exists(_path) && new FileInfo(_path).Length > 0)
         {
-            Debug.Log("UNITY_SCREENSHOT_OK " + _path);
             Finish(0);
             return;
         }
@@ -82,20 +81,29 @@ public sealed class ScreenshotRunner : MonoBehaviour
         Texture2D image = new Texture2D(width, height, TextureFormat.RGB24, false);
         image.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
         image.Apply();
+        HashSet<Color32> colors = new HashSet<Color32>();
+        int step = Mathf.Max(1, Mathf.Min(width, height) / 32);
+        for (int y = 0; y < height; y += step)
+        {
+            for (int x = 0; x < width; x += step)
+            {
+                colors.Add(image.GetPixel(x, y));
+            }
+        }
         File.WriteAllBytes(path, image.EncodeToPNG());
         RenderTexture.active = null;
         camera.targetTexture = null;
         target.Release();
         UnityEngine.Object.Destroy(image);
         UnityEngine.Object.Destroy(target);
+        Debug.Log(
+            "UNITY_SCREENSHOT_OK " + path + " " + width + "x" + height + " colors=" + colors.Count
+        );
     }
 
     private static void Finish(int code)
     {
-#if UNITY_EDITOR
         EditorApplication.Exit(code);
-#else
-        Application.Quit(code);
-#endif
     }
 }
+#endif

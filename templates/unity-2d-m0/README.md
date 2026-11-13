@@ -50,7 +50,10 @@ does **not** claim a Unity runtime run.
 - This is a source scaffold; GameDream does not bundle Unity or its binaries.
 - The project uses legacy `Input.GetKey`; set Active Input Handling to include the
   legacy Input Manager if the editor reports input errors.
-- Build settings and a saved scene are intentionally not generated yet; the runtime
-  bootstrap makes Play mode work without them.
+- `Assets/Scenes/Main.unity` ships with the project; `dream unity build` repairs
+  it if missing and refreshes `EditorBuildSettings.asset`. The runtime bootstrap
+  still works without a populated scene.
+- The RenderTexture screenshot includes the arena/player/enemy but not the IMGUI
+  HUD; use Play mode to inspect HUD text.
 - Unity creates `Library/`, `Temp/`, `Logs/`, and package lock files on first open;
   a newer Unity may also upgrade `ProjectSettings/ProjectVersion.txt`.

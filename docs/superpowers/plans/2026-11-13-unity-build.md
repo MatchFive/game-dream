@@ -12,7 +12,8 @@
 
 - Build/screenshot are real Unity runs; no fake success from stale files (delete output first).
 - Missing Unity exits 3; build/screenshot/marker failures exit 1.
-- Scene/build settings are generated, not hand-authored YAML.
+- A minimal scene/build-settings pair ships in the template; `ProjectBuilder`
+  repairs a missing scene and re-registers build settings before building.
 - No Unity binaries bundled; Godot/Web unchanged.
 - Screenshot may be best-effort in batchmode; if unsupported, report honestly and keep build deliverable.
 

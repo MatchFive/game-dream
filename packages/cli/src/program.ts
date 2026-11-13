@@ -36,6 +36,16 @@ import {
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
 
+function printUnityDiagnostics(result: { stdout?: string; stderr?: string }): void {
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim();
+  if (!output) return;
+  const lines = output.split(/\r?\n/);
+  for (const line of lines.slice(-30)) printLine(line);
+  if (/path too long|MAX_PATH|DirectoryNotFound|IOException/i.test(output)) {
+    printLine('hint: move the Unity project to a short path such as C:\\temp\\gd-game');
+  }
+}
+
 export function createProgram(): Command {
   const program = new Command();
   program.name('dream').description('GameDream AI game development assistant').version('0.0.0');
@@ -700,6 +710,7 @@ export function createProgram(): Command {
             printLine(`Unity build: ${result.outputPath}`);
           } else {
             printLine(`Unity build failed: ${result.message ?? 'unknown error'}`);
+            if ('stdout' in result) printUnityDiagnostics(result);
           }
           process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
         } catch (error) {
@@ -743,6 +754,7 @@ export function createProgram(): Command {
             printLine(`Screenshot: ${result.imagePath}`);
           } else {
             printLine(`Unity screenshot failed: ${result.message ?? 'unknown error'}`);
+            if ('stdout' in result) printUnityDiagnostics(result);
           }
           process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
         } catch (error) {
