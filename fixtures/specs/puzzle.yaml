@@ -1,0 +1,20 @@
+version: 1
+project:
+  name: puzzle-fixture
+  engine: godot
+  godot_version: "4.4"
+  dimension: 2d
+  view: top-down
+  target: [windows]
+genre:
+  primary: puzzle
+  template: puzzle-2d
+scope:
+  levels: 2
+  enemies: 0
+systems:
+  inventory: false
+content:
+  language: zh-CN
+acceptance:
+  - "推箱子并完成两个关卡"

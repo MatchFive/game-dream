@@ -1,0 +1,21 @@
+id: tower-defense
+genre: tower-defense
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.tower_defense
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 6
+  bosses: 0
+  skills: 0
+  items: 0
+  quests: 0
+acceptance:
+  - "敌人沿路径推进，炮塔自动攻击"
+  - "可建塔和升级，并清空所有波次"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_WAVE, GAMEDREAM_WIN]

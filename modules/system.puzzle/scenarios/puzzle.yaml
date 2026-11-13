@@ -1,0 +1,6 @@
+id: puzzle.solve
+module: system.puzzle
+when:
+  - input: move_left
+then:
+  - assert_signal: box.pushed

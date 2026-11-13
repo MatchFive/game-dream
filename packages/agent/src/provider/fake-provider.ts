@@ -25,6 +25,7 @@ function inferGenre(prompt: string): string {
   if (/platformer|平台|跳跃/i.test(prompt)) return 'platformer';
   if (/塔防|tower defense/i.test(prompt)) return 'tower-defense';
   if (/射击|shooter/i.test(prompt)) return 'shooter';
+  if (/puzzle|解谜|推箱子|箱子|sokoban/i.test(prompt)) return 'puzzle';
   return 'action-rpg';
 }
 

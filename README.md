@@ -282,9 +282,9 @@ node packages/cli/dist/index.js benchmark --provider fake
 `cases/benchmark.json` covers action RPG, platformer, shooter, roguelike,
 tower-defense, and puzzle prompts. The command creates each project and runs
 normal G1/G2/G3, then reports `playable`, `fallback`, `unverified`, or `failed`.
-Fallback is not counted as success. The current baseline is 4 playable
-(action RPG, platformer, shooter, roguelike) / 2 fallback; use case failures to
-decide which genres/templates to build next.
+Fallback is not counted as success. The current baseline is 6 playable
+(action RPG, platformer, shooter, roguelike, tower-defense, puzzle) / 0
+fallback; `dream benchmark` now exits 0.
 
 `platformer-2d` is a real Godot template (`system.platformer`): gravity/jump,
 coins, goal, HUD, camera follow, and headless autoplay. It passes G1/G2/G3/G6.
@@ -295,8 +295,15 @@ headless auto-fire. It also passes G1/G2/G3/G6.
 
 `roguelike-topdown` is a real Godot template (`system.roguelike`): seeded maze
 generation, turn-based movement, bump combat, chasing enemies, permadeath, and
-a farthest-cell exit. It also passes G1/G2/G3/G6. Remaining benchmark gaps are
-tower-defense and puzzle.
+a farthest-cell exit. It also passes G1/G2/G3/G6.
+
+`tower-defense` is a real Godot template (`system.tower_defense`): a waypoint
+path, base HP, three waves, build/upgrade economy, automatic tower fire, and
+headless wave management. It also passes G1/G2/G3/G6.
+
+`puzzle-2d` is a real Godot template (`system.puzzle`): Sokoban walls, targets,
+boxes, two levels, push/win markers, and a headless BFS solver. Puzzle prompts
+now classify as puzzle instead of action-rpg.
 
 ## Release artifacts
 

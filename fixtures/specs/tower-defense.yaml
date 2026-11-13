@@ -1,0 +1,20 @@
+version: 1
+project:
+  name: tower-defense-fixture
+  engine: godot
+  godot_version: "4.4"
+  dimension: 2d
+  view: top-down
+  target: [windows]
+genre:
+  primary: tower-defense
+  template: tower-defense
+scope:
+  levels: 1
+  enemies: 6
+systems:
+  inventory: false
+content:
+  language: zh-CN
+acceptance:
+  - "路径、波次、炮塔建造与升级"

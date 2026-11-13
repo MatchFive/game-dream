@@ -1,0 +1,21 @@
+id: puzzle-2d
+genre: puzzle
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.puzzle
+  optional: []
+minimum_complete:
+  levels: 2
+  enemies: 0
+  bosses: 0
+  skills: 0
+  items: 0
+  quests: 0
+acceptance:
+  - "玩家可推动箱子并完成目标"
+  - "完成全部关卡"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_PUSH, GAMEDREAM_WIN]

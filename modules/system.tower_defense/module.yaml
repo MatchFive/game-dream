@@ -1,0 +1,26 @@
+id: system.tower_defense
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [tower-defense]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  components: [TowerDefense]
+input_actions:
+  - name: build
+    keys: [SPACE]
+  - name: upgrade
+    keys: [J]
+  - name: start_wave
+    keys: [ENTER]
+  - name: restart
+    keys: [R]
+main_scene: scenes/arena.tscn
+scenarios: [scenarios/tower_defense.yaml]
+tests: []
+ai_skill: skills/tower_defense.md
+docs: api.md
+license: Apache-2.0

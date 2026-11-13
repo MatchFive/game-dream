@@ -1,0 +1,6 @@
+id: tower_defense.wave
+module: system.tower_defense
+when:
+  - input: start_wave
+then:
+  - assert_signal: wave.started

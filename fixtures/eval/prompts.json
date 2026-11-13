@@ -50,14 +50,14 @@
   {
     "prompt": "做一个塔防游戏，20 波敌人",
     "expected_genre": "tower-defense",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:tower-defense->fixture-minimal"
+    "expected_template": "tower-defense",
+    "expected_reason": "rule:tower-defense"
   },
   {
     "prompt": "做一个解谜小游戏",
-    "expected_genre": "action-rpg",
-    "expected_template": "rpg-action-m1",
-    "expected_reason": "rule:rpg-action-m1"
+    "expected_genre": "puzzle",
+    "expected_template": "puzzle-2d",
+    "expected_reason": "rule:puzzle-2d"
   },
   {
     "prompt": "做一个 roguelike，随机地牢和永久死亡",

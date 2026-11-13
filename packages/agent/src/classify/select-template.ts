@@ -17,6 +17,7 @@ const RULES: Rule[] = [
   { pattern: /platformer|平台|跳跃/i, templateId: 'platformer-2d' },
   { pattern: /塔防|tower defense/i, templateId: 'tower-defense' },
   { pattern: /射击|shooter/i, templateId: 'shooter-topdown' },
+  { pattern: /puzzle|解谜|推箱子|箱子|sokoban/i, templateId: 'puzzle-2d' },
   { pattern: /rpg|角色扮演|背包|装备|技能|boss/i, templateId: 'rpg-action-m1' },
   { pattern: /rpg|角色扮演|背包|装备|技能|boss/i, templateId: 'rpg-action-m0' },
 ];
