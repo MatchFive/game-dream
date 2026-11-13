@@ -24,7 +24,7 @@ jobs:
 
   web-release:
     needs: test
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,4 +50,100 @@ jobs:
         with:
           name: gamedream-web-release
           path: dist/web-release
+          if-no-files-found: error
+
+  godot-release:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Compose and package Godot M1 source release
+        run: |
+          node packages/cli/dist/index.js compose \
+            --spec fixtures/specs/m1.yaml \
+            --out dist/godot \
+            --modules modules \
+            --templates templates
+          node packages/cli/dist/index.js godot package \
+            --path dist/godot \
+            --out dist/godot-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-godot-release
+          path: dist/godot-release
+          if-no-files-found: error
+
+  unity-release:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Compose and statically verify Unity M1 source release
+        run: |
+          node packages/cli/dist/index.js unity compose \
+            --out dist/unity \
+            --content templates/rpg-action-m1/content \
+            --name gamedream-m1
+          node packages/cli/dist/index.js unity verify --path dist/unity
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-unity-release
+          path: dist/unity
+          if-no-files-found: error
+
+  release-manifest:
+    needs: [web-release, godot-release, unity-release]
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/artifacts
+      - name: Write release manifest
+        run: |
+          node - <<'NODE'
+          const { createHash } = require('node:crypto');
+          const { readFileSync, readdirSync, statSync, writeFileSync } = require('node:fs');
+          const { join, relative } = require('node:path');
+          function walk(dir) {
+            return readdirSync(dir).flatMap((name) => {
+              const path = join(dir, name);
+              return statSync(path).isDirectory() ? walk(path) : [path];
+            });
+          }
+          const root = 'dist/artifacts';
+          const files = walk(root).sort().map((path) => ({
+            path: relative(root, path).replaceAll('\\\\', '/'),
+            bytes: statSync(path).size,
+            sha256: createHash('sha256').update(readFileSync(path)).digest('hex'),
+          }));
+          writeFileSync(
+            'dist/release-manifest.json',
+            JSON.stringify({ generated_at: new Date().toISOString(), files }, null, 2) + '\\n',
+          );
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-release-manifest
+          path: dist/release-manifest.json
           if-no-files-found: error

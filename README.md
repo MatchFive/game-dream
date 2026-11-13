@@ -272,6 +272,19 @@ layers; infinite and base64/compressed maps are rejected.
 - `system.inventory` — inventory service with signals and save serialization
 - `ui.hud` — HUD scene bound to inventory count
 
+## Release artifacts
+
+Manual `workflow_dispatch` (or a `v*` tag) builds three engine artifacts from the
+shared M1 content:
+
+- `gamedream-web-release` — verified/package Web build
+- `gamedream-godot-release` — packaged Godot source project with `release.json`
+- `gamedream-unity-release` — statically verified Unity source project
+- `gamedream-release-manifest` — path/bytes/SHA-256 for every artifact file
+
+Unity/Godot release jobs require no Unity/Godot binary; runtime acceptance remains
+an opt-in local step (`UNITY_BIN`, `GODOT_BIN`). UE is intentionally out of scope.
+
 ## Docs
 
 - Design spec: `docs/superpowers/specs/2026-11-12-gamedream-design.md`
