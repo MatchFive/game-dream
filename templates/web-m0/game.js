@@ -141,11 +141,58 @@ try {
   let lastSave = restored ? JSON.stringify(snapshot(state)) : '';
   let saveWarning = false;
   let paused = false;
+  let lastFocus = null;
+  let restartArmed = false;
+  let restartTimer = 0;
   const touch = { left: false, right: false, up: false, down: false, attack: false };
+  const pointers = new Map();
+  const holdButtons = new Map();
+  const panelOpen = () =>
+    [inventoryPanel, questsPanel, settingsPanel].some(
+      (panel) => !panel.classList.contains('hidden'),
+    );
+
+  function setTouch(control, value) {
+    touch[control] = value;
+    holdButtons.get(control)?.classList.toggle('active', value);
+  }
+
+  function releasePointer(pointerId) {
+    for (const [control, ids] of pointers) {
+      if (ids.delete(pointerId)) setTouch(control, ids.size > 0);
+    }
+  }
+
+  function resetTouch() {
+    for (const [control, ids] of pointers) {
+      ids.clear();
+      setTouch(control, false);
+    }
+  }
+
+  function disarmRestart() {
+    restartArmed = false;
+    const button = document.querySelector('#pause-restart');
+    if (button) button.textContent = 'Restart';
+    clearTimeout(restartTimer);
+  }
 
   function setPaused(value) {
     paused = value;
+    disarmRestart();
     pausePanel.classList.toggle('hidden', !value);
+    document.body.classList.toggle('paused', value);
+    for (const panel of [inventoryPanel, questsPanel, settingsPanel]) panel.inert = value;
+    const gameRoot = document.querySelector('#game');
+    if (gameRoot) gameRoot.inert = value;
+    if (value) {
+      resetTouch();
+      lastFocus = document.activeElement;
+      document.querySelector('#resume')?.focus();
+    } else if (lastFocus instanceof HTMLElement) {
+      lastFocus.focus();
+      lastFocus = null;
+    }
   }
 
   function resetGame() {
@@ -207,6 +254,12 @@ try {
   applySettings();
 
   window.addEventListener('pointerdown', () => audio.init());
+  window.addEventListener('pointerup', (event) => releasePointer(event.pointerId));
+  window.addEventListener('pointercancel', (event) => releasePointer(event.pointerId));
+  window.addEventListener('blur', resetTouch);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) resetTouch();
+  });
   window.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
     const inPanel =
@@ -239,27 +292,33 @@ try {
 
   for (const button of document.querySelectorAll('[data-hold]')) {
     const control = button.dataset.hold;
-    const set = (value) => {
-      touch[control] = value;
-      button.classList.toggle('active', value);
-    };
+    holdButtons.set(control, button);
     button.addEventListener('pointerdown', (event) => {
+      if (paused) return;
       event.preventDefault();
       audio.init();
       button.setPointerCapture?.(event.pointerId);
-      set(true);
+      if (!pointers.has(control)) pointers.set(control, new Set());
+      pointers.get(control).add(event.pointerId);
+      setTouch(control, true);
       if (control === 'attack') audio.play('attack');
     });
     for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
-      button.addEventListener(type, () => set(false));
+      button.addEventListener(type, (event) => {
+        const ids = pointers.get(control);
+        if (!ids) return;
+        ids.delete(event.pointerId);
+        setTouch(control, ids.size > 0);
+      });
     }
     button.addEventListener('contextmenu', (event) => event.preventDefault());
   }
   for (const button of document.querySelectorAll('[data-panel]')) {
     button.addEventListener('click', () => {
+      if (paused) return;
       const panel = button.dataset.panel;
       if (panel === 'pause') {
-        setPaused(!paused);
+        setPaused(true);
       } else if (panel === 'inventory') {
         inventoryPanel.classList.toggle('hidden');
       } else if (panel === 'quests') {
@@ -271,6 +330,15 @@ try {
   }
   document.querySelector('#resume').addEventListener('click', () => setPaused(false));
   document.querySelector('#pause-restart').addEventListener('click', () => {
+    if (!restartArmed) {
+      restartArmed = true;
+      const button = document.querySelector('#pause-restart');
+      if (button) button.textContent = 'Confirm restart';
+      clearTimeout(restartTimer);
+      restartTimer = setTimeout(disarmRestart, 3000);
+      return;
+    }
+    disarmRestart();
     setPaused(false);
     resetGame();
   });
@@ -384,8 +452,9 @@ try {
       const beforeLevel = state.levelIndex;
       const wasFinished = state.finished;
       const blocked =
-        document.activeElement instanceof Element &&
-        Boolean(document.activeElement.closest('#inventory, #quests, #settings'));
+        panelOpen() ||
+        (document.activeElement instanceof Element &&
+          Boolean(document.activeElement.closest('#inventory, #quests, #settings')));
       let steps = 0;
       while (this.accumulator >= 1 / 60 && steps < 5) {
         step(

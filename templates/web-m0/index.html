@@ -41,9 +41,15 @@
           <button type="button" data-panel="pause">Pause</button>
         </div>
       </div>
-      <section id="pause" class="overlay hidden">
+      <section
+        id="pause"
+        class="overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pause-title"
+      >
         <div class="pause-card">
-          <h2>Paused</h2>
+          <h2 id="pause-title">Paused</h2>
           <button type="button" id="resume">Resume</button>
           <button type="button" id="pause-restart">Restart</button>
           <button type="button" id="pause-settings">Settings</button>

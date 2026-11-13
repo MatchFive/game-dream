@@ -114,10 +114,13 @@ describe.skipIf(!browser)('web screenshot browser', () => {
       outPath: join(outDir, 'mobile.png'),
       width: 390,
       height: 844,
+      mobile: true,
     });
     expect(result.passed).toBe(true, result.message);
     expect(result.metrics?.width).toBe(390);
     expect(result.metrics?.height).toBe(844);
+    expect(result.metrics?.colors).toBeGreaterThan(8);
+    expect(result.metrics?.non_black).toBeGreaterThan(0);
   }, 30_000);
 
   it('captures a non-blank M1 Phaser screenshot', async () => {

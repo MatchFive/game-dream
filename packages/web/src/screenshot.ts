@@ -46,6 +46,7 @@ export interface CaptureWebOptions {
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
   settleMs?: number;
+  mobile?: boolean;
 }
 
 function platformCandidates(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string[] {
@@ -468,6 +469,7 @@ async function captureWithDevTools(options: {
   height: number;
   timeoutMs: number;
   settleMs: number;
+  mobile: boolean;
 }): Promise<Record<string, unknown>> {
   const browser = spawn(
     options.browser,
@@ -517,7 +519,7 @@ async function captureWithDevTools(options: {
         width: options.width,
         height: options.height,
         deviceScaleFactor: 1,
-        mobile: false,
+        mobile: options.mobile,
       },
       session,
     );
@@ -597,6 +599,7 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
       height,
       timeoutMs: options.timeoutMs ?? 30_000,
       settleMs: options.settleMs ?? 1500,
+      mobile: options.mobile ?? false,
     });
     const stderr = String(capture.stderr ?? '');
     const pageErrors = Array.isArray(capture.pageErrors)
