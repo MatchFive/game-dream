@@ -3,4 +3,5 @@ export * from './runner.js';
 export * from './detect.js';
 export * from './import-project.js';
 export * from './run-headless.js';
+export * from './run-screenshot.js';
 export * from './logs.js';

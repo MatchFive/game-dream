@@ -35,6 +35,7 @@ export function generateProjectGodot(input: {
       (autoload) =>
         `${autoload.name}="*res://modules/${autoload.moduleId}/${autoload.path}"`,
     ),
+    'ScreenshotCapture="*res://game/_generated/screenshot.gd"',
     '',
     '[display]',
     'window/size/viewport_width=1280',
@@ -43,6 +44,7 @@ export function generateProjectGodot(input: {
     '[rendering]',
     'renderer/rendering_method="gl_compatibility"',
     'renderer/rendering_method.mobile="gl_compatibility"',
+    'environment/defaults/default_clear_color=Color(0.12, 0.2, 0.15, 1)',
     '',
   ];
   return lines.join('\n');

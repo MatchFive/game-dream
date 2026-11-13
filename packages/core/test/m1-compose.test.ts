@@ -36,6 +36,7 @@ describe('m1 composition', () => {
     expect(project).toContain('SaveService=');
     expect(project).toContain('MapService=');
     expect(project).toContain('SpriteService=');
+    expect(project).toContain('ScreenshotCapture=');
 
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');

@@ -102,6 +102,22 @@ The composer copies template content only when a file does not already exist, so
 user edits survive recompose. `rpg-action-m0` and `fixture-minimal` remain available
 as smaller templates.
 
+## Screenshots and G6
+
+Generated projects include a no-op `ScreenshotCapture` autoload. It only activates
+with `--screenshot`, starts a new game, waits 60 frames, captures the viewport to
+`user://screenshot.png`, and prints path/metrics.
+
+- `dream screenshot --path ./my-game` — copy the PNG to
+  `game/_generated/screenshot.png` (or `--out`).
+- `dream verify --path ./my-game --visual` — run G6 with the same capture.
+  G6 requires a windowed Godot run (no `--headless`), at least 1280×720-ish output,
+  ≥5% non-black samples, and ≥8 distinct colors. Use `--screenshot-out` to choose
+  the PNG path.
+
+G6 is opt-in so headless CI keeps running G1–G3. Golden images and a VLM
+readability rubric are deferred.
+
 ## Generated project layout
 
 - `modules/` — managed by the composer; do not edit

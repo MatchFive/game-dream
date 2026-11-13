@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseGameManifest, parseLockfile } from '@gamedream/core';
 import {
@@ -7,7 +7,9 @@ import {
   hasMarker,
   importProject,
   runHeadless,
+  runScreenshot,
   type CommandRunner,
+  type ScreenshotResult,
 } from '@gamedream/godot';
 
 export interface GateResult {
@@ -16,7 +18,7 @@ export interface GateResult {
 }
 
 export interface VerifyReport {
-  gates: Record<'G1' | 'G2' | 'G3', GateResult>;
+  gates: Record<'G1' | 'G2' | 'G3', GateResult> & { G6?: GateResult };
   engine: 'present' | 'missing';
 }
 
@@ -27,6 +29,8 @@ export async function verifyCommand(options: {
   projectDir: string;
   env?: NodeJS.ProcessEnv;
   runner?: CommandRunner;
+  visual?: boolean;
+  visualOut?: string;
 }): Promise<VerifyReport> {
   let engine: VerifyReport['engine'] = 'missing';
   let markers = ['GAMEDREAM_BOOT_OK'];
@@ -35,6 +39,7 @@ export async function verifyCommand(options: {
     G2: { status: 'skip', message: GODOT_MISSING_MESSAGE },
     G3: { status: 'skip', message: GODOT_MISSING_MESSAGE },
   };
+  if (options.visual) gates.G6 = { status: 'skip', message: 'not run' };
 
   try {
     parseLockfile(
@@ -49,11 +54,15 @@ export async function verifyCommand(options: {
     gates.G1 = { status: 'pass' };
   } catch (error) {
     gates.G1 = { status: 'fail', message: (error as Error).message };
+    if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: G1 failed' };
     return { gates, engine };
   }
 
   const godot = await detectGodot({ env: options.env, runner: options.runner });
-  if (!godot) return { gates, engine };
+  if (!godot) {
+    if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: Godot missing' };
+    return { gates, engine };
+  }
 
   engine = 'present';
   if (godot.major < 4 || (godot.major === 4 && godot.minor < 4)) {
@@ -62,6 +71,7 @@ export async function verifyCommand(options: {
       message: `Godot ${godot.version} detected; 4.4+ required.`,
     };
     gates.G3 = { status: 'skip', message: 'not run: G2 failed' };
+    if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: G2 failed' };
     return { gates, engine };
   }
 
@@ -72,6 +82,7 @@ export async function verifyCommand(options: {
       status: 'fail',
       message: importErrors.join('\n') || `exit ${imported.exitCode}`,
     };
+    if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: G2 failed' };
     return { gates, engine };
   }
   gates.G2 = { status: 'pass' };
@@ -91,7 +102,54 @@ export async function verifyCommand(options: {
       ? { status: 'fail', message: `missing ${missing}` }
       : { status: 'pass' };
   }
+
+  if (options.visual) {
+    const outPath =
+      options.visualOut ??
+      join(options.projectDir, 'game/_generated/screenshot.png');
+    try {
+      const shot = await runScreenshot(options.projectDir, godot, {
+        outPath,
+        runner: options.runner,
+      });
+      const failure = visualFailure(shot);
+      gates.G6 = failure
+        ? { status: 'fail', message: failure }
+        : {
+            status: 'pass',
+            message: `${shot.metrics?.width}x${shot.metrics?.height}, ${shot.metrics?.colors} colors`,
+          };
+    } catch (error) {
+      gates.G6 = {
+        status: 'fail',
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   return { gates, engine };
+}
+
+function visualFailure(shot: ScreenshotResult): string | null {
+  const errors = findScriptErrors(shot);
+  if (shot.exitCode !== 0) return `exit ${shot.exitCode}`;
+  if (errors.length > 0) return errors.join('\n');
+  if (!shot.imagePath || !existsSync(shot.imagePath)) return 'missing screenshot';
+  try {
+    if (statSync(shot.imagePath).size < 1000) return 'screenshot too small';
+  } catch {
+    return 'missing screenshot';
+  }
+  const metrics = shot.metrics;
+  if (!metrics) return 'missing metrics';
+  if (metrics.width < 640 || metrics.height < 360) {
+    return `screenshot too small: ${metrics.width}x${metrics.height}`;
+  }
+  if (metrics.samples <= 0 || metrics.non_black / metrics.samples < 0.05) {
+    return 'screenshot mostly black';
+  }
+  if (metrics.colors < 8) return 'screenshot has too few colors';
+  return null;
 }
 
 export function exitCodeFor(report: VerifyReport): 0 | 2 | 3 {
