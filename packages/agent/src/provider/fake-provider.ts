@@ -21,6 +21,7 @@ function rawPrompt(user: string): string {
 }
 
 function inferGenre(prompt: string): string {
+  if (/吸血鬼|幸存者|survivor|割草|怪潮/i.test(prompt)) return 'survivor';
   if (/roguelike|rogue|随机|永久死亡/i.test(prompt)) return 'roguelike';
   if (/platformer|平台|跳跃/i.test(prompt)) return 'platformer';
   if (/塔防|tower defense/i.test(prompt)) return 'tower-defense';

@@ -280,11 +280,11 @@ node packages/cli/dist/index.js benchmark --provider fake
 ```
 
 `cases/benchmark.json` covers action RPG, platformer, shooter, roguelike,
-tower-defense, and puzzle prompts. The command creates each project and runs
+tower-defense, puzzle, and survivor prompts. The command creates each project and runs
 normal G1/G2/G3, then reports `playable`, `fallback`, `unverified`, or `failed`.
-Fallback is not counted as success. The current baseline is 6 playable
-(action RPG, platformer, shooter, roguelike, tower-defense, puzzle) / 0
-fallback; `dream benchmark` now exits 0.
+Fallback is not counted as success. The current baseline is 7 playable
+(action RPG, platformer, shooter, roguelike, tower-defense, puzzle, survivor) /
+0 fallback; `dream benchmark` now exits 0.
 
 `platformer-2d` is a real Godot template (`system.platformer`): gravity/jump,
 coins, goal, HUD, camera follow, and headless autoplay. It passes G1/G2/G3/G6.
@@ -304,6 +304,10 @@ headless wave management. It also passes G1/G2/G3/G6.
 `puzzle-2d` is a real Godot template (`system.puzzle`): Sokoban walls, targets,
 boxes, two levels, push/win markers, and a headless BFS solver. Puzzle prompts
 now classify as puzzle instead of action-rpg.
+
+`survivor-topdown` is a real Godot template (`system.survivor`): top-down
+survival, continuous enemy spawns, auto-attacks, XP levels that increase damage,
+a survival timer, and headless auto-play. It also passes G1/G2/G3/G6.
 
 ## Release artifacts
 

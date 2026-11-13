@@ -13,6 +13,7 @@ interface Rule {
 }
 
 const RULES: Rule[] = [
+  { pattern: /吸血鬼|幸存者|survivor|割草|怪潮/i, templateId: 'survivor-topdown' },
   { pattern: /roguelike|rogue|随机|永久死亡/i, templateId: 'roguelike-topdown' },
   { pattern: /platformer|平台|跳跃/i, templateId: 'platformer-2d' },
   { pattern: /塔防|tower defense/i, templateId: 'tower-defense' },

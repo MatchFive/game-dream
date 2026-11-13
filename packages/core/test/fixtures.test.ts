@@ -75,6 +75,7 @@ describe('fixture content', () => {
       'system.shooter',
       'system.skills',
       'system.sprites',
+      'system.survivor',
       'system.tower_defense',
       'ui.dialogue_box',
       'ui.equipment_screen',

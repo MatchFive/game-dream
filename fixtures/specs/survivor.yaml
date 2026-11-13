@@ -1,0 +1,20 @@
+version: 1
+project:
+  name: survivor-fixture
+  engine: godot
+  godot_version: "4.4"
+  dimension: 2d
+  view: top-down
+  target: [windows]
+genre:
+  primary: survivor
+  template: survivor-topdown
+scope:
+  levels: 1
+  enemies: 12
+systems:
+  inventory: false
+content:
+  language: zh-CN
+acceptance:
+  - "自动攻击、怪潮、经验升级和限时生存"

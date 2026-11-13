@@ -21,7 +21,8 @@
 - After adding `shooter-topdown`: 3 playable / 3 fallback / 0 failed.
 - After adding `roguelike-topdown`: 4 playable / 2 fallback / 0 failed.
 - After adding `tower-defense`: 5 playable / 1 fallback / 0 failed.
-- After adding `puzzle-2d`: 6 playable / 0 fallback / 0 failed; exit 0.
+- After adding `puzzle-2d`: 6 playable / 0 fallback / 0 failed.
+- After adding `survivor-topdown`: 7 playable / 0 fallback / 0 failed; exit 0.
 - Platformer verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
 - Platformer slice: gravity/jump, coins, goal, background, HUD, headless autoplay.
 - Shooter verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 25 colors.
@@ -32,5 +33,7 @@
 - Tower-defense slice: path, waves, build/upgrade, automatic fire.
 - Puzzle verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 20 colors.
 - Puzzle slice: Sokoban levels, pushes, BFS autoplay, corrected classification.
+- Survivor verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 24 colors.
+- Survivor slice: continuous spawns, auto-attack, XP levels, survival timer.
 - Unit tests cover playable-vs-fallback and duplicate case rejection.
 - No UE changes.

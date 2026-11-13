@@ -9,15 +9,15 @@ import { evalCommand, evalExitCode, loadEvalCases } from '../src/commands/eval.j
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
 describe('evalCommand', () => {
-  it('passes all 20 fixture prompts with the fake provider', async () => {
+  it('passes all 21 fixture prompts with the fake provider', async () => {
     const report = await evalCommand({
       fixturesPath: join(root, 'fixtures/eval/prompts.json'),
       templatesDir: join(root, 'templates'),
       providerKind: 'fake',
     });
-    expect(report.total).toBe(20);
+    expect(report.total).toBe(21);
     expect(report.failed).toBe(0);
-    expect(report.passed).toBe(20);
+    expect(report.passed).toBe(21);
     expect(evalExitCode(report)).toBe(0);
   });
 
@@ -28,7 +28,7 @@ describe('evalCommand', () => {
       env: {},
     });
     expect(report.provider).toBe('fake');
-    expect(report.total).toBe(20);
+    expect(report.total).toBe(21);
   });
 
   it('isolates provider failures per case and continues', async () => {

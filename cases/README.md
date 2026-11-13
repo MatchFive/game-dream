@@ -29,6 +29,7 @@ adding `platformer-2d`: `2 playable / 4 fallback / 0 failed`. After adding
 `shooter-topdown`: `3 playable / 3 fallback / 0 failed`. After adding
 `roguelike-topdown`: `4 playable / 2 fallback / 0 failed`. After adding
 `tower-defense`: `5 playable / 1 fallback / 0 failed`. After adding
-`puzzle-2d`: `6 playable / 0 fallback / 0 failed` (all six cases playable;
-`dream benchmark` exits 0). This is the baseline to improve, not a
+`puzzle-2d`: `6 playable / 0 fallback / 0 failed`. After adding
+`survivor-topdown`: `7 playable / 0 fallback / 0 failed` (all seven cases
+playable; `dream benchmark` exits 0). This is the baseline to improve, not a
 release-quality score.

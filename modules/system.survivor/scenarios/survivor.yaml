@@ -1,0 +1,6 @@
+id: survivor.wave
+module: system.survivor
+when:
+  - input: move_right
+then:
+  - assert_signal: enemy.spawned
