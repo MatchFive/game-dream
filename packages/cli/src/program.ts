@@ -168,40 +168,45 @@ export function createProgram(): Command {
     .option('--out <png>', 'output PNG path')
     .option('--json', 'print JSON')
     .action(async (options: { path: string; out?: string; json?: boolean }) => {
-      const { godot, result, outPath } = await screenshotCommand({
-        projectDir: options.path,
-        outPath: options.out,
-      });
-      if (!godot) {
-        printLine('Godot not found; set GODOT_BIN.');
-        process.exitCode = 3;
-        return;
-      }
-      if (!result) {
-        printLine('Screenshot failed.');
-        process.exitCode = 1;
-        return;
-      }
-      if (options.json) {
-        printJson({
-          outPath: result.imagePath ?? outPath,
-          metrics: result.metrics,
-          exitCode: result.exitCode,
+      try {
+        const { godot, result, outPath } = await screenshotCommand({
+          projectDir: options.path,
+          outPath: options.out,
         });
-      } else if (result.exitCode !== 0 || !result.imagePath) {
-        printLine('Screenshot failed.');
-        if (result.stdout) printLine(result.stdout);
-        if (result.stderr) printLine(result.stderr);
-      } else {
-        printLine(`Screenshot: ${result.imagePath}`);
-        if (result.metrics) {
-          printLine(
-            `Metrics: ${result.metrics.width}x${result.metrics.height}, ${result.metrics.colors} colors`,
-          );
+        if (!godot) {
+          printLine('Godot not found; set GODOT_BIN.');
+          process.exitCode = 3;
+          return;
         }
+        if (!result) {
+          printLine('Screenshot failed.');
+          process.exitCode = 1;
+          return;
+        }
+        if (options.json) {
+          printJson({
+            outPath: result.imagePath ?? outPath,
+            metrics: result.metrics,
+            exitCode: result.exitCode,
+          });
+        } else if (result.exitCode !== 0 || !result.imagePath) {
+          printLine('Screenshot failed.');
+          if (result.stdout) printLine(result.stdout);
+          if (result.stderr) printLine(result.stderr);
+        } else {
+          printLine(`Screenshot: ${result.imagePath}`);
+          if (result.metrics) {
+            printLine(
+              `Metrics: ${result.metrics.width}x${result.metrics.height}, ${result.metrics.colors} colors`,
+            );
+          }
+        }
+        process.exitCode = result.exitCode === 0 && result.imagePath ? 0 : 1;
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
       }
-      process.exitCode =
-        result.exitCode === 0 && result.imagePath ? 0 : 1;
     });
 
   program
@@ -211,18 +216,24 @@ export function createProgram(): Command {
     .option('--screenshot-out <png>', 'G6 screenshot path')
     .option('--json', 'print JSON')
     .action(async (options: { path: string; visual?: boolean; screenshotOut?: string; json?: boolean }) => {
-      const report = await verifyCommand({
-        projectDir: options.path,
-        visual: options.visual,
-        visualOut: options.screenshotOut,
-      });
-      if (options.json) printJson(report);
-      else {
-        for (const [gate, result] of Object.entries(report.gates)) {
-          printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+      try {
+        const report = await verifyCommand({
+          projectDir: options.path,
+          visual: options.visual,
+          visualOut: options.screenshotOut,
+        });
+        if (options.json) printJson(report);
+        else {
+          for (const [gate, result] of Object.entries(report.gates)) {
+            printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+          }
         }
+        process.exitCode = exitCodeFor(report);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
       }
-      process.exitCode = exitCodeFor(report);
     });
 
   return program;

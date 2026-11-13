@@ -37,6 +37,13 @@ describe('m1 composition', () => {
     expect(project).toContain('MapService=');
     expect(project).toContain('SpriteService=');
     expect(project).toContain('ScreenshotCapture=');
+    const capture = readFileSync(
+      join(outDir, 'game/_generated/screenshot.gd'),
+      'utf8',
+    );
+    expect(capture).toContain('OS.get_cmdline_user_args');
+    expect(capture).toContain('--screenshot');
+    expect(capture).toContain('RenderingServer.frame_post_draw');
 
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');

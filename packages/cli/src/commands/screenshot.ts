@@ -25,7 +25,7 @@ export async function screenshotCommand(
   options: ScreenshotCommandOptions,
 ): Promise<ScreenshotCommandResult> {
   const outPath =
-    options.outPath ?? join(options.projectDir, 'game/_generated/screenshot.png');
+    options.outPath ?? join(options.projectDir, 'game/screenshots/screenshot.png');
   const godot = await detectGodot({ env: options.env, runner: options.runner });
   if (!godot) return { godot: null, result: null, outPath };
   const imported = await importProject(options.projectDir, godot, options.runner);

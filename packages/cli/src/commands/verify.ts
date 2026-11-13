@@ -106,7 +106,7 @@ export async function verifyCommand(options: {
   if (options.visual) {
     const outPath =
       options.visualOut ??
-      join(options.projectDir, 'game/_generated/screenshot.png');
+      join(options.projectDir, 'game/screenshots/screenshot.png');
     try {
       const shot = await runScreenshot(options.projectDir, godot, {
         outPath,
@@ -142,6 +142,15 @@ function visualFailure(shot: ScreenshotResult): string | null {
   }
   const metrics = shot.metrics;
   if (!metrics) return 'missing metrics';
+  const values = [
+    metrics.width,
+    metrics.height,
+    metrics.samples,
+    metrics.non_black,
+    metrics.colors,
+    metrics.center_colors,
+  ];
+  if (!values.every((value) => Number.isFinite(value))) return 'invalid metrics';
   if (metrics.width < 640 || metrics.height < 360) {
     return `screenshot too small: ${metrics.width}x${metrics.height}`;
   }
@@ -149,6 +158,7 @@ function visualFailure(shot: ScreenshotResult): string | null {
     return 'screenshot mostly black';
   }
   if (metrics.colors < 8) return 'screenshot has too few colors';
+  if (metrics.center_colors < 4) return 'screenshot has too few center colors';
   return null;
 }
 

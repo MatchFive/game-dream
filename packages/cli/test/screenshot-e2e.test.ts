@@ -26,7 +26,7 @@ describe.runIf(Boolean(process.env.GODOT_BIN))('visual gate end-to-end', () => {
     expect(report.gates.G3.status).toBe('pass');
     expect(report.gates.G6?.status).toBe('pass');
     expect(
-      existsSync(join(outDir, 'game/_generated/screenshot.png')),
+      existsSync(join(outDir, 'game/screenshots/screenshot.png')),
     ).toBe(true);
   }, 180_000);
 });

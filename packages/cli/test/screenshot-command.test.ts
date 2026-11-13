@@ -25,7 +25,7 @@ describe('screenshotCommand', () => {
           exitCode: 0,
           stdout: [
             `GAMEDREAM_SCREENSHOT_PATH=${source}`,
-            'GAMEDREAM_SCREENSHOT_METRICS={"width":1280,"height":720,"samples":100,"non_black":80,"colors":12}',
+            'GAMEDREAM_SCREENSHOT_METRICS={"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
             'GAMEDREAM_SCREENSHOT_OK',
             '',
           ].join('\n'),

@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { hasMarker } from './logs.js';
 import type { CommandRunner } from './runner.js';
 import { runCommand } from './runner.js';
 import type { CommandResult, GodotInstallation } from './types.js';
@@ -10,6 +11,7 @@ export interface ScreenshotMetrics {
   samples: number;
   non_black: number;
   colors: number;
+  center_colors: number;
 }
 
 export interface ScreenshotResult extends CommandResult {
@@ -54,11 +56,18 @@ export async function runScreenshot(
   const pathMatch = /GAMEDREAM_SCREENSHOT_PATH=([^\r\n]+)/.exec(result.stdout);
   const metricsMatch = /GAMEDREAM_SCREENSHOT_METRICS=([^\r\n]+)/.exec(result.stdout);
   const source = pathMatch?.[1]?.trim();
-  let imagePath = source;
-  if (source && options.outPath && existsSync(source)) {
-    mkdirSync(dirname(options.outPath), { recursive: true });
-    copyFileSync(source, options.outPath);
-    imagePath = options.outPath;
+  let imagePath: string | undefined;
+  if (hasMarker(result, 'GAMEDREAM_SCREENSHOT_OK') && source && existsSync(source)) {
+    imagePath = source;
+    if (options.outPath) {
+      try {
+        mkdirSync(dirname(options.outPath), { recursive: true });
+        copyFileSync(source, options.outPath);
+        imagePath = options.outPath;
+      } catch {
+        imagePath = undefined;
+      }
+    }
   }
 
   let metrics: ScreenshotMetrics | undefined;

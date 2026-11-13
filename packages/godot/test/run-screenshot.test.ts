@@ -21,7 +21,7 @@ describe('runScreenshot', () => {
           exitCode: 0,
           stdout: [
             `GAMEDREAM_SCREENSHOT_PATH=${source}`,
-            'GAMEDREAM_SCREENSHOT_METRICS={"width":1280,"height":720,"samples":100,"non_black":80,"colors":12}',
+            'GAMEDREAM_SCREENSHOT_METRICS={"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
             'GAMEDREAM_SCREENSHOT_OK',
             '',
           ].join('\n'),
@@ -35,19 +35,19 @@ describe('runScreenshot', () => {
     expect(args).not.toContain('--headless');
     expect(result.imagePath).toBe(outPath);
     expect(readFileSync(outPath, 'utf8')).toBe('png-bytes');
-    expect(result.metrics).toMatchObject({ width: 1280, height: 720, colors: 12 });
+    expect(result.metrics).toMatchObject({ width: 1280, height: 720, colors: 12, center_colors: 6 });
   });
 
   it('reports missing markers', async () => {
     const dir = makeTempDir('gamedream screenshot missing ');
     const runner: CommandRunner = {
       async run() {
-        return { exitCode: 1, stdout: 'no capture', stderr: '' };
+        return { exitCode: 0, stdout: '', stderr: '' };
       },
     };
     const result = await runScreenshot(dir, godot, { runner });
     expect(result.imagePath).toBeUndefined();
     expect(result.metrics).toBeUndefined();
-    expect(result.exitCode).toBe(1);
+    expect(result.exitCode).toBe(0);
   });
 });

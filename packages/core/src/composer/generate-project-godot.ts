@@ -44,7 +44,7 @@ export function generateProjectGodot(input: {
     '[rendering]',
     'renderer/rendering_method="gl_compatibility"',
     'renderer/rendering_method.mobile="gl_compatibility"',
-    'environment/defaults/default_clear_color=Color(0.12, 0.2, 0.15, 1)',
+    'environment/defaults/default_clear_color=Color(0, 0, 0, 1)',
     '',
   ];
   return lines.join('\n');

@@ -30,6 +30,7 @@ func _ready() -> void:
 		print("INVENTORY_COUNT=%d" % inventory.count("potion"))
 	if not HAS_GAME_SCENE:
 		await get_tree().create_timer(0.2).timeout
-		get_tree().quit(0)
+		if not OS.get_cmdline_user_args().has("--screenshot"):
+			get_tree().quit(0)
 `;
 }
