@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import {
   detectGodot,
+  importProject,
   runScreenshot,
   type CommandRunner,
   type GodotInstallation,
@@ -27,6 +28,14 @@ export async function screenshotCommand(
     options.outPath ?? join(options.projectDir, 'game/_generated/screenshot.png');
   const godot = await detectGodot({ env: options.env, runner: options.runner });
   if (!godot) return { godot: null, result: null, outPath };
+  const imported = await importProject(options.projectDir, godot, options.runner);
+  if (imported.exitCode !== 0) {
+    return {
+      godot,
+      result: { ...imported, imagePath: undefined, metrics: undefined },
+      outPath,
+    };
+  }
   const result = await runScreenshot(options.projectDir, godot, {
     outPath,
     runner: options.runner,

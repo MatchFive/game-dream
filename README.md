@@ -111,7 +111,7 @@ with `--screenshot`, starts a new game, waits 60 frames, captures the viewport t
 - `dream screenshot --path ./my-game` — copy the PNG to
   `game/_generated/screenshot.png` (or `--out`).
 - `dream verify --path ./my-game --visual` — run G6 with the same capture.
-  G6 requires a windowed Godot run (no `--headless`), at least 1280×720-ish output,
+  G6 requires a windowed Godot run (no `--headless`), at least 640×360 output,
   ≥5% non-black samples, and ≥8 distinct colors. Use `--screenshot-out` to choose
   the PNG path.
 
