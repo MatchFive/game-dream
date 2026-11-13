@@ -65,6 +65,7 @@ describe('fixture content', () => {
       'system.levels',
       'system.loot',
       'system.map',
+      'system.platformer',
       'system.player',
       'system.progression',
       'system.quests',

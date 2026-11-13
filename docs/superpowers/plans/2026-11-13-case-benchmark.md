@@ -14,11 +14,13 @@
 
 ## Evidence
 
-- Real benchmark with fake provider + Godot:
-  - `action-rpg`: playable (`rpg-action-m1`, G1/G2/G3 pass).
-  - `platformer`, `shooter`, `roguelike`, `tower-defense`: fallback to
-    `fixture-minimal`.
-  - `puzzle`: fallback to `rpg-action-m1` and genre misclassified.
-  - Summary: 1 playable / 5 fallback / 0 failed; exit 1.
+- Initial benchmark with fake provider + Godot: 1 playable / 5 fallback.
+- After adding `platformer-2d`: `action-rpg` and `platformer` playable;
+  shooter/roguelike/tower-defense still fallback to `fixture-minimal`; puzzle
+  still falls back to `rpg-action-m1`.
+- New summary: 2 playable / 4 fallback / 0 failed; exit 1 remains until all
+  cases are playable.
+- Platformer verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
+- Platformer slice: gravity/jump, coins, goal, background, HUD, headless autoplay.
 - Unit tests cover playable-vs-fallback and duplicate case rejection.
 - No UE changes.

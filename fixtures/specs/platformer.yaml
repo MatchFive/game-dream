@@ -1,0 +1,20 @@
+version: 1
+project:
+  name: platformer-fixture
+  engine: godot
+  godot_version: "4.4"
+  dimension: 2d
+  view: side
+  target: [windows]
+genre:
+  primary: platformer
+  template: platformer-2d
+scope:
+  levels: 1
+  enemies: 0
+systems:
+  inventory: false
+content:
+  language: zh-CN
+acceptance:
+  - "玩家可移动、跳跃和收集金币"

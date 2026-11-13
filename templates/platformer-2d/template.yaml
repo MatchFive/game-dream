@@ -1,0 +1,21 @@
+id: platformer-2d
+genre: platformer
+dimension: 2d
+view: side
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.platformer
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 0
+  bosses: 0
+  skills: 0
+  items: 3
+  quests: 0
+acceptance:
+  - "玩家可左右移动、跳跃和落地"
+  - "收集金币并到达终点"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_COIN, GAMEDREAM_WIN]

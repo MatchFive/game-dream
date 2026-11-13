@@ -1,0 +1,6 @@
+id: platformer.coin
+module: system.platformer
+when:
+  - input: move_right
+then:
+  - assert_signal: coin.collected

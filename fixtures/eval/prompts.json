@@ -86,20 +86,20 @@
   {
     "prompt": "做一个 2D 平台跳跃游戏",
     "expected_genre": "platformer",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:platformer-2d->fixture-minimal"
+    "expected_template": "platformer-2d",
+    "expected_reason": "rule:platformer-2d"
   },
   {
     "prompt": "做一个横版跳跃平台游戏",
     "expected_genre": "platformer",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:platformer-2d->fixture-minimal"
+    "expected_template": "platformer-2d",
+    "expected_reason": "rule:platformer-2d"
   },
   {
     "prompt": "做一个有跳跃和金币的平台游戏",
     "expected_genre": "platformer",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:platformer-2d->fixture-minimal"
+    "expected_template": "platformer-2d",
+    "expected_reason": "rule:platformer-2d"
   },
   {
     "prompt": "做一个俯视角射击游戏",

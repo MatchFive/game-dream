@@ -1,0 +1,26 @@
+id: system.platformer
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [platformer]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  components: [Platformer]
+input_actions:
+  - name: move_left
+    keys: [A, LEFT]
+  - name: move_right
+    keys: [D, RIGHT]
+  - name: jump
+    keys: [SPACE, UP]
+  - name: restart
+    keys: [R]
+main_scene: scenes/level.tscn
+scenarios: [scenarios/platformer.yaml]
+tests: []
+ai_skill: skills/platformer.md
+docs: api.md
+license: Apache-2.0
