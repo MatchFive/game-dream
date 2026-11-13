@@ -3,7 +3,13 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
-import { composeUnityProject, readUnityConfig, verifyUnityProject } from '../src/index.js';
+import {
+  composeUnityProject,
+  findUnityBin,
+  parseUnityVersion,
+  readUnityConfig,
+  verifyUnityProject,
+} from '../src/index.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const templatesDir = join(root, 'templates/unity-2d-m0');
@@ -46,12 +52,27 @@ describe('unity M0 scaffold', () => {
     expect(missingToken.message).toContain('void Step');
   });
 
+  it('parses versions and honors UNITY_BIN without guessing', () => {
+    expect(parseUnityVersion('6000.6.9f1')).toEqual({
+      version: '6000.6.9f1',
+      major: 6000,
+      minor: 6,
+      patch: 9,
+    });
+    expect(parseUnityVersion('no version')).toBeNull();
+    const temp = makeTempDir('gamedream unity detect ');
+    const bin = join(temp, 'Unity.exe');
+    writeFileSync(bin, '', 'utf8');
+    expect(findUnityBin({ env: { UNITY_BIN: bin } })).toBe(bin);
+    expect(findUnityBin({ env: { UNITY_BIN: join(temp, 'missing.exe') } })).toBeNull();
+  });
+
   it('rejects bad project version, manifest, config, and duplicate GUIDs', () => {
     const cases: Array<{ file: string; content: string; message: string }> = [
       {
         file: 'ProjectSettings/ProjectVersion.txt',
         content: 'm_EditorVersion: 2022.3.0f1\n',
-        message: '6000.0.x',
+        message: 'Unity 6000.x',
       },
       {
         file: 'Packages/manifest.json',

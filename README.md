@@ -147,22 +147,23 @@ multi-frame review are deferred. `--vision fake` keeps the image local;
 ```bash
 dream unity compose --out ./unity-game
 dream unity verify --path ./unity-game
+dream unity verify --path ./unity-game --runtime
+dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
 ```
 
-`unity compose` generates a Unity 6 (6000.0.x) source project with a pure C#
+`unity compose` generates a Unity 6 (`6000.x`) source project with a pure C#
 `GameSim`, runtime bootstrap, and `EditorVerifier`. No Unity binary is bundled.
-`unity verify` is a static file/marker check; real runtime verification requires
-Unity 6:
-
-```text
-Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -
-```
+`unity verify` is a fast static file/marker check. `--runtime` launches
+`Unity.exe -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run
+-logFile -` and requires `UNITY_SIM_OK` + `UNITY_WIN`; it auto-detects common
+Unity Hub installs or uses `UNITY_BIN` / `--unity`. Exit codes: 0 pass, 1
+static/runtime marker failure, 3 Unity missing.
 
 Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
 `EditorVerifier` prints `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
-`UNITY_TIMEOUT`; it does not boot the scene, so a static pass is not a runtime
-screenshot. Open the project in Unity and press Play to use the runtime
-bootstrap (no scene asset is required).
+`UNITY_TIMEOUT`; it does not boot the scene, so a pass is not a screenshot.
+Open the project in Unity and press Play to use the runtime bootstrap (no scene
+asset is required).
 
 ## Web M0 (Phaser)
 

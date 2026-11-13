@@ -19,8 +19,16 @@ Headless markers: `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
 With Unity installed:
 
 ```text
+dream unity verify --path <this-folder> --runtime
+```
+
+or directly:
+
+```text
 Unity -batchmode -quit -projectPath <this-folder> -executeMethod EditorVerifier.Run -logFile -
 ```
+
+Set `UNITY_BIN` (or pass `--unity`) if Unity is not in a common Hub location.
 
 Exit 0 and a fresh `UNITY_WIN` means the pure C# `GameSim` completed the M0 arena.
 `dream unity verify --path <this-folder>` performs static project/marker checks and

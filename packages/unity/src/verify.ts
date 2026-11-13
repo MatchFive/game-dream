@@ -33,8 +33,8 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
   }
 
   const version = read(join(projectDir, 'ProjectSettings/ProjectVersion.txt'));
-  if (!/^m_EditorVersion: 6000\.0\./m.test(version)) {
-    return { passed: false, message: 'ProjectVersion.txt must target Unity 6000.0.x' };
+  if (!/^m_EditorVersion: 6000\.\d+\./m.test(version)) {
+    return { passed: false, message: 'ProjectVersion.txt must target Unity 6000.x' };
   }
 
   let manifest: unknown;

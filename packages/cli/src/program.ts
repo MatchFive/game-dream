@@ -613,26 +613,54 @@ export function createProgram(): Command {
   unityCommand
     .command('verify')
     .requiredOption('--path <dir>')
+    .option('--runtime', 'run Unity EditorVerifier in batchmode')
+    .option('--unity <path>', 'Unity executable or Editor directory')
+    .option('--timeout <ms>', 'Unity runtime timeout', '180000')
     .option('--json', 'print JSON')
-    .action((options: { path: string; json?: boolean }) => {
-      try {
-        const result = unityVerifyCommand({ projectDir: options.path });
-        if (options.json) printJson(result);
-        else if (result.passed) {
-          printLine('Unity static project verification passed');
-          printLine(
-            'Runtime verification requires Unity 6: Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -',
-          );
-        } else {
-          printLine(`Unity verification failed: ${result.message ?? 'unknown error'}`);
+    .action(
+      (options: {
+        path: string;
+        runtime?: boolean;
+        unity?: string;
+        timeout: string;
+        json?: boolean;
+      }) => {
+        try {
+          const timeoutMs = Number(options.timeout);
+          if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            printLine('--timeout must be a positive number');
+            process.exitCode = 1;
+            return;
+          }
+          const result = unityVerifyCommand({
+            projectDir: options.path,
+            runtime: options.runtime,
+            unityBin: options.unity,
+            timeoutMs,
+          });
+          if (options.json) printJson(result);
+          else if (result.passed) {
+            printLine('Unity static project verification passed');
+            if (result.runtime?.passed) {
+              printLine('Unity runtime verification passed (UNITY_SIM_OK, UNITY_WIN)');
+            } else {
+              printLine(
+                'Runtime verification not run; add --runtime to launch Unity EditorVerifier.',
+              );
+            }
+          } else {
+            printLine(`Unity verification failed: ${result.message ?? 'unknown error'}`);
+            if (result.runtime?.stdout) printLine(result.runtime.stdout);
+            if (result.runtime?.stderr) printLine(result.runtime.stderr);
+          }
+          process.exitCode = result.exitCode;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
         }
-        process.exitCode = result.passed ? 0 : 1;
-      } catch (error) {
-        const formatted = formatCliError(error);
-        printLine(formatted.message);
-        process.exitCode = formatted.exitCode;
-      }
-    });
+      },
+    );
 
   const mapCommand = program
     .command('map')
