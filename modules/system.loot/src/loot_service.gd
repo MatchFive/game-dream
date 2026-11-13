@@ -7,6 +7,9 @@ func _ready() -> void:
 	Game.register_service("loot", self)
 	Game.events.event_emitted.connect(_on_event)
 
+func reset() -> void:
+	_rng.seed = 42
+
 func _on_event(event_name: String, payload: Variant) -> void:
 	if event_name != "enemy.died" or not payload is Dictionary:
 		return

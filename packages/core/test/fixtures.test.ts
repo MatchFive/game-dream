@@ -99,7 +99,7 @@ describe('fixture content', () => {
     const expected: Record<string, string[]> = {
       'core.content': ['get_item', 'get_skill', 'get_loot_table', 'get_level', 'get_map', 'get_sprite'],
       'core.events': ['register_event_bus', 'emit_event'],
-      'core.save': ['save_game', 'load_game', 'serialize'],
+      'core.save': ['save_game', 'load_game', 'serialize', 'clear'],
       'core.stats': ['register_service', 'set_stat', 'get_stat'],
       'system.ai': ['move_and_slide', 'attack_damage', 'enemies', 'enemy.died', 'AnimatedSprite2D', 'sprites.apply'],
       'system.combat': ['take_damage', 'set_max_hp', 'heal_full', 'health_changed', 'died'],
@@ -125,7 +125,7 @@ describe('fixture content', () => {
       ],
       'system.inventory': ['register_service', 'add_item', 'remove_item', 'total_count', 'reset'],
       'system.levels': ['level.started', 'has_next', 'advance', 'current_map', 'reset', 'serialize'],
-      'system.loot': ['enemy.died', 'loot.dropped', 'get_loot_table'],
+      'system.loot': ['enemy.died', 'loot.dropped', 'get_loot_table', 'reset'],
       'system.map': ['TileMapLayer', 'set_cell', 'StaticBody2D', 'build', 'is_wall', 'first_floor'],
       'system.player': [
         'Input.get_vector',

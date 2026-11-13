@@ -114,6 +114,9 @@ describe('m1 composition', () => {
     expect(campaign.levels).toHaveLength(3);
     expect(campaign.levels[2].enemy.kind).toBe('boss');
     expect(
+      existsSync(join(outDir, 'game/content/maps/throne.json')),
+    ).toBe(true);
+    expect(
       existsSync(join(outDir, 'modules/system.player/assets/player.svg')),
     ).toBe(true);
   });

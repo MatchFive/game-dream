@@ -30,7 +30,7 @@
     {
       "id": "throne",
       "name": "The Throne",
-      "map": "grove",
+      "map": "throne",
       "enemy": {
         "kind": "boss",
         "max_hp": 120,

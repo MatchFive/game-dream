@@ -60,6 +60,12 @@ func _reset_run() -> void:
 	var skills = Game.get_service("skills")
 	if skills and skills.has_method("reset"):
 		skills.reset()
+	var loot = Game.get_service("loot")
+	if loot and loot.has_method("reset"):
+		loot.reset()
+	var save = Game.get_service("save")
+	if save and save.has_method("clear"):
+		save.clear()
 	var levels = Game.get_service("levels")
 	if levels:
 		levels.reset()
@@ -150,21 +156,22 @@ func _win() -> void:
 	_finished = true
 	await get_tree().process_frame
 	var equipment = Game.get_service("equipment")
-	if equipment:
-		if player.attack_damage < 15:
-			push_error("GAMEDREAM_EQUIP_BONUS_MISSING")
-			get_tree().quit(1)
-			return
-		if player.get_node("Health").max_hp < 120:
-			push_error("GAMEDREAM_HP_BONUS_MISSING")
-			get_tree().quit(1)
-			return
-	var save = Game.get_service("save")
-	if save:
-		if not save.save_game() or not save.save_game() or not save.load_game():
-			push_error("GAMEDREAM_SAVE_MISSING")
-			get_tree().quit(1)
-			return
+	if DisplayServer.get_name() == "headless":
+		if equipment:
+			if player.attack_damage < 15:
+				push_error("GAMEDREAM_EQUIP_BONUS_MISSING")
+				get_tree().quit(1)
+				return
+			if player.get_node("Health").max_hp < 120:
+				push_error("GAMEDREAM_HP_BONUS_MISSING")
+				get_tree().quit(1)
+				return
+		var save = Game.get_service("save")
+		if save:
+			if not save.save_game() or not save.save_game() or not save.load_game():
+				push_error("GAMEDREAM_SAVE_MISSING")
+				get_tree().quit(1)
+				return
 	var progression = Game.get_service("progression")
 	if progression and progression.level > 1:
 		print("GAMEDREAM_LEVEL_UP")

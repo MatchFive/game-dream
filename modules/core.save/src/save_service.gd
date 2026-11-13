@@ -52,3 +52,8 @@ func load_game() -> bool:
 
 func has_save() -> bool:
 	return FileAccess.file_exists(SAVE_PATH)
+
+func clear() -> void:
+	for path in [SAVE_PATH, SAVE_BAK, SAVE_TMP]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

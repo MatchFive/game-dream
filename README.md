@@ -103,8 +103,10 @@ Content is data-driven under `game/content/`:
 - `sprites/*.json` — texture path, frame size, and idle/move/attack ranges
 
 The composer copies template content only when a file does not already exist, so
-user edits survive recompose. `rpg-action-m0` and `fixture-minimal` remain available
-as smaller templates.
+user edits survive recompose. Existing projects keep their old `campaign.json`
+(including its level count); re-create into a fresh directory to pick up the boss
+level, or merge `levels/campaign.json` and `maps/throne.json` manually.
+`rpg-action-m0` and `fixture-minimal` remain available as smaller templates.
 
 ## Screenshots and G6
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { makeTempDir } from '@gamedream/testing';
 import { composeCommand } from '../src/commands/compose.js';
 import { verifyCommand } from '../src/commands/verify.js';
@@ -17,8 +17,9 @@ describe.runIf(Boolean(process.env.GODOT_BIN))('map fallback end-to-end', () => 
       modulesDir: join(root, 'modules'),
       templatesDir: join(root, 'templates'),
     });
-    for (const name of ['clearing', 'grove']) {
-      const mapPath = join(outDir, `game/content/maps/${name}.json`);
+    const mapsDir = join(outDir, 'game/content/maps');
+    for (const file of readdirSync(mapsDir).filter((name) => name.endsWith('.json'))) {
+      const mapPath = join(mapsDir, file);
       const map = JSON.parse(readFileSync(mapPath, 'utf8'));
       map.rows = [];
       writeFileSync(mapPath, JSON.stringify(map), 'utf8');
