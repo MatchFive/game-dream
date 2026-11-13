@@ -118,7 +118,7 @@ describe('fixture content', () => {
       'system.inventory': ['register_service', 'add_item', 'remove_item', 'total_count'],
       'system.levels': ['level.started', 'has_next', 'advance', 'current_map', 'reset', 'serialize'],
       'system.loot': ['enemy.died', 'loot.dropped', 'get_loot_table'],
-      'system.map': ['TileMapLayer', 'set_cell', 'StaticBody2D', 'build'],
+      'system.map': ['TileMapLayer', 'set_cell', 'StaticBody2D', 'build', 'is_wall', 'first_floor'],
       'system.player': [
         'Input.get_vector',
         'is_action_pressed',

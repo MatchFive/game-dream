@@ -17,7 +17,7 @@ func _ready() -> void:
 	_load_dir("quests", quests)
 	_load_dir("dialogue", dialogue)
 	_load_dir("levels", levels)
-	_load_dir("maps", maps)
+	_load_dir("maps", maps, false)
 
 func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) -> void:
 	var path := "res://game/content/%s" % folder

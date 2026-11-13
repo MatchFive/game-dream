@@ -10,7 +10,8 @@
 
 ## Behavior
 - Spawns an enemy under `EnemyRoot` from `levels.current_level().enemy`, or defaults
-  (`slime`, 30 HP, 5 damage, speed 80, at 600×240).
+  (`slime`, 30 HP, 5 damage, speed 80, at 600×240). Spawns inside walls snap to the
+  first floor cell; the player is also snapped if a level change puts it in a wall.
 - Connects enemy `Health.died` to level advance or win; heals the player on level change.
 - Desktop: no autoplay; `game.started` starts the intro dialogue; New Game resets levels.
 - Headless autoplay: moves toward the enemy on both axes, attacks, and runs at most

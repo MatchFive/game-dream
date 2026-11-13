@@ -50,13 +50,16 @@ func _apply_level() -> void:
 	if not level.is_empty() and data.is_empty():
 		push_warning("level: missing enemy data; using defaults")
 	for child in map_root.get_children():
+		map_root.remove_child(child)
 		child.queue_free()
+	var map_data := {}
 	var maps = Game.get_service("maps")
+	var map_built := false
 	if maps:
-		var map_data := {}
 		if levels:
 			map_data = levels.current_map()
-		if maps.build(map_root, map_data) and not _map_reported:
+		map_built = maps.build(map_root, map_data)
+		if map_built and not _map_reported:
 			_map_reported = true
 			print("GAMEDREAM_MAP_OK")
 	enemy = ENEMY_SCENE.instantiate()
@@ -64,11 +67,17 @@ func _apply_level() -> void:
 	enemy.speed = maxf(0.0, float(data.get("speed", 80.0)))
 	enemy.attack_damage = maxi(0, int(data.get("attack_damage", 5)))
 	enemy.position = Vector2(float(data.get("x", 600)), float(data.get("y", 240)))
+	if map_built and maps.is_wall(map_data, enemy.position):
+		push_warning("level: enemy spawn inside wall; snapping to floor")
+		enemy.position = maps.first_floor(map_data)
 	enemy.get_node("Health").max_hp = maxi(1, int(data.get("max_hp", 30)))
 	enemy_root.add_child(enemy)
 	enemy.get_node("Health").died.connect(_on_enemy_died)
 	var health = player.get_node("Health")
 	health.heal_full()
+	if map_built and maps.is_wall(map_data, player.global_position):
+		push_warning("level: player inside wall; snapping to floor")
+		player.global_position = maps.first_floor(map_data)
 
 func _headless_start() -> void:
 	var dialogue = Game.get_service("dialogue")
