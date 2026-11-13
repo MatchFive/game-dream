@@ -204,6 +204,11 @@ try {
     audio.play('reset');
   }
 
+  const coarsePointer =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(pointer: coarse)')
+      : null;
+
   function worldSize() {
     return {
       width: state.map
@@ -213,6 +218,10 @@ try {
         ? state.map.rows.length * state.map.tile_size
         : config.arena.height,
     };
+  }
+
+  function cameraZoom() {
+    return coarsePointer?.matches || window.innerWidth < 720 ? 2 : 1.2;
   }
   const initialSize = worldSize();
   const width = initialSize.width;
@@ -379,6 +388,17 @@ try {
       }
     }
 
+    configureCamera() {
+      const size = worldSize();
+      const camera = this.cameras.main;
+      camera.setBounds(0, 0, size.width, size.height);
+      camera.setZoom(cameraZoom());
+      if (this.playerActor) {
+        camera.startFollow(this.playerActor, true, 0.15, 0.15);
+        camera.setDeadzone(96, 64);
+      }
+    }
+
     create() {
       this.graphics = this.add.graphics();
       this.cursors = this.input.keyboard.addKeys({
@@ -395,6 +415,8 @@ try {
       });
       this.drawMap();
       this.ensureActors();
+      this.configureCamera();
+      this.scale.on('resize', this.configureCamera, this);
     }
 
     drawMap() {
@@ -440,6 +462,7 @@ try {
         0xef5350,
         state.enemy.scale,
       );
+      this.configureCamera();
     }
 
     update(_time, delta) {

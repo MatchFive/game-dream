@@ -17,8 +17,9 @@ python3 -m http.server 8080
 
 WASD / arrows move, J / Space attacks, I opens inventory, Q opens quests, O
 opens settings, P pauses, R resets the run, Esc closes panels. Walls block
-movement. Touch devices get an on-screen D-pad, attack button, panel buttons, and
-pause menu. The Phaser scene reads the same `sim.mjs` state as the headless verifier. Progress
+movement. The camera follows the player within map bounds and zooms in on small
+touch screens. Touch devices get an on-screen D-pad, attack button, panel buttons,
+and pause menu. The Phaser scene reads the same `sim.mjs` state as the headless verifier. Progress
 (level, HP, inventory, quests) is saved in localStorage; music/SFX volumes and
 fullscreen preference are saved separately. Audio starts after the first input
 and requires no external audio assets.

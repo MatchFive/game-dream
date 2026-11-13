@@ -162,7 +162,8 @@ remains browser- and headless-compatible.
   captures the page without running the marker gate.
 - The generated game saves level/HP/inventory/quests in localStorage, offers
   `O` settings, `P` pause, `R` reset, and runtime WebAudio music/SFX with
-  persisted volumes. Coarse-pointer/narrow viewports get touch D-pad, attack,
+  persisted volumes. The camera follows the player with map bounds (desktop ~1.2×,
+  mobile ~2×), and coarse-pointer/narrow viewports get touch D-pad, attack,
   panel, and pause controls with a responsive canvas/panel layout.
 - `dream web package --path ./web-game --out ./release/web-game` checks required
   files and writes a deployable static directory plus `deployment.json` with

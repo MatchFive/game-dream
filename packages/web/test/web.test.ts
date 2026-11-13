@@ -84,6 +84,10 @@ describe('web M0', () => {
     expect(game).toContain('panelOpen');
     expect(game).toContain('Confirm restart');
     expect(game).toContain('touch.left');
+    expect(game).toContain('configureCamera');
+    expect(game).toContain('startFollow');
+    expect(game).toContain('setBounds');
+    expect(game).toContain('cameraZoom');
     const css = readFileSync(join(outDir, 'style.css'), 'utf8');
     expect(css).toContain('@media (pointer: coarse)');
     expect(css).toContain('body.paused #touch-controls');
