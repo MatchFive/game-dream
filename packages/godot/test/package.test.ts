@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { composeProject } from '@gamedream/core';
@@ -25,9 +31,11 @@ describe('Godot package', () => {
     mkdirSync(join(project, '.godot/imported'), { recursive: true });
     mkdirSync(join(project, 'build'), { recursive: true });
     mkdirSync(join(project, 'screenshots'), { recursive: true });
+    mkdirSync(join(project, 'game/screenshots'), { recursive: true });
     writeFileSync(join(project, '.godot/imported/cache'), 'cache');
     writeFileSync(join(project, 'build/game.exe'), 'binary');
     writeFileSync(join(project, 'screenshots/shot.png'), 'png');
+    writeFileSync(join(project, 'game/screenshots/shot-2.png'), 'png');
     writeFileSync(join(project, 'project.godot.bak'), 'bak');
 
     const out = join(makeTempDir('gamedream godot package out '), 'release');
@@ -39,6 +47,7 @@ describe('Godot package', () => {
     expect(existsSync(join(out, '.godot'))).toBe(false);
     expect(existsSync(join(out, 'build'))).toBe(false);
     expect(existsSync(join(out, 'screenshots'))).toBe(false);
+    expect(existsSync(join(out, 'game/screenshots'))).toBe(false);
     expect(existsSync(join(out, 'project.godot.bak'))).toBe(false);
     expect(result.files.some((file) => file.path === 'game/game.manifest.json')).toBe(true);
     expect(result.files.every((file) => /^[0-9a-f]{64}$/.test(file.sha256))).toBe(true);
@@ -46,13 +55,20 @@ describe('Godot package', () => {
     expect(release.files).toEqual(result.files);
   });
 
-  it('refuses non-empty output and keeps the old package on failure', async () => {
+  it('refuses non-empty output and preserves the old package on copy failure', async () => {
     const project = await compose();
     const out = join(makeTempDir('gamedream godot package guard '), 'release');
     packageGodotProject({ projectDir: project, outDir: out });
     expect(() => packageGodotProject({ projectDir: project, outDir: out })).toThrow(/pass --force/);
-    writeFileSync(join(project, 'release.json'), 'source release file');
-    packageGodotProject({ projectDir: project, outDir: out, force: true });
+
+    try {
+      symlinkSync(join(project, 'project.godot'), join(project, 'game/linked.godot'));
+    } catch {
+      return;
+    }
+    expect(() => packageGodotProject({ projectDir: project, outDir: out, force: true })).toThrow(
+      /symlink/,
+    );
     expect(existsSync(join(out, 'release.json'))).toBe(true);
     expect(existsSync(join(out, 'project.godot'))).toBe(true);
   });

@@ -42,7 +42,55 @@ describe('Godot export', () => {
       out,
     ]);
     expect(result.outputExists).toBe(true);
-    expect(result.missingTemplates).toBe(false);
+    expect(result.succeeded).toBe(true);
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('supports the debug template and ignores rcedit warnings on success', async () => {
+    const project = projectWithPreset();
+    const out = join(project, 'build/game-debug.exe');
+    const calls: string[][] = [];
+    const runner: CommandRunner = {
+      async run(_command, args) {
+        calls.push(args);
+        mkdirSync(join(project, 'build'), { recursive: true });
+        writeFileSync(out, 'debug binary');
+        return { exitCode: 0, stdout: '', stderr: 'rcedit warning' };
+      },
+    };
+    const result = await exportProject({
+      projectDir: project,
+      godot,
+      preset: 'Windows Desktop',
+      outPath: out,
+      debug: true,
+      runner,
+    });
+    expect(calls[0]).toContain('--export-debug');
+    expect(result.succeeded).toBe(true);
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('does not treat a stale output as a successful export', async () => {
+    const project = projectWithPreset();
+    const out = join(project, 'build/game.exe');
+    mkdirSync(join(project, 'build'), { recursive: true });
+    writeFileSync(out, 'old binary');
+    const runner: CommandRunner = {
+      async run() {
+        return { exitCode: 1, stdout: '', stderr: 'SCRIPT ERROR' };
+      },
+    };
+    const result = await exportProject({
+      projectDir: project,
+      godot,
+      preset: 'Windows Desktop',
+      outPath: out,
+      runner,
+    });
+    expect(result.succeeded).toBe(false);
+    expect(result.failureReason).toBe('other');
+    expect(result.outputExists).toBe(true);
   });
 
   it('classifies missing export templates and rejects unknown presets', async () => {
@@ -59,7 +107,8 @@ describe('Godot export', () => {
       outPath: join(project, 'build/game.exe'),
       runner,
     });
-    expect(result.missingTemplates).toBe(true);
+    expect(result.succeeded).toBe(false);
+    expect(result.failureReason).toBe('templates');
 
     const localized: CommandRunner = {
       async run() {
@@ -75,8 +124,8 @@ describe('Godot export', () => {
           outPath: join(project, 'build/game.exe'),
           runner: localized,
         })
-      ).missingTemplates,
-    ).toBe(true);
+      ).failureReason,
+    ).toBe('templates');
     await expect(
       exportProject({
         projectDir: project,

@@ -37,6 +37,8 @@ texture_format/s3tc_bptc=true
 texture_format/etc2_astc=false
 binary_format/architecture="x86_64"
 codesign/enable=false
+application/modify_resources=false
+application/icon=""
 
 [preset.1]
 name="Linux"

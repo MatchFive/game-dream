@@ -228,6 +228,11 @@ export function createProgram(): Command {
             process.exitCode = 3;
             return;
           }
+          if (godot.major < 4 || (godot.major === 4 && godot.minor < 4)) {
+            printLine(`Godot ${godot.version} detected; 4.4+ required.`);
+            process.exitCode = 3;
+            return;
+          }
           const imported = await importProject(options.path, godot);
           if (imported.exitCode !== 0) {
             printLine(imported.stderr || imported.stdout || `Godot import exited ${imported.exitCode}`);
@@ -242,17 +247,25 @@ export function createProgram(): Command {
             debug: options.debug,
           });
           if (options.json) printJson(result);
-          else if (result.missingTemplates) {
+          else if (result.failureReason === 'templates') {
             printLine(
               'Godot export templates are not installed. Install the matching 4.4 export templates, or use `dream godot package` for a source release.',
             );
-          } else if (!result.outputExists) {
-            printLine('Godot export did not write the expected output.');
+          } else if (result.failureReason === 'rcedit') {
+            printLine(
+              'Godot Windows export requires rcedit. Configure it in Editor Settings > Export > Windows > rcedit, or use `dream godot package`.',
+            );
+          } else if (!result.succeeded) {
+            printLine('Godot export failed; no fresh output file was written.');
             if (result.stderr) printLine(result.stderr);
           } else {
             printLine(`Godot export: ${options.out}`);
           }
-          process.exitCode = result.missingTemplates ? 3 : result.outputExists ? 0 : 1;
+          process.exitCode = result.succeeded
+            ? 0
+            : result.failureReason === 'templates' || result.failureReason === 'rcedit'
+              ? 3
+              : 1;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

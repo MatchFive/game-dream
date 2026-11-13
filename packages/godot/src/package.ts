@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto';
 import {
+  closeSync,
   copyFileSync,
   existsSync,
-  lstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  readSync,
   readdirSync,
   realpathSync,
   renameSync,
@@ -69,17 +71,30 @@ function skipped(name: string): boolean {
   );
 }
 
+function hashFile(path: string): string {
+  const hash = createHash('sha256');
+  const buffer = Buffer.alloc(1024 * 1024);
+  const fd = openSync(path, 'r');
+  try {
+    let read = 0;
+    while ((read = readSync(fd, buffer, 0, buffer.length, null)) > 0) {
+      hash.update(buffer.subarray(0, read));
+    }
+  } finally {
+    closeSync(fd);
+  }
+  return hash.digest('hex');
+}
+
 function copyTree(
   source: string,
   target: string,
   rel: string,
   files: GodotPackageFile[],
   projectDir: string,
-  topLevel: boolean,
 ): void {
   for (const entry of readdirSync(source, { withFileTypes: true })) {
-    if (skipped(entry.name)) continue;
-    if (topLevel && entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
+    if (SKIP_DIRS.has(entry.name) || skipped(entry.name)) continue;
     const from = join(source, entry.name);
     const to = join(target, entry.name);
     const next = rel ? `${rel}/${entry.name}` : entry.name;
@@ -88,14 +103,13 @@ function copyTree(
     }
     if (entry.isDirectory()) {
       mkdirSync(to, { recursive: true });
-      copyTree(from, to, next, files, projectDir, false);
+      copyTree(from, to, next, files, projectDir);
     } else if (entry.isFile()) {
       const real = realpathSync(from);
       if (!isInside(projectDir, real)) throw new Error(`source escapes project: ${from}`);
       copyFileSync(from, to);
       const bytes = statSync(to).size;
-      const sha256 = createHash('sha256').update(readFileSync(to)).digest('hex');
-      files.push({ path: next, bytes, sha256 });
+      files.push({ path: next, bytes, sha256: hashFile(to) });
     }
   }
 }
@@ -140,7 +154,7 @@ export function packageGodotProject(options: GodotPackageOptions): GodotPackageR
   try {
     const files: GodotPackageFile[] = [];
     mkdirSync(staging, { recursive: true });
-    copyTree(projectDir, staging, '', files, projectDir, true);
+    copyTree(projectDir, staging, '', files, projectDir);
     files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
     const bytes = files.reduce((total, file) => total + file.bytes, 0);
     writeFileSync(
@@ -148,8 +162,22 @@ export function packageGodotProject(options: GodotPackageOptions): GodotPackageR
       `${JSON.stringify({ name, entry: 'project.godot', files, bytes }, null, 2)}\n`,
       'utf8',
     );
-    if (existsSync(outDir)) rmSync(outDir, { recursive: true, force: true });
-    renameSync(staging, outDir);
+    const backup = `${outDir}.backup-${process.pid}`;
+    rmSync(backup, { recursive: true, force: true });
+    let moved = false;
+    try {
+      if (existsSync(outDir)) {
+        renameSync(outDir, backup);
+        moved = true;
+      }
+      renameSync(staging, outDir);
+      if (moved) rmSync(backup, { recursive: true, force: true });
+    } catch (error) {
+      if (moved && !existsSync(outDir) && existsSync(backup)) {
+        renameSync(backup, outDir);
+      }
+      throw error;
+    }
     return { outDir, name, entry: 'project.godot', files, bytes };
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
