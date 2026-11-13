@@ -1,0 +1,17 @@
+id: system.map
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action]
+depends: {}
+provides:
+  services: [maps]
+autoloads:
+  - name: MapService
+    path: src/map_service.gd
+    order: 48
+scenarios: [scenarios/build.yaml]
+ai_skill: skills/map.md
+docs: api.md
+license: Apache-2.0

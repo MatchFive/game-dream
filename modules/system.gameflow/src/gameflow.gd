@@ -4,10 +4,12 @@ const ENEMY_SCENE := preload("res://modules/system.ai/scenes/enemy.tscn")
 
 @onready var player: CharacterBody2D = $Player
 @onready var enemy_root: Node2D = $EnemyRoot
+@onready var map_root: Node2D = $MapRoot
 
 var enemy = null
 var _finished := false
 var _level2_reported := false
+var _map_reported := false
 
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
@@ -23,6 +25,7 @@ func _on_event(event_name: String, payload: Variant) -> void:
 			if levels:
 				levels.reset()
 			_level2_reported = false
+			_map_reported = false
 			_apply_level()
 		var dialogue = Game.get_service("dialogue")
 		if dialogue and not dialogue.is_active():
@@ -46,6 +49,16 @@ func _apply_level() -> void:
 	var data: Dictionary = data_value if data_value is Dictionary else {}
 	if not level.is_empty() and data.is_empty():
 		push_warning("level: missing enemy data; using defaults")
+	for child in map_root.get_children():
+		child.queue_free()
+	var maps = Game.get_service("maps")
+	if maps:
+		var map_data := {}
+		if levels:
+			map_data = levels.current_map()
+		if maps.build(map_root, map_data) and not _map_reported:
+			_map_reported = true
+			print("GAMEDREAM_MAP_OK")
 	enemy = ENEMY_SCENE.instantiate()
 	enemy.enemy_kind = str(data.get("kind", "slime"))
 	enemy.speed = maxf(0.0, float(data.get("speed", 80.0)))

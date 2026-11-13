@@ -1,10 +1,12 @@
 # system.gameflow
 
 ## Main scene
-- `scenes/game.tscn` — `Player` plus `EnemyRoot`.
+- `scenes/game.tscn` — `MapRoot`, `Player`, plus `EnemyRoot`.
 
 ## Services
 - Optional `Game.get_service("levels")`; without it, one default enemy is spawned.
+- Optional `Game.get_service("maps")`; builds the current level's tile map under
+  `MapRoot` and prints `GAMEDREAM_MAP_OK` once per run.
 
 ## Behavior
 - Spawns an enemy under `EnemyRoot` from `levels.current_level().enemy`, or defaults

@@ -24,6 +24,8 @@ describe('m0 composition', () => {
     expect(inputIndex).toBeGreaterThan(gameIndex);
     expect(eventIndex).toBeGreaterThan(inputIndex);
 
+    expect(project).not.toContain('MapService=');
+
     const input = readFileSync(join(outDir, 'game/_generated/input_map.gd'), 'utf8');
     expect(input).toContain('_add("move_left"');
     expect(input).toContain('KEY_A');

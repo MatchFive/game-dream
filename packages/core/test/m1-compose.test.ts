@@ -34,6 +34,7 @@ describe('m1 composition', () => {
     expect(contentIndex).toBeGreaterThan(project.indexOf('Game='));
     expect(progressionIndex).toBeGreaterThan(contentIndex);
     expect(project).toContain('SaveService=');
+    expect(project).toContain('MapService=');
 
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');
@@ -65,6 +66,7 @@ describe('m1 composition', () => {
     );
     expect(manifest.acceptance.markers).toEqual([
       'GAMEDREAM_BOOT_OK',
+      'GAMEDREAM_MAP_OK',
       'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',
@@ -82,5 +84,10 @@ describe('m1 composition', () => {
     expect(
       existsSync(join(outDir, 'game/content/levels/campaign.json')),
     ).toBe(true);
+    const clearing = JSON.parse(
+      readFileSync(join(outDir, 'game/content/maps/clearing.json'), 'utf8'),
+    );
+    expect(clearing.rows).toHaveLength(20);
+    expect(clearing.rows.every((row: string) => row.length === 40)).toBe(true);
   });
 });

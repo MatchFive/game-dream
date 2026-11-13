@@ -4,6 +4,7 @@
     {
       "id": "clearing",
       "name": "Forest Clearing",
+      "map": "clearing",
       "enemy": {
         "kind": "slime",
         "max_hp": 30,
@@ -16,6 +17,7 @@
     {
       "id": "grove",
       "name": "Deep Grove",
+      "map": "grove",
       "enemy": {
         "kind": "slime",
         "max_hp": 45,

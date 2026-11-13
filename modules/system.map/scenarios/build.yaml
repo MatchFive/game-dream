@@ -1,0 +1,6 @@
+id: map.build
+module: system.map
+when:
+  - call: maps.build
+then:
+  - assert_node_exists: MapRoot

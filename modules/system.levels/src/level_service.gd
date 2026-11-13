@@ -27,6 +27,15 @@ func current_level() -> Dictionary:
 	var value = levels[current_index]
 	return value if value is Dictionary else {}
 
+func current_map() -> Dictionary:
+	var map_id := str(current_level().get("map", ""))
+	if map_id == "":
+		return {}
+	var content = Game.get_service("content")
+	if content == null:
+		return {}
+	return content.get_map(map_id)
+
 func level_count() -> int:
 	return levels.size()
 
