@@ -6,6 +6,7 @@ kind: ui
 genres: [any]
 depends:
   core.save: "^1.0.0"
+  ui.settings: "^1.0.0"
 provides:
   services: []
 ui_mounts:

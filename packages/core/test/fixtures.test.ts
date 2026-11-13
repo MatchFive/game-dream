@@ -121,6 +121,8 @@ describe('fixture content', () => {
         'GAMEDREAM_BOSS',
         'GAMEDREAM_VICTORY',
         'GAMEDREAM_MAP_OK',
+        'GAMEDREAM_SPRITE_OK',
+        'GAMEDREAM_AUDIO_OK',
         'EnemyRoot',
         'MapRoot',
         'level.started',

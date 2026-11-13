@@ -1,5 +1,7 @@
 extends Node
 
+signal audio_ready()
+
 const RATE := 22050
 const SFX_POOL := 8
 
@@ -22,6 +24,7 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless":
 		_music.play()
 	initialized = true
+	audio_ready.emit()
 
 func _ensure_buses() -> void:
 	for bus_name in ["Music", "SFX"]:
@@ -36,7 +39,7 @@ func _build_players() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.name = "Music"
 	_music.bus = "Music"
-	_music.stream = _streams["music"]
+	_music.stream = _streams.get("music", null)
 	add_child(_music)
 	for index in range(SFX_POOL):
 		var player := AudioStreamPlayer.new()
@@ -54,7 +57,8 @@ func _build_streams() -> void:
 	_streams["win"] = _make_sequence([523.25, 659.25, 783.99], 0.12, 0.4)
 	_streams["lose"] = _make_sequence([220.0, 164.81], 0.15, 0.4)
 	_streams["talk"] = _make_sequence([700.0], 0.04, 0.15)
-	_streams["music"] = _make_music()
+	if DisplayServer.get_name() != "headless":
+		_streams["music"] = _make_music()
 
 func _make_sequence(freqs: Array, note_duration: float, volume: float) -> AudioStreamWAV:
 	var frames_per_note := int(note_duration * RATE)

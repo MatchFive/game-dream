@@ -4,4 +4,4 @@ when:
   - call: audio.play_sfx
     args: [hit]
 then:
-  - assert_signal: initialized
+  - assert_signal: audio_ready

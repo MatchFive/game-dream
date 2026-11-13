@@ -9,9 +9,18 @@ var music_volume: float = 0.3
 var sfx_volume: float = 0.8
 var fullscreen: bool = false
 
+var _save_timer: Timer
+
 func _ready() -> void:
 	Game.register_service("settings", self)
+	_save_timer = Timer.new()
+	_save_timer.one_shot = true
+	_save_timer.wait_time = 0.3
+	_save_timer.timeout.connect(_on_save_timeout)
+	add_child(_save_timer)
 	_load()
+	_apply_bus("Music", music_volume)
+	_apply_bus("SFX", sfx_volume)
 	_apply_fullscreen()
 
 func _load() -> void:
@@ -45,20 +54,30 @@ func save() -> bool:
 func set_music_volume(value: float) -> void:
 	music_volume = clampf(value, 0.0, 1.0)
 	_apply_bus("Music", music_volume)
-	save()
+	_schedule_save()
 	changed.emit()
 
 func set_sfx_volume(value: float) -> void:
 	sfx_volume = clampf(value, 0.0, 1.0)
 	_apply_bus("SFX", sfx_volume)
-	save()
+	_schedule_save()
 	changed.emit()
 
 func set_fullscreen(value: bool) -> void:
 	fullscreen = value
 	_apply_fullscreen()
-	save()
+	_schedule_save()
 	changed.emit()
+
+func _schedule_save() -> void:
+	if _save_timer:
+		_save_timer.start()
+	else:
+		_on_save_timeout()
+
+func _on_save_timeout() -> void:
+	if not save():
+		push_warning("settings: failed to save user://settings.json")
 
 func _apply_bus(bus_name: String, value: float) -> void:
 	var index := AudioServer.get_bus_index(bus_name)

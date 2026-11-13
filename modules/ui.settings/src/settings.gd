@@ -12,6 +12,8 @@ func _ready() -> void:
 	Game.events.event_emitted.connect(_on_event)
 	music_slider.value_changed.connect(_on_music_changed)
 	sfx_slider.value_changed.connect(_on_sfx_changed)
+	music_slider.drag_ended.connect(_on_slider_released)
+	sfx_slider.drag_ended.connect(_on_slider_released)
 	fullscreen_check.toggled.connect(_on_fullscreen_toggled)
 	back_button.pressed.connect(_back)
 	_sync()
@@ -20,7 +22,8 @@ func _on_event(event_name: String, _payload: Variant) -> void:
 	if event_name == "settings.open":
 		_sync()
 		visible = true
-	elif event_name == "settings.close":
+		music_slider.grab_focus()
+	elif event_name in ["settings.close", "settings.closed", "game.started", "run.reset"]:
 		visible = false
 
 func _sync() -> void:
@@ -51,6 +54,14 @@ func _on_fullscreen_toggled(value: bool) -> void:
 	if settings:
 		settings.set_fullscreen(value)
 
+func _on_slider_released(_value_changed: bool) -> void:
+	var settings = Game.get_service("settings")
+	if settings:
+		settings.save()
+
 func _back() -> void:
+	var settings = Game.get_service("settings")
+	if settings:
+		settings.save()
 	visible = false
-	Game.events.emit_event("settings.closed", {})
+	Game.events.emit_event("settings.close", {})
