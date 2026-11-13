@@ -137,6 +137,7 @@ export async function unityWebGLVerifyCommand(options: {
     browserBin: options.browserBin,
     settleMs: options.settleMs ?? 12_000,
     timeoutMs: options.timeoutMs ?? 90_000,
+    inputs: [{ key: 'ArrowRight', code: 'ArrowRight', holdMs: 800 }],
   });
 }
 

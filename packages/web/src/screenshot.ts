@@ -32,7 +32,14 @@ export interface WebScreenshotResult {
   metrics?: WebScreenshotMetrics;
   browser?: string;
   pageErrors?: string[];
+  inputChanged?: boolean;
   message?: string;
+}
+
+export interface WebInput {
+  key: string;
+  code?: string;
+  holdMs?: number;
 }
 
 export interface WebVisualResult extends WebScreenshotResult {}
@@ -47,6 +54,7 @@ export interface CaptureWebOptions {
   timeoutMs?: number;
   settleMs?: number;
   mobile?: boolean;
+  inputs?: WebInput[];
 }
 
 function platformCandidates(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string[] {
@@ -470,6 +478,7 @@ async function captureWithDevTools(options: {
   timeoutMs: number;
   settleMs: number;
   mobile: boolean;
+  inputs?: WebInput[];
 }): Promise<Record<string, unknown>> {
   const browser = spawn(
     options.browser,
@@ -529,13 +538,88 @@ async function captureWithDevTools(options: {
     await client.send('Page.navigate', { url: options.url }, session);
     await withTimeout(loaded, 5_000, 'page load timed out');
     await sleep(options.settleMs);
-    const screenshot = await withTimeout(
+    const first = await withTimeout(
       client.send<{ data: string }>('Page.captureScreenshot', { format: 'png' }, session),
       options.timeoutMs,
       'screenshot capture timed out',
     );
-    writeFileSync(options.outPath, Buffer.from(screenshot.data, 'base64'));
-    return { stderr, pageErrors };
+    const firstBuffer = Buffer.from(first.data, 'base64');
+    writeFileSync(options.outPath, firstBuffer);
+    let inputChanged: boolean | undefined;
+    if (options.inputs && options.inputs.length > 0) {
+      const focus = await client.send<{
+        result?: { value?: { x?: number; y?: number } };
+      }>(
+        'Runtime.evaluate',
+        {
+          expression:
+            "(()=>{const c=document.querySelector('canvas');if(!c)return null;c.focus();const r=c.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()",
+          returnByValue: true,
+        },
+        session,
+      );
+      const point = focus.result?.value;
+      if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+        await client.send(
+          'Input.dispatchMouseEvent',
+          { type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1 },
+          session,
+        );
+        await client.send(
+          'Input.dispatchMouseEvent',
+          { type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1 },
+          session,
+        );
+      }
+      for (const input of options.inputs) {
+        const code = input.code ?? input.key;
+        const keyCode =
+          code === 'ArrowRight'
+            ? 39
+            : code === 'ArrowLeft'
+              ? 37
+              : code === 'ArrowUp'
+                ? 38
+                : code === 'ArrowDown'
+                  ? 40
+                  : code === 'Space'
+                    ? 32
+                    : code.charCodeAt(0);
+        await client.send(
+          'Input.dispatchKeyEvent',
+          {
+            type: 'keyDown',
+            key: input.key,
+            code,
+            windowsVirtualKeyCode: keyCode,
+            nativeVirtualKeyCode: keyCode,
+          },
+          session,
+        );
+        await sleep(input.holdMs ?? 800);
+        await client.send(
+          'Input.dispatchKeyEvent',
+          {
+            type: 'keyUp',
+            key: input.key,
+            code,
+            windowsVirtualKeyCode: keyCode,
+            nativeVirtualKeyCode: keyCode,
+          },
+          session,
+        );
+      }
+      await sleep(300);
+      const after = await withTimeout(
+        client.send<{ data: string }>('Page.captureScreenshot', { format: 'png' }, session),
+        options.timeoutMs,
+        'input screenshot capture timed out',
+      );
+      const afterBuffer = Buffer.from(after.data, 'base64');
+      inputChanged = !firstBuffer.equals(afterBuffer);
+      writeFileSync(options.outPath, afterBuffer);
+    }
+    return { stderr, pageErrors, inputChanged };
   } finally {
     if (client) {
       await withTimeout(client.send('Browser.close'), 2_000, 'browser close timed out').catch(
@@ -600,6 +684,7 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
       timeoutMs: options.timeoutMs ?? 30_000,
       settleMs: options.settleMs ?? 1500,
       mobile: options.mobile ?? false,
+      inputs: options.inputs,
     });
     const stderr = String(capture.stderr ?? '');
     const pageErrors = Array.isArray(capture.pageErrors)
@@ -647,6 +732,8 @@ export async function captureWebScreenshot(options: CaptureWebOptions): Promise<
       browser,
       imagePath: outPath,
       metrics,
+      inputChanged:
+        typeof capture.inputChanged === 'boolean' ? capture.inputChanged : undefined,
     };
   } catch (error) {
     return {
@@ -671,5 +758,14 @@ export async function verifyWebVisual(options: CaptureWebOptions): Promise<WebVi
   const capture = await captureWebScreenshot(options);
   if (!capture.passed) return capture;
   const failure = visualFailure(capture);
-  return failure ? { ...capture, passed: false, exitCode: 2, message: failure } : capture;
+  if (failure) return { ...capture, passed: false, exitCode: 2, message: failure };
+  if (options.inputs && options.inputs.length > 0 && capture.inputChanged !== true) {
+    return {
+      ...capture,
+      passed: false,
+      exitCode: 2,
+      message: 'input did not change the rendered page',
+    };
+  }
+  return capture;
 }
