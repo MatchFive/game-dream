@@ -272,6 +272,19 @@ layers; infinite and base64/compressed maps are rejected.
 - `system.inventory` — inventory service with signals and save serialization
 - `ui.hud` — HUD scene bound to inventory count
 
+## Case benchmark
+
+```bash
+pnpm build
+node packages/cli/dist/index.js benchmark --provider fake
+```
+
+`cases/benchmark.json` covers action RPG, platformer, shooter, roguelike,
+tower-defense, and puzzle prompts. The command creates each project and runs
+normal G1/G2/G3, then reports `playable`, `fallback`, `unverified`, or `failed`.
+Fallback is not counted as success. The current baseline is 1 playable / 5
+fallback; use case failures to decide which genres/templates to build next.
+
 ## Release artifacts
 
 Manual `workflow_dispatch` (or a `v*` tag) builds three engine artifacts from the

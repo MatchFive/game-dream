@@ -1,0 +1,44 @@
+[
+  {
+    "id": "action-rpg",
+    "prompt": "做一个俯视角动作 RPG，有背包、敌人和最终 Boss",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1",
+    "expected_playable": true
+  },
+  {
+    "id": "platformer",
+    "prompt": "做一个有跳跃、金币和关卡的 2D 平台游戏",
+    "expected_genre": "platformer",
+    "expected_template": "platformer-2d",
+    "expected_playable": true
+  },
+  {
+    "id": "shooter",
+    "prompt": "做一个俯视角双摇杆射击游戏，有敌人波次",
+    "expected_genre": "shooter",
+    "expected_template": "shooter-topdown",
+    "expected_playable": true
+  },
+  {
+    "id": "roguelike",
+    "prompt": "做一个随机地牢、永久死亡的 roguelike",
+    "expected_genre": "roguelike",
+    "expected_template": "roguelike-topdown",
+    "expected_playable": true
+  },
+  {
+    "id": "tower-defense",
+    "prompt": "做一个塔防游戏，有 20 波敌人和炮塔升级",
+    "expected_genre": "tower-defense",
+    "expected_template": "tower-defense",
+    "expected_playable": true
+  },
+  {
+    "id": "puzzle",
+    "prompt": "做一个推箱子解谜小游戏，有多个关卡",
+    "expected_genre": "puzzle",
+    "expected_template": "puzzle-2d",
+    "expected_playable": true
+  }
+]

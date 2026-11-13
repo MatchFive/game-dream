@@ -14,6 +14,7 @@ import {
   parseCreateMode,
   parseProviderKind,
 } from './commands/create.js';
+import { benchmarkExitCode, runBenchmark } from './commands/benchmark.js';
 import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
@@ -387,6 +388,56 @@ export function createProgram(): Command {
             printLine(`${report.passed}/${report.total} eval cases passed (${report.provider})`);
           }
           process.exitCode = evalExitCode(report);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  program
+    .command('benchmark')
+    .description('Run cross-genre prompt-to-playable-game cases')
+    .option('--cases <file>', 'benchmark case JSON', 'cases/benchmark.json')
+    .option('--out <dir>', 'keep generated projects in this directory')
+    .option('--modules <dir>', 'modules directory', 'modules')
+    .option('--templates <dir>', 'templates directory', 'templates')
+    .option('--provider <kind>', 'fake | auto | openai', 'fake')
+    .option('--keep', 'keep generated projects when --out is not set')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: {
+        cases: string;
+        out?: string;
+        modules: string;
+        templates: string;
+        provider: string;
+        keep?: boolean;
+        json?: boolean;
+      }) => {
+        try {
+          const report = await runBenchmark({
+            casesPath: options.cases,
+            outDir: options.out,
+            modulesDir: options.modules,
+            templatesDir: options.templates,
+            providerKind: parseProviderKind(options.provider),
+            keep: options.keep,
+          });
+          if (options.json) printJson(report);
+          else {
+            for (const result of report.results) {
+              printLine(
+                `${result.id}: ${result.status} (${result.actualTemplate ?? 'none'}${result.templateExists ? '' : ', template missing'})`,
+              );
+              if (result.error) printLine(`  ${result.error}`);
+            }
+            printLine(
+              `${report.playable}/${report.total} playable · ${report.fallback} fallback · ${report.unverified} unverified · ${report.failed} failed (${report.provider})`,
+            );
+          }
+          process.exitCode = benchmarkExitCode(report);
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);
