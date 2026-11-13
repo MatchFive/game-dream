@@ -9,7 +9,8 @@
   "scripts": {
     "build": "corepack pnpm -r build",
     "test": "vitest run",
-    "typecheck": "corepack pnpm -r typecheck"
+    "typecheck": "corepack pnpm -r typecheck",
+    "release:accept": "node scripts/release-acceptance.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

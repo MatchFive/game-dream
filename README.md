@@ -285,6 +285,22 @@ shared M1 content:
 Unity/Godot release jobs require no Unity/Godot binary; runtime acceptance remains
 an opt-in local step (`UNITY_BIN`, `GODOT_BIN`). UE is intentionally out of scope.
 
+For local release acceptance, pass already-built project directories:
+
+```bash
+pnpm build
+pnpm release:accept \
+  --web ./web-game \
+  --godot ./godot-game \
+  --unity-dir ./unity-game \
+  --godot-bin "$GODOT_BIN" \
+  --unity-bin "$UNITY_BIN"
+```
+
+The script writes `dist/release-acceptance/<timestamp>/acceptance.json` with each
+engine's verify/package/runtime commands, exit codes, artifacts, and skipped-runtime
+reasons. `--skip-runtime` performs static/package checks only.
+
 ## Docs
 
 - Design spec: `docs/superpowers/specs/2026-11-12-gamedream-design.md`
