@@ -1,0 +1,21 @@
+id: fixture-minimal
+genre: action-rpg
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.inventory
+    - ui.hud
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 0
+  bosses: 0
+  skills: 0
+  items: 1
+  quests: 0
+acceptance:
+  - "项目可启动"
+  - "HUD 显示 Inventory: 1"

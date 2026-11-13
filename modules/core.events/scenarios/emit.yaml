@@ -1,0 +1,8 @@
+id: events.emit
+module: core.events
+when:
+  - call: events.emit_event
+    args: [test.event, { value: 1 }]
+then:
+  - assert_signal: events.event_emitted
+    times: 1

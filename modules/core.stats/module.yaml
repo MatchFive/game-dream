@@ -1,0 +1,19 @@
+id: core.stats
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: core
+genres: [any]
+depends:
+  core.events: "^1.0.0"
+provides:
+  services: [stats]
+autoloads:
+  - name: StatsService
+    path: src/stats_service.gd
+    order: 20
+scenarios: [scenarios/set_stat.yaml]
+tests: [tests/test_stats_service.gd]
+ai_skill: skills/stats.md
+docs: api.md
+license: Apache-2.0

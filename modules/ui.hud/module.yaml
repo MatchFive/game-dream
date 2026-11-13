@@ -1,0 +1,20 @@
+id: ui.hud
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [any]
+depends:
+  core.events: "^1.0.0"
+  system.inventory: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: hud
+    scene: scenes/hud.tscn
+    layer: 10
+scenarios: [scenarios/hud_updates.yaml]
+tests: []
+ai_skill: skills/hud.md
+docs: api.md
+license: Apache-2.0

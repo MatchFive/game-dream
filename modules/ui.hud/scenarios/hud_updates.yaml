@@ -1,0 +1,7 @@
+id: hud.updates_on_inventory_change
+module: ui.hud
+when:
+  - call: inventory.add_item
+    args: [potion, 1]
+then:
+  - assert_node_text: { path: HUD/Panel/Label, equals: "Inventory: 1" }

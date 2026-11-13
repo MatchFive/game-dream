@@ -1,0 +1,23 @@
+id: system.inventory
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action-adventure]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  services: [inventory]
+autoloads:
+  - name: InventoryService
+    path: src/inventory_service.gd
+    order: 30
+save_sections:
+  - key: inventory
+    serializer: src/inventory_service.gd
+scenarios: [scenarios/add_item.yaml]
+tests: [tests/test_inventory_service.gd]
+ai_skill: skills/inventory.md
+docs: api.md
+license: Apache-2.0

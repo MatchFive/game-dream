@@ -1,0 +1,9 @@
+id: inventory.add_item
+module: system.inventory
+when:
+  - call: inventory.add_item
+    args: [potion, 1]
+then:
+  - call: inventory.count
+    args: [potion]
+    expect: 1
