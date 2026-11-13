@@ -12,10 +12,13 @@ namespace GameDream
         public int EnemyHp;
         public bool Won { get; private set; }
         public bool Lost { get; private set; }
+        public float PlayerAttackRange => _config.player.attack_range;
+        public float PlayerSpeed => _config.player.speed;
 
         private readonly GameConfig _config;
         private float _playerCooldown;
         private float _enemyCooldown;
+
 
         public GameSim() : this(new GameConfig())
         {

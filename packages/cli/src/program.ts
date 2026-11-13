@@ -615,17 +615,23 @@ export function createProgram(): Command {
     .requiredOption('--path <dir>')
     .option('--json', 'print JSON')
     .action((options: { path: string; json?: boolean }) => {
-      const result = unityVerifyCommand({ projectDir: options.path });
-      if (options.json) printJson(result);
-      else if (result.passed) {
-        printLine('Unity static project verification passed');
-        printLine(
-          'Runtime verification requires Unity 6: Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -',
-        );
-      } else {
-        printLine(`Unity verification failed: ${result.message ?? 'unknown error'}`);
+      try {
+        const result = unityVerifyCommand({ projectDir: options.path });
+        if (options.json) printJson(result);
+        else if (result.passed) {
+          printLine('Unity static project verification passed');
+          printLine(
+            'Runtime verification requires Unity 6: Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -',
+          );
+        } else {
+          printLine(`Unity verification failed: ${result.message ?? 'unknown error'}`);
+        }
+        process.exitCode = result.passed ? 0 : 1;
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
       }
-      process.exitCode = result.passed ? 0 : 1;
     });
 
   const mapCommand = program

@@ -16,6 +16,9 @@ export default defineConfig({
       '@gamedream/testing': fileURLToPath(
         new URL('./packages/testing/src/index.ts', import.meta.url),
       ),
+      '@gamedream/unity': fileURLToPath(
+        new URL('./packages/unity/src/index.ts', import.meta.url),
+      ),
       '@gamedream/web': fileURLToPath(
         new URL('./packages/web/src/index.ts', import.meta.url),
       ),

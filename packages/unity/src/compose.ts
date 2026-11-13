@@ -6,9 +6,10 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 export const UNITY_PROJECT_FILES = [
   'ProjectSettings/ProjectVersion.txt',
@@ -58,12 +59,27 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityResult {
-  const templatesDir = options.templatesDir ?? join(process.cwd(), 'templates/unity-2d-m0');
+  const templatesDir = resolve(
+    options.templatesDir ?? join(process.cwd(), 'templates/unity-2d-m0'),
+  );
   if (!existsSync(templatesDir)) {
     throw new Error(`Unity template directory not found: ${templatesDir}`);
   }
-  if (existsSync(options.outDir) && readdirSync(options.outDir).length > 0 && !options.force) {
-    throw new Error(`refusing to overwrite non-empty ${options.outDir}; pass --force`);
+  const outDir = resolve(options.outDir);
+  if (
+    outDir === templatesDir ||
+    outDir.startsWith(templatesDir + sep) ||
+    templatesDir.startsWith(outDir + sep)
+  ) {
+    throw new Error('Unity output must not be the template directory or its parent');
+  }
+  if (existsSync(outDir)) {
+    if (!statSync(outDir).isDirectory()) {
+      throw new Error(`Unity output path is not a directory: ${outDir}`);
+    }
+    if (readdirSync(outDir).length > 0 && !options.force) {
+      throw new Error(`refusing to overwrite non-empty ${outDir}; pass --force`);
+    }
   }
 
   const config: UnityGameConfig = {
@@ -74,7 +90,6 @@ export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityR
     player: { ...DEFAULT_CONFIG.player, ...options.config?.player },
     enemy: { ...DEFAULT_CONFIG.enemy, ...options.config?.enemy },
   };
-  const outDir = resolve(options.outDir);
   const stage = `${outDir}.tmp-${process.pid}-${Date.now()}`;
   rmSync(stage, { recursive: true, force: true });
   try {

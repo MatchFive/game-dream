@@ -41,15 +41,22 @@ namespace GameDream
             TextAsset asset = Resources.Load<TextAsset>("GameConfig");
             if (asset == null)
             {
+                Debug.LogWarning("UNITY_CONFIG_FALLBACK: Resources/GameConfig.json is missing");
                 return new GameConfig();
             }
             try
             {
                 GameConfig config = JsonUtility.FromJson<GameConfig>(asset.text);
-                return config ?? new GameConfig();
+                if (config == null)
+                {
+                    Debug.LogWarning("UNITY_CONFIG_FALLBACK: GameConfig.json parsed empty");
+                    return new GameConfig();
+                }
+                return config;
             }
-            catch (Exception)
+            catch (Exception error)
             {
+                Debug.LogWarning("UNITY_CONFIG_FALLBACK: " + error.Message);
                 return new GameConfig();
             }
         }

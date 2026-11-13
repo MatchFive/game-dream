@@ -158,9 +158,11 @@ Unity 6:
 Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -
 ```
 
-The generated project prints `UNITY_BOOT_OK`, `UNITY_WIN`, or `UNITY_LOSE`.
-Open the project in Unity and press Play to use the runtime bootstrap (no scene
-asset is required).
+Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
+`EditorVerifier` prints `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
+`UNITY_TIMEOUT`; it does not boot the scene, so a static pass is not a runtime
+screenshot. Open the project in Unity and press Play to use the runtime
+bootstrap (no scene asset is required).
 
 ## Web M0 (Phaser)
 

@@ -45,4 +45,47 @@ describe('unity M0 scaffold', () => {
     expect(missingToken.passed).toBe(false);
     expect(missingToken.message).toContain('void Step');
   });
+
+  it('rejects bad project version, manifest, config, and duplicate GUIDs', () => {
+    const cases: Array<{ file: string; content: string; message: string }> = [
+      {
+        file: 'ProjectSettings/ProjectVersion.txt',
+        content: 'm_EditorVersion: 2022.3.0f1\n',
+        message: '6000.0.x',
+      },
+      {
+        file: 'Packages/manifest.json',
+        content: '{"dependencies":{}}\n',
+        message: 'com.unity.modules',
+      },
+      {
+        file: 'Assets/Resources/GameConfig.json',
+        content: '{}\n',
+        message: 'name/arena',
+      },
+    ];
+    for (const item of cases) {
+      const outDir = join(makeTempDir('gamedream unity bad '), 'unity game');
+      composeUnityProject({ outDir, templatesDir });
+      writeFileSync(join(outDir, item.file), item.content, 'utf8');
+      const result = verifyUnityProject({ projectDir: outDir });
+      expect(result.passed).toBe(false);
+      expect(result.message).toContain(item.message);
+    }
+
+    const outDir = join(makeTempDir('gamedream unity guid '), 'unity game');
+    composeUnityProject({ outDir, templatesDir });
+    const first = readFileSync(join(outDir, 'Assets/Scripts/GameSim.cs.meta'), 'utf8');
+    const guid = /^guid: ([0-9a-f]{32})$/m.exec(first)?.[1];
+    expect(guid).toBeTruthy();
+    const meta = readFileSync(join(outDir, 'Assets/Scripts/GameBootstrap.cs.meta'), 'utf8');
+    writeFileSync(
+      join(outDir, 'Assets/Scripts/GameBootstrap.cs.meta'),
+      meta.replace(/^guid: [0-9a-f]{32}$/m, `guid: ${guid}`),
+      'utf8',
+    );
+    const duplicate = verifyUnityProject({ projectDir: outDir });
+    expect(duplicate.passed).toBe(false);
+    expect(duplicate.message).toContain('duplicates a GUID');
+  });
 });

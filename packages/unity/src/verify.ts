@@ -14,23 +14,20 @@ const SCRIPT_META_FILES = [
   'Assets/Editor/EditorVerifier.cs.meta',
 ] as const;
 
+const REQUIRED_MODULES = ['com.unity.modules.imgui', 'com.unity.modules.jsonserialize'];
+
 function read(path: string): string {
   return readFileSync(path, 'utf8');
 }
 
-function checkContains(
-  file: string,
-  source: string,
-  tokens: string[],
-): string | null {
+function checkContains(file: string, source: string, tokens: string[]): string | null {
   for (const token of tokens) {
     if (!source.includes(token)) return `${file} is missing ${token}`;
   }
   return null;
 }
 
-export function verifyUnityProject(options: { projectDir: string }): UnityVerifyResult {
-  const projectDir = resolve(options.projectDir);
+function verifyInternal(projectDir: string): UnityVerifyResult {
   for (const file of [...UNITY_PROJECT_FILES, ...SCRIPT_META_FILES]) {
     if (!existsSync(join(projectDir, file))) return { passed: false, message: `missing ${file}` };
   }
@@ -46,8 +43,17 @@ export function verifyUnityProject(options: { projectDir: string }): UnityVerify
   } catch (error) {
     return { passed: false, message: `invalid Packages/manifest.json: ${(error as Error).message}` };
   }
-  if (typeof manifest !== 'object' || manifest === null || !('dependencies' in manifest)) {
+  const dependencies =
+    typeof manifest === 'object' && manifest !== null && 'dependencies' in manifest
+      ? (manifest as { dependencies?: unknown }).dependencies
+      : undefined;
+  if (typeof dependencies !== 'object' || dependencies === null) {
     return { passed: false, message: 'Packages/manifest.json has no dependencies' };
+  }
+  for (const module of REQUIRED_MODULES) {
+    if (!(module in dependencies)) {
+      return { passed: false, message: `Packages/manifest.json is missing ${module}` };
+    }
   }
 
   let config: Record<string, unknown>;
@@ -71,7 +77,14 @@ export function verifyUnityProject(options: { projectDir: string }): UnityVerify
   const simError = checkContains(
     'Assets/Scripts/GameSim.cs',
     read(join(projectDir, 'Assets/Scripts/GameSim.cs')),
-    ['class GameSim', 'void Step(', 'void Reset(', 'bool Won', 'bool Lost'],
+    [
+      'class GameSim',
+      'public void Step(float moveX, float moveY, bool attack, float dt)',
+      'void Reset(',
+      'bool Won',
+      'bool Lost',
+      'PlayerAttackRange',
+    ],
   );
   if (simError) return { passed: false, message: simError };
 
@@ -79,7 +92,7 @@ export function verifyUnityProject(options: { projectDir: string }): UnityVerify
     'Assets/Scripts/GameBootstrap.cs',
     read(join(projectDir, 'Assets/Scripts/GameBootstrap.cs')),
     [
-      'RuntimeInitializeOnLoadMethod',
+      '[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]',
       'UNITY_BOOT_OK',
       'UNITY_WIN',
       'UNITY_LOSE',
@@ -90,14 +103,20 @@ export function verifyUnityProject(options: { projectDir: string }): UnityVerify
   );
   if (bootstrapError) return { passed: false, message: bootstrapError };
 
-  const verifier = read(join(projectDir, 'Assets/Editor/EditorVerifier.cs'));
-  const verifierError = checkContains('Assets/Editor/EditorVerifier.cs', verifier, [
-    'class EditorVerifier',
-    'UNITY_BOOT_OK',
-    'UNITY_WIN',
-    'EditorApplication.Exit',
-    'GameSim',
-  ]);
+  const verifierError = checkContains(
+    'Assets/Editor/EditorVerifier.cs',
+    read(join(projectDir, 'Assets/Editor/EditorVerifier.cs')),
+    [
+      'class EditorVerifier',
+      'UNITY_SIM_OK',
+      'GameConfigLoader.Load()',
+      'PlayerAttackRange',
+      'UNITY_WIN',
+      'UNITY_LOSE',
+      'UNITY_TIMEOUT',
+      'EditorApplication.Exit',
+    ],
+  );
   if (verifierError) return { passed: false, message: verifierError };
 
   const guids = new Set<string>();
@@ -109,4 +128,12 @@ export function verifyUnityProject(options: { projectDir: string }): UnityVerify
     guids.add(match[1]);
   }
   return { passed: true };
+}
+
+export function verifyUnityProject(options: { projectDir: string }): UnityVerifyResult {
+  try {
+    return verifyInternal(resolve(options.projectDir));
+  } catch (error) {
+    return { passed: false, message: `verification failed: ${(error as Error).message}` };
+  }
 }
