@@ -345,7 +345,7 @@ export function createProgram(): Command {
           if (options.json) printJson(result);
           else {
             printLine(
-              `Package: ${result.outDir} (${result.files.length} files, ${result.bytes} bytes)`,
+              `Package: ${result.outDir} (${result.files.length} files, ${result.bytes} content bytes)`,
             );
           }
         } catch (error) {

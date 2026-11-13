@@ -39,6 +39,7 @@ page is not blank.
 
 ## Publish
 
-`dream web package --path . --out ../release` writes a validated static release
-with `deployment.json` (sizes and SHA-256 hashes). Upload the release directory
-to any static host; see the root `docs/deploy-web.md`.
+`dream web package --path . --out ../release` writes a checked static release
+with `deployment.json` (content sizes and SHA-256 hashes; the manifest itself is
+not listed). Upload the release directory to any static host; see the root
+`docs/deploy-web.md`.
