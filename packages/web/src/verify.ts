@@ -31,14 +31,26 @@ export function verifyWebProject(options: {
       };
     }
   }
-  const config = JSON.parse(
-    readFileSync(join(projectDir, 'game.json'), 'utf8'),
-  ) as { levels?: unknown[]; quests?: unknown[] };
+  let config: { levels?: unknown[]; quests?: Array<{ type?: string }> };
+  try {
+    config = JSON.parse(readFileSync(join(projectDir, 'game.json'), 'utf8'));
+  } catch (error) {
+    return {
+      passed: false,
+      exitCode: 1,
+      stdout: '',
+      stderr: '',
+      message: `invalid game.json: ${(error as Error).message}`,
+    };
+  }
   const requiredMarkers = ['WEB_BOOT_OK'];
   if (Array.isArray(config.levels) && config.levels.length > 0) {
     requiredMarkers.push('WEB_MAP_OK');
   }
-  if (Array.isArray(config.quests) && config.quests.length > 0) {
+  if (
+    Array.isArray(config.quests) &&
+    config.quests.some((quest) => (quest.type ?? 'kill') === 'kill')
+  ) {
     requiredMarkers.push('WEB_QUEST_COMPLETE');
   }
   requiredMarkers.push('WEB_WIN');

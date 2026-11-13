@@ -267,7 +267,7 @@ export function createProgram(): Command {
         frames,
       });
       if (options.json) printJson(result);
-      else if (result.passed) printLine('WEB_BOOT_OK\nWEB_WIN');
+      else if (result.passed) printLine(result.stdout.trim());
       else {
         printLine(`Web verification failed: ${result.message ?? 'unknown error'}`);
         if (result.stdout) printLine(result.stdout);

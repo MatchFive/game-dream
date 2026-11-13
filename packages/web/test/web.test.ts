@@ -46,11 +46,12 @@ describe('web M0', () => {
     expect(result.config.levels).toHaveLength(3);
     expect(result.config.quests).toHaveLength(2);
     expect(result.config.sprites).toMatchObject({
-      player: 'assets/player.svg',
-      enemy: 'assets/enemy.svg',
-      boss: 'assets/enemy.svg',
+      player: 'assets/system.player/player.svg',
+      enemy: 'assets/system.ai/enemy.svg',
+      boss: 'assets/system.ai/enemy.svg',
     });
-    expect(existsSync(join(outDir, 'assets/player.svg'))).toBe(true);
+    expect(existsSync(join(outDir, 'assets/system.player/player.svg'))).toBe(true);
+    expect(result.config.levels?.[1].map.tileset.floor).toBe('3b3a5a');
 
     const verified = verifyWebProject({ projectDir: outDir, frames: 900 });
     expect(verified.passed).toBe(true);

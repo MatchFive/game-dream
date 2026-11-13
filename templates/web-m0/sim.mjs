@@ -71,7 +71,7 @@ export function distance(a, b) {
 
 function completeKillQuests(state, kind) {
   for (const quest of state.quests) {
-    if (quest.completed || quest.target !== kind) continue;
+    if (quest.completed || quest.type !== 'kill' || quest.target !== kind) continue;
     quest.progress += 1;
     if (quest.progress >= quest.count) quest.completed = true;
   }
@@ -83,16 +83,19 @@ export function step(state, input, dt) {
   const enemy = state.enemy;
   const config = state.config;
 
+  const width = state.map
+    ? state.map.rows[0].length * state.map.tile_size
+    : config.arena.width;
+  const height = state.map
+    ? state.map.rows.length * state.map.tile_size
+    : config.arena.height;
   const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
   const length = Math.hypot(dx, dy) || 1;
   player.x += (dx / length) * config.player.speed * dt;
   player.y += (dy / length) * config.player.speed * dt;
-  player.x = Math.max(16, Math.min(config.arena.width - 16, player.x));
-  player.y = Math.max(
-    16,
-    Math.min((state.map ? state.map.rows.length * state.map.tile_size : config.arena.height) - 16, player.y),
-  );
+  player.x = Math.max(16, Math.min(width - 16, player.x));
+  player.y = Math.max(16, Math.min(height - 16, player.y));
 
   const gap = distance(player, enemy);
   if (gap > config.enemy.attack_range) {
@@ -101,6 +104,8 @@ export function step(state, input, dt) {
     const el = Math.hypot(ex, ey) || 1;
     enemy.x += (ex / el) * enemy.speed * dt;
     enemy.y += (ey / el) * enemy.speed * dt;
+    enemy.x = Math.max(16, Math.min(width - 16, enemy.x));
+    enemy.y = Math.max(16, Math.min(height - 16, enemy.y));
   } else {
     enemy.cooldown = Math.max(0, enemy.cooldown - dt);
     if (enemy.cooldown <= 0) {

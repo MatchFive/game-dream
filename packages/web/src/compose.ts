@@ -5,9 +5,10 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 
 export const WEB_PROJECT_FILES = [
   'index.html',
@@ -43,6 +44,7 @@ export interface WebLevel {
 export interface WebQuest {
   id: string;
   title: string;
+  type: string;
   target: string;
   count: number;
 }
@@ -85,6 +87,18 @@ export interface ComposeWebResult {
   config: WebGameConfig;
 }
 
+interface EmbeddedAsset {
+  source: string;
+  target: string;
+}
+
+interface EmbeddedContent {
+  levels?: WebLevel[];
+  quests?: WebQuest[];
+  sprites?: Record<string, string>;
+  assets: EmbeddedAsset[];
+}
+
 const DEFAULT_CONFIG: WebGameConfig = {
   name: 'web-m0',
   arena: { width: 960, height: 540 },
@@ -105,36 +119,69 @@ const DEFAULT_CONFIG: WebGameConfig = {
 };
 
 function readJson(path: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+  } catch (error) {
+    throw new Error(`invalid content JSON ${path}: ${(error as Error).message}`);
+  }
 }
 
-export function embedContent(
-  contentDir: string,
-  modulesDir: string,
-  outDir: string,
-): Pick<WebGameConfig, 'levels' | 'quests' | 'sprites'> {
-  const campaign = readJson(join(contentDir, 'levels/campaign.json'));
+function finiteNumber(value: unknown, name: string, fallback: number): number {
+  const number = value === undefined ? fallback : Number(value);
+  if (!Number.isFinite(number)) throw new Error(`invalid content: ${name} is not a number`);
+  return number;
+}
+
+function validateMap(raw: Record<string, unknown>, path: string): WebMap {
+  if (!Array.isArray(raw.rows) || raw.rows.length === 0) {
+    throw new Error(`invalid content: ${path} has no rows`);
+  }
+  const rows = raw.rows.map((row) => String(row));
+  if (rows.some((row) => row.length !== rows[0].length)) {
+    throw new Error(`invalid content: ${path} has ragged rows`);
+  }
+  const tileset = raw.tileset as Record<string, unknown> | undefined;
+  if (!tileset || typeof tileset.floor !== 'string' || typeof tileset.wall !== 'string') {
+    throw new Error(`invalid content: ${path} has no tileset colors`);
+  }
+  return {
+    rows,
+    tile_size: finiteNumber(raw.tile_size, `${path}.tile_size`, 32),
+    tileset: { floor: tileset.floor, wall: tileset.wall },
+  };
+}
+
+export function readContent(contentDir: string, modulesDir: string): EmbeddedContent {
+  const campaignPath = join(contentDir, 'levels/campaign.json');
+  const campaign = readJson(campaignPath);
+  if (!Array.isArray(campaign.levels) || campaign.levels.length === 0) {
+    throw new Error(`invalid content: ${campaignPath} has no levels`);
+  }
   const levels: WebLevel[] = [];
-  for (const rawLevel of campaign.levels as Array<Record<string, unknown>>) {
+  for (const rawValue of campaign.levels) {
+    if (typeof rawValue !== 'object' || rawValue === null) {
+      throw new Error(`invalid content: ${campaignPath} contains a non-object level`);
+    }
+    const rawLevel = rawValue as Record<string, unknown>;
     const mapId = String(rawLevel.map ?? '');
-    const map = readJson(join(contentDir, 'maps', `${mapId}.json`));
+    if (!/^[A-Za-z0-9_-]+$/.test(mapId)) {
+      throw new Error(`invalid content: bad map id ${mapId}`);
+    }
+    const mapPath = join(contentDir, 'maps', `${mapId}.json`);
+    const map = validateMap(readJson(mapPath), mapPath);
     const enemy = (rawLevel.enemy ?? {}) as Record<string, unknown>;
     levels.push({
       id: String(rawLevel.id ?? mapId),
       name: String(rawLevel.name ?? mapId),
-      map: {
-        rows: map.rows as string[],
-        tile_size: Number(map.tile_size ?? 32),
-        tileset: map.tileset as WebMap['tileset'],
-      },
+      map,
       enemy: {
         kind: String(enemy.kind ?? 'slime'),
-        max_hp: Number(enemy.max_hp ?? 30),
-        attack_damage: Number(enemy.attack_damage ?? 5),
-        speed: Number(enemy.speed ?? 80),
-        x: Number(enemy.x ?? 600),
-        y: Number(enemy.y ?? 240),
-        scale: Number(enemy.scale ?? 1),
+        max_hp: finiteNumber(enemy.max_hp, 'enemy.max_hp', 30),
+        attack_damage: finiteNumber(enemy.attack_damage, 'enemy.attack_damage', 5),
+        speed: finiteNumber(enemy.speed, 'enemy.speed', 80),
+        x: finiteNumber(enemy.x, 'enemy.x', 600),
+        y: finiteNumber(enemy.y, 'enemy.y', 240),
+        scale: finiteNumber(enemy.scale, 'enemy.scale', 1),
       },
     });
   }
@@ -148,32 +195,56 @@ export function embedContent(
       quests.push({
         id: String(quest.id ?? file.replace(/\.json$/, '')),
         title: String(quest.title ?? quest.id ?? file),
+        type: String(objective.type ?? 'kill'),
         target: String(objective.target ?? ''),
-        count: Number(objective.count ?? 1),
+        count: finiteNumber(objective.count, 'quest.count', 1),
       });
     }
   }
 
   const sprites: Record<string, string> = {};
+  const assets: EmbeddedAsset[] = [];
   const spriteDir = join(contentDir, 'sprites');
   if (existsSync(spriteDir)) {
-    mkdirSync(join(outDir, 'assets'), { recursive: true });
+    const root = resolve(modulesDir) + sep;
     for (const file of readdirSync(spriteDir).filter((name) => name.endsWith('.json'))) {
       const sprite = readJson(join(spriteDir, file));
       const spriteId = String(sprite.id ?? file.replace(/\.json$/, ''));
       const texture = String(sprite.texture ?? '');
-      const match = /^res:\/\/modules\/([^/]+)\/assets\/(.+)$/.exec(texture);
+      const match = /^res:\/\/modules\/([A-Za-z0-9_.-]+)\/assets\/([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*)$/.exec(
+        texture,
+      );
       if (!match) continue;
-      const source = join(modulesDir, match[1], 'assets', match[2]);
+      if (match[2].split('/').includes('..')) {
+        throw new Error(`invalid content: unsafe sprite path ${texture}`);
+      }
+      const source = resolve(join(modulesDir, match[1], 'assets', match[2]));
+      if (!source.startsWith(root)) {
+        throw new Error(`invalid content: sprite path escapes modules: ${texture}`);
+      }
       if (!existsSync(source)) {
         throw new Error(`sprite asset not found: ${source}`);
       }
-      const target = `assets/${basename(match[2])}`;
-      copyFileSync(source, join(outDir, target));
+      const target = `assets/${match[1]}/${match[2]}`;
+      assets.push({ source, target });
       sprites[spriteId] = target;
     }
   }
-  return { levels, quests, sprites };
+  return { levels, quests, sprites, assets };
+}
+
+export function embedContent(
+  contentDir: string,
+  modulesDir: string,
+  outDir: string,
+): Pick<WebGameConfig, 'levels' | 'quests' | 'sprites'> {
+  const embedded = readContent(contentDir, modulesDir);
+  for (const asset of embedded.assets) {
+    const target = join(outDir, asset.target);
+    mkdirSync(dirname(target), { recursive: true });
+    copyFileSync(asset.source, target);
+  }
+  return { levels: embedded.levels, quests: embedded.quests, sprites: embedded.sprites };
 }
 
 export function composeWebProject(options: ComposeWebOptions): ComposeWebResult {
@@ -182,6 +253,12 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
   if (!existsSync(templatesDir)) {
     throw new Error(`web template directory not found: ${templatesDir}`);
   }
+  const embedded = options.contentDir
+    ? readContent(
+        options.contentDir,
+        options.modulesDir ?? join(process.cwd(), 'modules'),
+      )
+    : null;
   if (
     existsSync(options.outDir) &&
     readdirSync(options.outDir).length > 0 &&
@@ -189,39 +266,50 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
   ) {
     throw new Error(`refusing to overwrite non-empty ${options.outDir}; pass --force`);
   }
+  const existed = existsSync(options.outDir);
   mkdirSync(options.outDir, { recursive: true });
-  cpSync(templatesDir, options.outDir, { recursive: true });
-  const missing = WEB_PROJECT_FILES.filter(
-    (file) => file !== 'game.json' && !existsSync(join(options.outDir, file)),
-  );
-  if (missing.length > 0) {
-    throw new Error(`web template is incomplete: missing ${missing.join(', ')}`);
+  try {
+    cpSync(templatesDir, options.outDir, { recursive: true });
+    const missing = WEB_PROJECT_FILES.filter(
+      (file) => file !== 'game.json' && !existsSync(join(options.outDir, file)),
+    );
+    if (missing.length > 0) {
+      throw new Error(`web template is incomplete: missing ${missing.join(', ')}`);
+    }
+    const config: WebGameConfig = {
+      ...DEFAULT_CONFIG,
+      ...options.config,
+      ...(embedded
+        ? {
+            levels: embedded.levels,
+            quests: embedded.quests,
+            sprites: embedded.sprites,
+          }
+        : {}),
+      name: options.name ?? options.config?.name ?? DEFAULT_CONFIG.name,
+      arena: { ...DEFAULT_CONFIG.arena, ...options.config?.arena },
+      player: { ...DEFAULT_CONFIG.player, ...options.config?.player },
+      enemy: { ...DEFAULT_CONFIG.enemy, ...options.config?.enemy },
+    };
+    if (embedded) {
+      for (const asset of embedded.assets) {
+        const target = join(options.outDir, asset.target);
+        mkdirSync(dirname(target), { recursive: true });
+        copyFileSync(asset.source, target);
+      }
+    }
+    writeFileSync(
+      join(options.outDir, 'game.json'),
+      `${JSON.stringify(config, null, 2)}\n`,
+      'utf8',
+    );
+    return {
+      outDir: options.outDir,
+      files: [...WEB_PROJECT_FILES],
+      config,
+    };
+  } catch (error) {
+    if (!existed) rmSync(options.outDir, { recursive: true, force: true });
+    throw error;
   }
-
-  const embedded = options.contentDir
-    ? embedContent(
-        options.contentDir,
-        options.modulesDir ?? join(process.cwd(), 'modules'),
-        options.outDir,
-      )
-    : {};
-  const config: WebGameConfig = {
-    ...DEFAULT_CONFIG,
-    ...options.config,
-    ...embedded,
-    name: options.name ?? options.config?.name ?? DEFAULT_CONFIG.name,
-    arena: { ...DEFAULT_CONFIG.arena, ...options.config?.arena },
-    player: { ...DEFAULT_CONFIG.player, ...options.config?.player },
-    enemy: { ...DEFAULT_CONFIG.enemy, ...options.config?.enemy },
-  };
-  writeFileSync(
-    join(options.outDir, 'game.json'),
-    `${JSON.stringify(config, null, 2)}\n`,
-    'utf8',
-  );
-  return {
-    outDir: options.outDir,
-    files: [...WEB_PROJECT_FILES],
-    config,
-  };
 }

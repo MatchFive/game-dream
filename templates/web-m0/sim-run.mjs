@@ -11,7 +11,7 @@ if (!Number.isFinite(frames) || frames <= 0) {
 
 const state = createSim(config);
 console.log('WEB_BOOT_OK');
-if (config.levels?.length) console.log('WEB_MAP_OK');
+if (state.map?.rows?.length) console.log('WEB_MAP_OK');
 
 for (let frame = 0; frame < frames; frame += 1) {
   const gap = distance(state.player, state.enemy);
@@ -26,7 +26,8 @@ for (let frame = 0; frame < frames; frame += 1) {
   if (state.finished) break;
 }
 
-if (state.quests.some((quest) => quest.completed)) {
+const killQuests = state.quests.filter((quest) => quest.type === 'kill');
+if (killQuests.length > 0 && killQuests.every((quest) => quest.completed)) {
   console.log('WEB_QUEST_COMPLETE');
 }
 if (state.finished === 'win') {

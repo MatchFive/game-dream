@@ -29,7 +29,8 @@ try {
   }
 
   function color(value, fallback) {
-    return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+    const hex = String(value ?? '').replace(/^#/, '');
+    return /^[0-9a-f]{6}$/i.test(hex) ? `#${hex}` : fallback;
   }
 
   function resizeCanvas() {
