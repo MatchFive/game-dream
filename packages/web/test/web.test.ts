@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import { composeWebProject, verifyWebProject } from '../src/index.js';
@@ -21,6 +22,16 @@ describe('web M0', () => {
     expect(verified.passed).toBe(true);
     expect(verified.stdout).toContain('WEB_BOOT_OK');
     expect(verified.stdout).toContain('WEB_WIN');
+
+    const relativeDir = relative(process.cwd(), outDir);
+    expect(verifyWebProject({ projectDir: relativeDir }).passed).toBe(true);
+
+    const bare = spawnSync(process.execPath, [join(outDir, 'sim-run.mjs')], {
+      cwd: outDir,
+      encoding: 'utf8',
+    });
+    expect(bare.status).toBe(0);
+    expect(bare.stdout).toContain('WEB_WIN');
   });
 
   it('refuses overwrite unless forced', () => {
@@ -32,12 +43,19 @@ describe('web M0', () => {
     ).not.toThrow();
   });
 
-  it('fails verification when a marker is missing', () => {
+  it('fails verification when a marker or required file is missing', () => {
     const outDir = join(makeTempDir('gamedream web marker '), 'web game');
     composeWebProject({ outDir, templatesDir });
     writeFileSync(join(outDir, 'sim-run.mjs'), "console.log('WEB_BOOT_OK');\n", 'utf8');
-    const verified = verifyWebProject({ projectDir: outDir });
-    expect(verified.passed).toBe(false);
-    expect(verified.message).toContain('WEB_WIN');
+    const missingMarker = verifyWebProject({ projectDir: outDir });
+    expect(missingMarker.passed).toBe(false);
+    expect(missingMarker.message).toContain('WEB_WIN');
+
+    const fileDir = join(makeTempDir('gamedream web file '), 'web game');
+    composeWebProject({ outDir: fileDir, templatesDir });
+    unlinkSync(join(fileDir, 'game.js'));
+    const missingFile = verifyWebProject({ projectDir: fileDir });
+    expect(missingFile.passed).toBe(false);
+    expect(missingFile.message).toContain('missing game.js');
   });
 });

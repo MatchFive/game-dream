@@ -250,9 +250,15 @@ export function createProgram(): Command {
     .option('--frames <count>', 'simulation frame budget', '600')
     .option('--json', 'print JSON')
     .action((options: { path: string; frames: string; json?: boolean }) => {
+      const frames = Number(options.frames);
+      if (!Number.isFinite(frames) || frames <= 0) {
+        printLine('--frames must be a positive number');
+        process.exitCode = 1;
+        return;
+      }
       const result = webVerifyCommand({
         projectDir: options.path,
-        frames: Number(options.frames),
+        frames,
       });
       if (options.json) printJson(result);
       else if (result.passed) printLine('WEB_BOOT_OK\nWEB_WIN');

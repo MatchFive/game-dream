@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { WEB_PROJECT_FILES } from './compose.js';
 
 export interface WebVerifyResult {
   passed: boolean;
@@ -10,13 +11,17 @@ export interface WebVerifyResult {
   message?: string;
 }
 
+function hasMarker(stdout: string, marker: string): boolean {
+  return stdout.split(/\r?\n/).some((line) => line.trim() === marker);
+}
+
 export function verifyWebProject(options: {
   projectDir: string;
   frames?: number;
 }): WebVerifyResult {
-  const required = ['index.html', 'style.css', 'sim.mjs', 'sim-run.mjs', 'game.js', 'game.json'];
-  for (const file of required) {
-    if (!existsSync(join(options.projectDir, file))) {
+  const projectDir = resolve(options.projectDir);
+  for (const file of WEB_PROJECT_FILES) {
+    if (!existsSync(join(projectDir, file))) {
       return {
         passed: false,
         exitCode: 1,
@@ -28,18 +33,47 @@ export function verifyWebProject(options: {
   }
   const result = spawnSync(
     process.execPath,
-    [join(options.projectDir, 'sim-run.mjs'), '--frames', String(options.frames ?? 600)],
-    { cwd: options.projectDir, encoding: 'utf8', timeout: 30_000 },
+    [
+      join(projectDir, 'sim-run.mjs'),
+      '--frames',
+      String(options.frames ?? 600),
+    ],
+    { cwd: projectDir, encoding: 'utf8', timeout: 30_000 },
   );
   const stdout = result.stdout ?? '';
   const stderr = result.stderr ?? '';
-  const exitCode = result.status ?? 1;
-  const missing = ['WEB_BOOT_OK', 'WEB_WIN'].find((marker) => !stdout.includes(marker));
-  if (exitCode !== 0) {
-    return { passed: false, exitCode, stdout, stderr, message: stderr || `exit ${exitCode}` };
+  const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
+  const exitCode = result.status ?? (errorCode === 'ETIMEDOUT' ? 124 : 1);
+  if (result.error) {
+    return {
+      passed: false,
+      exitCode,
+      stdout,
+      stderr,
+      message:
+        errorCode === 'ETIMEDOUT'
+          ? 'sim timed out after 30s'
+          : `sim failed: ${result.error.message}`,
+    };
   }
-  if (missing) {
-    return { passed: false, exitCode, stdout, stderr, message: `missing ${missing}` };
+  const missing = ['WEB_BOOT_OK', 'WEB_WIN'].find(
+    (marker) => !hasMarker(stdout, marker),
+  );
+  if (exitCode !== 0 || missing) {
+    const marker = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('WEB_'))
+      .pop();
+    return {
+      passed: false,
+      exitCode,
+      stdout,
+      stderr,
+      message: marker
+        ? `${marker}${missing ? ` (missing ${missing})` : ''}`
+        : stderr || `exit ${exitCode}`,
+    };
   }
   return { passed: true, exitCode: 0, stdout, stderr };
 }

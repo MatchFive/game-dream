@@ -144,8 +144,10 @@ The second engine track is a dependency-free Web M0 prototype: a pure ESM
 simulation plus a Canvas renderer and keyboard controls. `dream web compose`
 writes `index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `game.js`, and
 `game.json`; `dream web verify` runs the deterministic simulation and checks
-`WEB_BOOT_OK`/`WEB_WIN`. Phaser and browser screenshot verification are deferred
-renderer/verification swaps; the simulation contract stays.
+`WEB_BOOT_OK`/`WEB_WIN`. Serve the generated directory over HTTP (ES modules and
+`fetch` do not work from `file://`); the generated `README.md` shows the command.
+Phaser and browser screenshot verification are deferred renderer/verification
+swaps; the simulation contract stays.
 
 - `dream web compose --out ./web-game [--force]`
 - `dream web verify --path ./web-game`

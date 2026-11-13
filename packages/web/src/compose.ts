@@ -1,5 +1,15 @@
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+export const WEB_PROJECT_FILES = [
+  'index.html',
+  'style.css',
+  'sim.mjs',
+  'sim-run.mjs',
+  'game.js',
+  'game.json',
+  'README.md',
+] as const;
 
 export interface WebGameConfig {
   name: string;
@@ -56,21 +66,40 @@ const DEFAULT_CONFIG: WebGameConfig = {
 export function composeWebProject(options: ComposeWebOptions): ComposeWebResult {
   const templatesDir =
     options.templatesDir ?? join(process.cwd(), 'templates/web-m0');
-  const gamePath = join(options.outDir, 'game.json');
-  if (existsSync(gamePath) && !options.force) {
-    throw new Error(`refusing to overwrite ${gamePath}; pass --force`);
+  if (!existsSync(templatesDir)) {
+    throw new Error(`web template directory not found: ${templatesDir}`);
+  }
+  if (
+    existsSync(options.outDir) &&
+    readdirSync(options.outDir).length > 0 &&
+    !options.force
+  ) {
+    throw new Error(`refusing to overwrite non-empty ${options.outDir}; pass --force`);
   }
   mkdirSync(options.outDir, { recursive: true });
   cpSync(templatesDir, options.outDir, { recursive: true });
+  const missing = WEB_PROJECT_FILES.filter(
+    (file) => file !== 'game.json' && !existsSync(join(options.outDir, file)),
+  );
+  if (missing.length > 0) {
+    throw new Error(`web template is incomplete: missing ${missing.join(', ')}`);
+  }
   const config: WebGameConfig = {
     ...DEFAULT_CONFIG,
     ...options.config,
     name: options.name ?? options.config?.name ?? DEFAULT_CONFIG.name,
+    arena: { ...DEFAULT_CONFIG.arena, ...options.config?.arena },
+    player: { ...DEFAULT_CONFIG.player, ...options.config?.player },
+    enemy: { ...DEFAULT_CONFIG.enemy, ...options.config?.enemy },
   };
-  writeFileSync(gamePath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  writeFileSync(
+    join(options.outDir, 'game.json'),
+    `${JSON.stringify(config, null, 2)}\n`,
+    'utf8',
+  );
   return {
     outDir: options.outDir,
-    files: ['index.html', 'style.css', 'sim.mjs', 'sim-run.mjs', 'game.js', 'game.json'],
+    files: [...WEB_PROJECT_FILES],
     config,
   };
 }

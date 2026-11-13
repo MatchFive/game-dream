@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { createSim, distance, step } from './sim.mjs';
 
 const config = JSON.parse(readFileSync(new URL('./game.json', import.meta.url), 'utf8'));
-const frames = Number(process.argv[process.argv.indexOf('--frames') + 1] || 600);
+const frameIndex = process.argv.indexOf('--frames');
+const frames = Number(frameIndex === -1 ? 600 : process.argv[frameIndex + 1]);
+if (!Number.isFinite(frames) || frames <= 0) {
+  console.error('invalid --frames');
+  process.exit(2);
+}
 const state = createSim(config);
 console.log('WEB_BOOT_OK');
 for (let frame = 0; frame < frames; frame += 1) {
