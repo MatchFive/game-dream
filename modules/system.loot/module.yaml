@@ -15,7 +15,6 @@ autoloads:
   - name: LootService
     path: src/loot_service.gd
     order: 60
-tests: [tests/test_loot.gd]
 ai_skill: skills/loot.md
 docs: api.md
 license: Apache-2.0

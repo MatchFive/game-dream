@@ -8,6 +8,8 @@ depends:
   core.events: "^1.0.0"
   core.stats: "^1.0.0"
   system.combat: "^1.0.0"
+optional_depends:
+  system.skills: "^1.0.0"
 provides:
   components: [Player]
 input_actions:

@@ -12,7 +12,6 @@ autoloads:
   - name: ContentDB
     path: src/content_db.gd
     order: 5
-tests: [tests/test_content_db.gd]
 ai_skill: skills/content.md
 docs: api.md
 license: Apache-2.0

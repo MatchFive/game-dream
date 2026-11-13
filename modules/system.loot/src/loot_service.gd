@@ -8,7 +8,7 @@ func _ready() -> void:
 	Game.events.event_emitted.connect(_on_event)
 
 func _on_event(event_name: String, payload: Variant) -> void:
-	if event_name != "enemy.died":
+	if event_name != "enemy.died" or not payload is Dictionary:
 		return
 	var kind := str(payload.get("kind", ""))
 	var content = Game.get_service("content")

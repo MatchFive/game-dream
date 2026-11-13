@@ -1,0 +1,8 @@
+{
+  "id": "iron_armor",
+  "name": "Iron Armor",
+  "slot": "armor",
+  "bonuses": {
+    "max_hp": 20
+  }
+}

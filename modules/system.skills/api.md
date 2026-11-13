@@ -6,6 +6,9 @@
 ## Methods
 - `cast(skill_id: String, caster: Node) -> bool`
 
+## Properties
+- `cast_count: int` — number of successful casts.
+
 ## Behavior
 - Reads skill definitions from ContentDB (`damage`, `range`, `cooldown`).
 - Enforces per-skill cooldowns.

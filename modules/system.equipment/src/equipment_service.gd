@@ -9,8 +9,8 @@ func _ready() -> void:
 	Game.events.event_emitted.connect(_on_event)
 
 func _on_event(event_name: String, payload: Variant) -> void:
-	if event_name == "loot.dropped":
-		_auto_equip(str(payload["item_id"]))
+	if event_name == "loot.dropped" and payload is Dictionary:
+		_auto_equip(str(payload.get("item_id", "")))
 
 func equip(item_id: String) -> bool:
 	var content = Game.get_service("content")
@@ -28,6 +28,9 @@ func equip(item_id: String) -> bool:
 
 func get_equipped(slot: String) -> String:
 	return str(_equipped.get(slot, ""))
+
+func get_equipped_count() -> int:
+	return _equipped.size()
 
 func get_bonus(stat_name: String) -> int:
 	var content = Game.get_service("content")

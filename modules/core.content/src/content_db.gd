@@ -9,11 +9,13 @@ func _ready() -> void:
 	_load_dir("items", items)
 	_load_dir("skills", skills)
 	_load_dir("loot", loot_tables)
+	_load_dir("loot_tables", loot_tables)
 
 func _load_dir(folder: String, target: Dictionary) -> void:
 	var path := "res://game/content/%s" % folder
 	var dir := DirAccess.open(path)
 	if dir == null:
+		push_warning("content: missing directory %s" % path)
 		return
 	dir.list_dir_begin()
 	var file := dir.get_next()
@@ -23,6 +25,8 @@ func _load_dir(folder: String, target: Dictionary) -> void:
 			var data = JSON.parse_string(raw)
 			if typeof(data) == TYPE_DICTIONARY and data.has("id"):
 				target[data["id"]] = data
+			else:
+				push_warning("content: invalid JSON in %s/%s" % [path, file])
 		file = dir.get_next()
 	dir.list_dir_end()
 

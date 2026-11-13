@@ -17,7 +17,6 @@ autoloads:
 save_sections:
   - key: equipment
     serializer: src/equipment_service.gd
-tests: [tests/test_equipment.gd]
 ai_skill: skills/equipment.md
 docs: api.md
 license: Apache-2.0

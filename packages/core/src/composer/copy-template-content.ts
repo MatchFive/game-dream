@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { validateContentFile } from './validate-content.js';
 
 export function copyTemplateContent(templateDir: string, outDir: string): string[] {
   const source = join(templateDir, 'content');
@@ -17,9 +18,12 @@ function copyMissing(source: string, target: string, copied: string[]): void {
     const to = join(target, entry.name);
     if (entry.isDirectory()) {
       copyMissing(from, to, copied);
-    } else if (!existsSync(to)) {
-      cpSync(from, to);
-      copied.push(to);
+    } else {
+      validateContentFile(from);
+      if (!existsSync(to)) {
+        cpSync(from, to);
+        copied.push(to);
+      }
     }
   }
 }

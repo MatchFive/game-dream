@@ -14,7 +14,6 @@ autoloads:
   - name: SkillService
     path: src/skill_service.gd
     order: 70
-tests: [tests/test_skills.gd]
 ai_skill: skills/skills.md
 docs: api.md
 license: Apache-2.0

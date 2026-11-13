@@ -1,6 +1,7 @@
 extends Node
 
 var _cooldowns: Dictionary = {}
+var cast_count: int = 0
 
 func _ready() -> void:
 	Game.register_service("skills", self)
@@ -19,6 +20,7 @@ func cast(skill_id: String, caster: Node) -> bool:
 	if skill.is_empty():
 		return false
 	_cooldowns[skill_id] = float(skill.get("cooldown", 1.0))
+	cast_count += 1
 	var damage := int(skill.get("damage", 10))
 	var attack_range := float(skill.get("range", 200.0))
 	for enemy in get_tree().get_nodes_in_group("enemies"):
