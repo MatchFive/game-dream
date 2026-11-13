@@ -7,12 +7,15 @@ extends CharacterBody2D
 @export var enemy_kind: String = "slime"
 
 @onready var health = $Health
+@onready var fallback_sprite: Polygon2D = $Sprite
+@onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var _cooldown := 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
 	health.died.connect(_on_died)
+	_setup_sprite()
 
 func _physics_process(delta: float) -> void:
 	_cooldown = max(0.0, _cooldown - delta)
@@ -29,9 +32,42 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		if _cooldown <= 0.0:
 			_cooldown = attack_cooldown
+			_play_attack()
 			var player_health = player.get_node_or_null("Health")
 			if player_health:
 				player_health.take_damage(attack_damage)
+	_update_animation(velocity.length() > 0.1)
+
+func _setup_sprite() -> void:
+	var sprites = Game.get_service("sprites")
+	if sprites and sprites.apply(animated_sprite, "enemy"):
+		fallback_sprite.visible = false
+		animated_sprite.animation_finished.connect(_on_animation_finished)
+	else:
+		animated_sprite.visible = false
+
+func _play_attack() -> void:
+	if not animated_sprite.visible:
+		return
+	if animated_sprite.sprite_frames.has_animation("attack") and animated_sprite.animation != "attack":
+		animated_sprite.play("attack")
+
+func _update_animation(moving: bool) -> void:
+	if not animated_sprite.visible:
+		return
+	if animated_sprite.animation == "attack" and animated_sprite.is_playing():
+		return
+	var target := "move" if moving else "idle"
+	if not animated_sprite.sprite_frames.has_animation(target):
+		target = "idle"
+	if animated_sprite.animation != target:
+		animated_sprite.play(target)
+
+func _on_animation_finished() -> void:
+	if animated_sprite.animation == "attack":
+		var target := "move" if velocity.length() > 0.1 else "idle"
+		if animated_sprite.sprite_frames.has_animation(target):
+			animated_sprite.play(target)
 
 func _on_died() -> void:
 	if Game.events:

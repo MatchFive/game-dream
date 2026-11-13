@@ -1,0 +1,7 @@
+id: sprites.apply
+module: system.sprites
+when:
+  - call: sprites.apply
+    args: [player]
+then:
+  - assert_node_exists: Player/AnimatedSprite2D

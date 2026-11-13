@@ -5,6 +5,8 @@ extends CharacterBody2D
 @export var attack_range: float = 64.0
 
 @onready var health = $Health
+@onready var fallback_sprite: Polygon2D = $Sprite
+@onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var _attack_cooldown := 0.0
 var _base_attack_damage: int = 0
@@ -12,6 +14,7 @@ var _base_max_hp: int = 0
 
 func _ready() -> void:
 	add_to_group("player")
+	_setup_sprite()
 	_base_attack_damage = attack_damage
 	_base_max_hp = health.max_hp
 	health.health_changed.connect(_on_health_changed)
@@ -25,6 +28,7 @@ func _physics_process(_delta: float) -> void:
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = direction * speed
 	move_and_slide()
+	_update_animation(direction.length() > 0.1)
 
 func _process(delta: float) -> void:
 	_attack_cooldown = max(0.0, _attack_cooldown - delta)
@@ -52,11 +56,43 @@ func _apply_equipment() -> void:
 	health.set_max_hp(_base_max_hp + equipment.get_bonus("max_hp"))
 
 func _attack() -> void:
+	_play_attack()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) <= attack_range:
 			var enemy_health = enemy.get_node_or_null("Health")
 			if enemy_health:
 				enemy_health.take_damage(attack_damage)
+
+func _setup_sprite() -> void:
+	var sprites = Game.get_service("sprites")
+	if sprites and sprites.apply(animated_sprite, "player"):
+		fallback_sprite.visible = false
+		animated_sprite.animation_finished.connect(_on_animation_finished)
+	else:
+		animated_sprite.visible = false
+
+func _play_attack() -> void:
+	if not animated_sprite.visible:
+		return
+	if animated_sprite.sprite_frames.has_animation("attack") and animated_sprite.animation != "attack":
+		animated_sprite.play("attack")
+
+func _update_animation(moving: bool) -> void:
+	if not animated_sprite.visible:
+		return
+	if animated_sprite.animation == "attack" and animated_sprite.is_playing():
+		return
+	var target := "move" if moving else "idle"
+	if not animated_sprite.sprite_frames.has_animation(target):
+		target = "idle"
+	if animated_sprite.animation != target:
+		animated_sprite.play(target)
+
+func _on_animation_finished() -> void:
+	if animated_sprite.animation == "attack":
+		var target := "move" if velocity.length() > 0.1 else "idle"
+		if animated_sprite.sprite_frames.has_animation(target):
+			animated_sprite.play(target)
 
 func _on_health_changed(hp: int, max_hp: int) -> void:
 	if Game.events:

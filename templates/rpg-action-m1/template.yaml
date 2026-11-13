@@ -20,6 +20,7 @@ modules:
     - system.dialogue
     - system.levels
     - system.map
+    - system.sprites
     - system.inventory
     - ui.hud
     - ui.quest_tracker
@@ -45,4 +46,4 @@ acceptance:
   - "背包/装备/技能界面可用"
   - "暂停菜单可保存"
   - "两关切换并清除全部敌人"
-acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_MAP_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_WIN]
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_MAP_OK, GAMEDREAM_SPRITE_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_WIN]

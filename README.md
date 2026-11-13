@@ -72,15 +72,16 @@ verification.
 ## Playable M0 slice
 
 Action-RPG prompts now select the `rpg-action-m1` template: a two-level forest
-campaign with tile maps, a player, health/combat, progression, loot, equipment,
-a skill, quests, and dialogue. Desktop controls: **WASD** move, **J / Space**
-attack, **K** cast Ember Bolt.
-Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_DIALOGUE`,
-`GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`, `GAMEDREAM_SKILL_CAST`,
-`GAMEDREAM_LEVEL_2`, `GAMEDREAM_QUEST_COMPLETE`, and `GAMEDREAM_WIN`. The intro
-dialogue, two-kill quest, level campaign, and maps come from
-`game/content/dialogue`, `game/content/quests`, `game/content/levels`, and
-`game/content/maps`; the quest tracker is always on.
+campaign with tile maps, animated sprites, a player, health/combat, progression,
+loot, equipment, a skill, quests, and dialogue. Desktop controls: **WASD** move,
+**J / Space** attack, **K** cast Ember Bolt.
+Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
+`GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
+`GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_QUEST_COMPLETE`, and
+`GAMEDREAM_WIN`. The intro dialogue, two-kill quest, level campaign, maps, and
+sprite configs come from `game/content/dialogue`, `game/content/quests`,
+`game/content/levels`, `game/content/maps`, and `game/content/sprites`; the quest
+tracker is always on.
 
 UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
 The pause menu saves to `user://save.json`; the main menu offers New Game /
@@ -95,6 +96,7 @@ Content is data-driven under `game/content/`:
 - `dialogue/*.json` — speaker lines
 - `levels/*.json` — per-level map id, enemy stats, and positions
 - `maps/*.json` — tile rows (`#` wall, `.` floor), colors, and tile size
+- `sprites/*.json` — texture path, frame size, and idle/move/attack ranges
 
 The composer copies template content only when a file does not already exist, so
 user edits survive recompose. `rpg-action-m0` and `fixture-minimal` remain available

@@ -28,6 +28,7 @@ const sourceFiles: Record<string, string> = {
   'system.progression': 'progression_service.gd',
   'system.quests': 'quest_service.gd',
   'system.skills': 'skill_service.gd',
+  'system.sprites': 'sprite_service.gd',
   'ui.dialogue_box': 'dialogue_box.gd',
   'ui.equipment_screen': 'equipment_screen.gd',
   'ui.hud': 'hud.gd',
@@ -63,6 +64,7 @@ describe('fixture content', () => {
       'system.progression',
       'system.quests',
       'system.skills',
+      'system.sprites',
       'ui.dialogue_box',
       'ui.equipment_screen',
       'ui.hud',
@@ -93,11 +95,11 @@ describe('fixture content', () => {
 
   it('exposes the runtime contract in GDScript', () => {
     const expected: Record<string, string[]> = {
-      'core.content': ['get_item', 'get_skill', 'get_loot_table', 'get_level', 'get_map'],
+      'core.content': ['get_item', 'get_skill', 'get_loot_table', 'get_level', 'get_map', 'get_sprite'],
       'core.events': ['register_event_bus', 'emit_event'],
       'core.save': ['save_game', 'load_game', 'serialize'],
       'core.stats': ['register_service', 'set_stat', 'get_stat'],
-      'system.ai': ['move_and_slide', 'attack_damage', 'enemies', 'enemy.died'],
+      'system.ai': ['move_and_slide', 'attack_damage', 'enemies', 'enemy.died', 'AnimatedSprite2D', 'sprites.apply'],
       'system.combat': ['take_damage', 'set_max_hp', 'heal_full', 'health_changed', 'died'],
       'system.equipment': ['equip', 'get_bonus', 'loot.dropped'],
       'system.gameflow': [
@@ -124,11 +126,14 @@ describe('fixture content', () => {
         'is_action_pressed',
         'skill_1',
         'player.health_changed',
+        'AnimatedSprite2D',
+        'sprites.apply',
       ],
       'system.dialogue': ['dialogue.line', 'dialogue.finished', 'advance', 'get_current_line'],
       'system.progression': ['add_xp', 'leveled_up', 'enemy.died'],
       'system.quests': ['enemy.died', 'quest.completed', 'completed_count', 'serialize'],
       'system.skills': ['cast', 'cooldown', 'skill.cast'],
+      'system.sprites': ['AnimatedSprite2D', 'SpriteFrames', 'AtlasTexture', 'apply', 'has_applied'],
       'ui.dialogue_box': ['dialogue.line', 'advance'],
       'ui.equipment_screen': ['toggle_equipment', 'get_bonus', 'get_equipped'],
       'ui.hud': [

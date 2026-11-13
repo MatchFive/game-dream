@@ -10,10 +10,12 @@ var enemy = null
 var _finished := false
 var _level2_reported := false
 var _map_reported := false
+var _sprite_reported := false
 
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
 	_apply_level()
+	call_deferred("_report_sprites")
 	Game.events.event_emitted.connect(_on_event)
 	if DisplayServer.get_name() == "headless":
 		_headless_start()
@@ -26,7 +28,9 @@ func _on_event(event_name: String, payload: Variant) -> void:
 				levels.reset()
 			_level2_reported = false
 			_map_reported = false
+			_sprite_reported = false
 			_apply_level()
+			call_deferred("_report_sprites")
 		var dialogue = Game.get_service("dialogue")
 		if dialogue and not dialogue.is_active():
 			dialogue.start("intro")
@@ -78,6 +82,14 @@ func _apply_level() -> void:
 	if map_built and maps.is_wall(map_data, player.global_position):
 		push_warning("level: player inside wall; snapping to floor")
 		player.global_position = maps.first_floor(map_data)
+
+func _report_sprites() -> void:
+	if _sprite_reported:
+		return
+	var sprites = Game.get_service("sprites")
+	if sprites and sprites.has_applied("player") and sprites.has_applied("enemy"):
+		_sprite_reported = true
+		print("GAMEDREAM_SPRITE_OK")
 
 func _headless_start() -> void:
 	var dialogue = Game.get_service("dialogue")

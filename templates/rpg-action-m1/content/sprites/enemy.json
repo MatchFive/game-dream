@@ -1,0 +1,10 @@
+{
+  "id": "enemy",
+  "texture": "res://modules/system.ai/assets/enemy.svg",
+  "frame_size": [32, 32],
+  "animations": {
+    "idle": {"frames": [0, 3], "fps": 3, "loop": true},
+    "move": {"frames": [2, 3], "fps": 7, "loop": true},
+    "attack": {"frames": [4, 5], "fps": 10, "loop": false}
+  }
+}

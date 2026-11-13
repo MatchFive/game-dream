@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="32" viewBox="0 0 192 32">
+  <g shape-rendering="crispEdges">
+    <g transform="translate(0 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="10" y="8" width="12" height="16" fill="#2ec4f1"/>
+      <rect x="11" y="9" width="10" height="7" fill="#9be9ff"/>
+      <rect x="13" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="18" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="11" y="24" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="18" y="24" width="3" height="5" fill="#1d8fb5"/>
+    </g>
+    <g transform="translate(32 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="10" y="7" width="12" height="16" fill="#2ec4f1"/>
+      <rect x="11" y="8" width="10" height="7" fill="#9be9ff"/>
+      <rect x="13" y="10" width="2" height="2" fill="#062b3a"/>
+      <rect x="18" y="10" width="2" height="2" fill="#062b3a"/>
+      <rect x="11" y="23" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="18" y="23" width="3" height="5" fill="#1d8fb5"/>
+    </g>
+    <g transform="translate(64 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="10" y="8" width="12" height="15" fill="#2ec4f1"/>
+      <rect x="11" y="9" width="10" height="7" fill="#9be9ff"/>
+      <rect x="13" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="18" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="8" y="23" width="4" height="6" fill="#1d8fb5"/>
+      <rect x="20" y="23" width="4" height="6" fill="#1d8fb5"/>
+    </g>
+    <g transform="translate(96 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="10" y="8" width="12" height="15" fill="#2ec4f1"/>
+      <rect x="11" y="9" width="10" height="7" fill="#9be9ff"/>
+      <rect x="13" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="18" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="12" y="23" width="4" height="6" fill="#1d8fb5"/>
+      <rect x="18" y="23" width="4" height="6" fill="#1d8fb5"/>
+    </g>
+    <g transform="translate(128 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="8" y="9" width="12" height="15" fill="#2ec4f1"/>
+      <rect x="9" y="10" width="10" height="7" fill="#9be9ff"/>
+      <rect x="11" y="12" width="2" height="2" fill="#062b3a"/>
+      <rect x="16" y="12" width="2" height="2" fill="#062b3a"/>
+      <rect x="9" y="24" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="16" y="24" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="20" y="15" width="9" height="3" fill="#e6f7ff"/>
+      <rect x="19" y="14" width="2" height="5" fill="#b3883a"/>
+    </g>
+    <g transform="translate(160 0)">
+      <ellipse cx="16" cy="29" rx="8" ry="2" fill="#000000" opacity="0.3"/>
+      <rect x="8" y="8" width="12" height="15" fill="#2ec4f1"/>
+      <rect x="9" y="9" width="10" height="7" fill="#9be9ff"/>
+      <rect x="11" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="16" y="11" width="2" height="2" fill="#062b3a"/>
+      <rect x="9" y="23" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="16" y="23" width="3" height="5" fill="#1d8fb5"/>
+      <rect x="19" y="13" width="10" height="3" fill="#e6f7ff"/>
+      <rect x="18" y="12" width="2" height="5" fill="#b3883a"/>
+    </g>
+  </g>
+</svg>

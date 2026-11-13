@@ -11,6 +11,7 @@
 - `get_dialogue(id: String) -> Dictionary`
 - `get_level(id: String) -> Dictionary`
 - `get_map(id: String) -> Dictionary`
+- `get_sprite(id: String) -> Dictionary`
 
 ## Content
 - `game/content/items/*.json`
@@ -20,3 +21,4 @@
 - `game/content/dialogue/*.json`
 - `game/content/levels/*.json`
 - `game/content/maps/*.json`
+- `game/content/sprites/*.json`

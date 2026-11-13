@@ -25,6 +25,7 @@ describe('m0 composition', () => {
     expect(eventIndex).toBeGreaterThan(inputIndex);
 
     expect(project).not.toContain('MapService=');
+    expect(project).not.toContain('SpriteService=');
 
     const input = readFileSync(join(outDir, 'game/_generated/input_map.gd'), 'utf8');
     expect(input).toContain('_add("move_left"');

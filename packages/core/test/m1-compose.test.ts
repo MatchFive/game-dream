@@ -35,6 +35,7 @@ describe('m1 composition', () => {
     expect(progressionIndex).toBeGreaterThan(contentIndex);
     expect(project).toContain('SaveService=');
     expect(project).toContain('MapService=');
+    expect(project).toContain('SpriteService=');
 
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');
@@ -67,6 +68,7 @@ describe('m1 composition', () => {
     expect(manifest.acceptance.markers).toEqual([
       'GAMEDREAM_BOOT_OK',
       'GAMEDREAM_MAP_OK',
+      'GAMEDREAM_SPRITE_OK',
       'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',
@@ -89,5 +91,11 @@ describe('m1 composition', () => {
     );
     expect(clearing.rows).toHaveLength(20);
     expect(clearing.rows.every((row: string) => row.length === 40)).toBe(true);
+    expect(
+      existsSync(join(outDir, 'game/content/sprites/player.json')),
+    ).toBe(true);
+    expect(
+      existsSync(join(outDir, 'modules/system.player/assets/player.svg')),
+    ).toBe(true);
   });
 });

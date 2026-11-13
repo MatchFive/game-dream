@@ -13,6 +13,9 @@ script = ExtResource("1")
 color = Color(0.95, 0.3, 0.25, 1)
 polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
 
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+visible = false
+
 [node name="Collision" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_1")
 

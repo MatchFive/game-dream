@@ -1,0 +1,18 @@
+id: system.sprites
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike, action]
+depends:
+  core.content: "^1.0.0"
+provides:
+  services: [sprites]
+autoloads:
+  - name: SpriteService
+    path: src/sprite_service.gd
+    order: 49
+scenarios: [scenarios/apply.yaml]
+ai_skill: skills/sprites.md
+docs: api.md
+license: Apache-2.0
