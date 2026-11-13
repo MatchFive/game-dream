@@ -1,0 +1,9 @@
+{
+  "id": "guardian",
+  "drops": [
+    {
+      "item_id": "guardian_shard",
+      "chance": 1.0
+    }
+  ]
+}

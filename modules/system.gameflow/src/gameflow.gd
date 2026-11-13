@@ -115,6 +115,7 @@ func _apply_level() -> void:
 	enemy = ENEMY_SCENE.instantiate()
 	enemy.enemy_kind = str(data.get("kind", "slime"))
 	enemy.speed = maxf(0.0, float(data.get("speed", 80.0)))
+	enemy.attack_range = maxf(0.0, float(data.get("attack_range", 40.0)))
 	enemy.attack_damage = maxi(0, int(data.get("attack_damage", 5)))
 	enemy.position = Vector2(float(data.get("x", 600)), float(data.get("y", 240)))
 	enemy.scale = Vector2.ONE * float(data.get("scale", 1.0))

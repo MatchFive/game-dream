@@ -31,7 +31,10 @@ export function verifyWebProject(options: {
       };
     }
   }
-  let config: { levels?: unknown[]; quests?: Array<{ type?: string }> };
+  let config: {
+    levels?: Array<{ enemy?: { kind?: string } }>;
+    quests?: Array<{ type?: string }>;
+  };
   try {
     config = JSON.parse(readFileSync(join(projectDir, 'game.json'), 'utf8'));
   } catch (error) {
@@ -46,6 +49,9 @@ export function verifyWebProject(options: {
   const requiredMarkers = ['WEB_BOOT_OK'];
   if (Array.isArray(config.levels) && config.levels.length > 0) {
     requiredMarkers.push('WEB_MAP_OK');
+    if (config.levels.some((level) => level.enemy?.kind === 'boss')) {
+      requiredMarkers.push('WEB_BOSS_PHASE');
+    }
   }
   if (
     Array.isArray(config.quests) &&

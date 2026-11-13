@@ -88,6 +88,7 @@ describe('m1 composition', () => {
       'GAMEDREAM_SKILL_CAST',
       'GAMEDREAM_LEVEL_2',
       'GAMEDREAM_BOSS',
+      'GAMEDREAM_BOSS_PHASE',
       'GAMEDREAM_QUEST_COMPLETE',
       'GAMEDREAM_VICTORY',
       'GAMEDREAM_WIN',

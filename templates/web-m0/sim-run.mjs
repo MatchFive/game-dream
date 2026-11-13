@@ -18,7 +18,10 @@ for (let frame = 0; frame < frames; frame += 1) {
   step(
     state,
     {
-      right: state.player.x < state.enemy.x - 50,
+      left: state.player.x > state.enemy.x + 20,
+      right: state.player.x < state.enemy.x - 20,
+      up: state.player.y > state.enemy.y + 20,
+      down: state.player.y < state.enemy.y - 20,
       attack: gap <= config.player.attack_range,
     },
     1 / 60,
@@ -29,6 +32,9 @@ for (let frame = 0; frame < frames; frame += 1) {
 const killQuests = state.quests.filter((quest) => quest.type === 'kill');
 if (killQuests.length > 0 && killQuests.every((quest) => quest.completed)) {
   console.log('WEB_QUEST_COMPLETE');
+}
+if (state.bossPhase) {
+  console.log('WEB_BOSS_PHASE');
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');

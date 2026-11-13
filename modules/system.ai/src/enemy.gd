@@ -11,6 +11,7 @@ extends CharacterBody2D
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var _cooldown := 0.0
+var _boss_phase := false
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -18,6 +19,7 @@ func _ready() -> void:
 	_setup_sprite()
 
 func _physics_process(delta: float) -> void:
+	_update_boss_phase()
 	_cooldown = max(0.0, _cooldown - delta)
 	var players = get_tree().get_nodes_in_group("player")
 	if players.is_empty():
@@ -37,6 +39,19 @@ func _physics_process(delta: float) -> void:
 			if player_health:
 				player_health.take_damage(attack_damage)
 	_update_animation(velocity.length() > 0.1)
+
+func _update_boss_phase() -> void:
+	if _boss_phase or enemy_kind != "boss":
+		return
+	if health.hp <= health.max_hp * 0.5:
+		_boss_phase = true
+		speed *= 1.35
+		attack_damage = int(ceil(float(attack_damage) * 1.5))
+		attack_cooldown *= 0.7
+		if animated_sprite.visible:
+			animated_sprite.modulate = Color(1.0, 0.55, 0.55)
+		fallback_sprite.color = Color(1.0, 0.35, 0.3, 1.0)
+		print("GAMEDREAM_BOSS_PHASE")
 
 func _setup_sprite() -> void:
 	var sprites = Game.get_service("sprites")

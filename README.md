@@ -79,7 +79,8 @@ health/combat, progression, loot, equipment, a skill, quests, and dialogue. Desk
 Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
 `GAMEDREAM_AUDIO_OK`, `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
 `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_BOSS`,
-`GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and `GAMEDREAM_WIN`. The intro
+`GAMEDREAM_BOSS_PHASE`, `GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and
+`GAMEDREAM_WIN`. The intro
 dialogue, slime/wisp/guardian/boss kill quests, five-level campaign, maps, and sprite configs come
 from `game/content/dialogue`, `game/content/quests`, `game/content/levels`,
 `game/content/maps`, and `game/content/sprites`; the quest tracker is always on.

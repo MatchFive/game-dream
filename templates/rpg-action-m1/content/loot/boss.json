@@ -1,0 +1,9 @@
+{
+  "id": "boss",
+  "drops": [
+    {
+      "item_id": "boss_core",
+      "chance": 1.0
+    }
+  ]
+}

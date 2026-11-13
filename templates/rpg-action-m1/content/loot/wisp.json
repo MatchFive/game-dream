@@ -1,0 +1,9 @@
+{
+  "id": "wisp",
+  "drops": [
+    {
+      "item_id": "wisp_essence",
+      "chance": 1.0
+    }
+  ]
+}

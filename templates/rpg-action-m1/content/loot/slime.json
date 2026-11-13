@@ -8,6 +8,10 @@
     {
       "item_id": "iron_armor",
       "chance": 1.0
+    },
+    {
+      "item_id": "slime_gel",
+      "chance": 1.0
     }
   ]
 }

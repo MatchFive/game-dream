@@ -23,6 +23,7 @@ export function createSim(config) {
     levelIndex: 0,
     time: 0,
     finished: null,
+    bossPhase: false,
     inventory: {},
     quests: (config.quests ?? []).map((quest) => ({
       ...quest,
@@ -57,11 +58,15 @@ export function startLevel(state, index) {
     x: level.enemy.x,
     y: level.enemy.y,
     hp: level.enemy.max_hp,
+    max_hp: level.enemy.max_hp,
     kind: level.enemy.kind,
     scale: level.enemy.scale ?? 1,
     cooldown: 0,
     speed: level.enemy.speed,
     damage: level.enemy.attack_damage,
+    attack_range: level.enemy.attack_range ?? 40,
+    attack_cooldown: level.enemy.attack_cooldown ?? 1,
+    phase: false,
   };
   snapToFloor(state, state.player, 12);
   snapToFloor(state, state.enemy, 12 * state.enemy.scale);
@@ -143,8 +148,18 @@ function moveActor(state, actor, dx, dy, half) {
 }
 
 function addLoot(state, kind) {
-  if (kind !== 'slime') return;
-  state.inventory['Slime Gel'] = (state.inventory['Slime Gel'] ?? 0) + 1;
+  const table = state.config.loot?.[kind];
+  if (Array.isArray(table)) {
+    for (const drop of table) {
+      if (drop.chance < 1 || !drop.item_id) continue;
+      const name = state.config.items?.[drop.item_id] ?? drop.item_id;
+      state.inventory[name] = (state.inventory[name] ?? 0) + 1;
+    }
+    return;
+  }
+  if (kind === 'slime') {
+    state.inventory['Slime Gel'] = (state.inventory['Slime Gel'] ?? 0) + 1;
+  }
 }
 
 function completeKillQuests(state, kind) {
@@ -184,7 +199,7 @@ export function step(state, input, rawDt) {
   }
 
   const gap = distance(player, enemy);
-  if (gap > config.enemy.attack_range) {
+  if (gap > enemy.attack_range) {
     const ex = player.x - enemy.x;
     const ey = player.y - enemy.y;
     const el = Math.hypot(ex, ey) || 1;
@@ -202,7 +217,7 @@ export function step(state, input, rawDt) {
   } else {
     enemy.cooldown = Math.max(0, enemy.cooldown - dt);
     if (enemy.cooldown <= 0) {
-      enemy.cooldown = config.enemy.attack_cooldown;
+      enemy.cooldown = enemy.attack_cooldown;
       if (hasLineOfSight(state, player, enemy)) player.hp -= enemy.damage;
     }
   }
@@ -216,6 +231,18 @@ export function step(state, input, rawDt) {
   ) {
     player.cooldown = config.player.attack_cooldown;
     enemy.hp -= config.player.damage;
+  }
+
+  if (
+    enemy.kind === 'boss' &&
+    !state.bossPhase &&
+    enemy.hp <= enemy.max_hp * 0.5
+  ) {
+    state.bossPhase = true;
+    enemy.phase = true;
+    enemy.speed *= 1.35;
+    enemy.damage = Math.ceil(enemy.damage * 1.5);
+    enemy.attack_cooldown *= 0.7;
   }
 
   if (enemy.hp <= 0) {

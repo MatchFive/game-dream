@@ -9,6 +9,7 @@
         "kind": "slime",
         "max_hp": 30,
         "attack_damage": 5,
+        "attack_range": 40,
         "speed": 80,
         "x": 600,
         "y": 240
@@ -22,6 +23,7 @@
         "kind": "slime",
         "max_hp": 45,
         "attack_damage": 7,
+        "attack_range": 40,
         "speed": 95,
         "x": 600,
         "y": 240
@@ -35,6 +37,7 @@
         "kind": "wisp",
         "max_hp": 35,
         "attack_damage": 8,
+        "attack_range": 180,
         "speed": 120,
         "x": 650,
         "y": 220
@@ -48,6 +51,7 @@
         "kind": "guardian",
         "max_hp": 70,
         "attack_damage": 10,
+        "attack_range": 52,
         "speed": 85,
         "x": 650,
         "y": 240,
@@ -62,6 +66,7 @@
         "kind": "boss",
         "max_hp": 150,
         "attack_damage": 14,
+        "attack_range": 50,
         "speed": 70,
         "x": 700,
         "y": 240,

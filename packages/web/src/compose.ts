@@ -39,11 +39,17 @@ export interface WebLevel {
     kind: string;
     max_hp: number;
     attack_damage: number;
+    attack_range: number;
     speed: number;
     x: number;
     y: number;
     scale: number;
   };
+}
+
+export interface WebLootDrop {
+  item_id: string;
+  chance: number;
 }
 
 export interface WebQuest {
@@ -74,6 +80,8 @@ export interface WebGameConfig {
   levels?: WebLevel[];
   quests?: WebQuest[];
   sprites?: Record<string, string>;
+  items?: Record<string, string>;
+  loot?: Record<string, WebLootDrop[]>;
 }
 
 export interface ComposeWebOptions {
@@ -101,6 +109,8 @@ interface EmbeddedContent {
   levels?: WebLevel[];
   quests?: WebQuest[];
   sprites?: Record<string, string>;
+  items?: Record<string, string>;
+  loot?: Record<string, WebLootDrop[]>;
   assets: EmbeddedAsset[];
 }
 
@@ -202,6 +212,7 @@ export function readContent(contentDir: string, modulesDir: string): EmbeddedCon
         kind: String(enemy.kind ?? 'slime'),
         max_hp: finiteNumber(enemy.max_hp, 'enemy.max_hp', 30),
         attack_damage: finiteNumber(enemy.attack_damage, 'enemy.attack_damage', 5),
+        attack_range: finiteNumber(enemy.attack_range, 'enemy.attack_range', 40),
         speed: finiteNumber(enemy.speed, 'enemy.speed', 80),
         x: finiteNumber(enemy.x, 'enemy.x', 600),
         y: finiteNumber(enemy.y, 'enemy.y', 240),
@@ -223,6 +234,30 @@ export function readContent(contentDir: string, modulesDir: string): EmbeddedCon
         target: String(objective.target ?? ''),
         count: finiteNumber(objective.count, 'quest.count', 1),
       });
+    }
+  }
+
+  const items: Record<string, string> = {};
+  const itemDir = join(contentDir, 'items');
+  if (existsSync(itemDir)) {
+    for (const file of readdirSync(itemDir).filter((name) => name.endsWith('.json'))) {
+      const item = readJson(join(itemDir, file));
+      const itemId = String(item.id ?? file.replace(/\.json$/, ''));
+      items[itemId] = String(item.name ?? itemId);
+    }
+  }
+
+  const loot: Record<string, WebLootDrop[]> = {};
+  const lootDir = join(contentDir, 'loot');
+  if (existsSync(lootDir)) {
+    for (const file of readdirSync(lootDir).filter((name) => name.endsWith('.json'))) {
+      const table = readJson(join(lootDir, file));
+      const tableId = String(table.id ?? file.replace(/\.json$/, ''));
+      const drops = Array.isArray(table.drops) ? table.drops : [];
+      loot[tableId] = drops.map((drop) => ({
+        item_id: String((drop as Record<string, unknown>).item_id ?? ''),
+        chance: finiteNumber((drop as Record<string, unknown>).chance, 'loot.chance', 1),
+      }));
     }
   }
 
@@ -254,21 +289,27 @@ export function readContent(contentDir: string, modulesDir: string): EmbeddedCon
       sprites[spriteId] = target;
     }
   }
-  return { levels, quests, sprites, assets };
+  return { levels, quests, sprites, items, loot, assets };
 }
 
 export function embedContent(
   contentDir: string,
   modulesDir: string,
   outDir: string,
-): Pick<WebGameConfig, 'levels' | 'quests' | 'sprites'> {
+): Pick<WebGameConfig, 'levels' | 'quests' | 'sprites' | 'items' | 'loot'> {
   const embedded = readContent(contentDir, modulesDir);
   for (const asset of embedded.assets) {
     const target = join(outDir, asset.target);
     mkdirSync(dirname(target), { recursive: true });
     copyFileSync(asset.source, target);
   }
-  return { levels: embedded.levels, quests: embedded.quests, sprites: embedded.sprites };
+  return {
+    levels: embedded.levels,
+    quests: embedded.quests,
+    sprites: embedded.sprites,
+    items: embedded.items,
+    loot: embedded.loot,
+  };
 }
 
 export function composeWebProject(options: ComposeWebOptions): ComposeWebResult {
@@ -311,6 +352,8 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
             levels: embedded.levels,
             quests: embedded.quests,
             sprites: embedded.sprites,
+            items: embedded.items,
+            loot: embedded.loot,
           }
         : {}),
       name: options.name ?? options.config?.name ?? DEFAULT_CONFIG.name,

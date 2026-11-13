@@ -53,6 +53,9 @@ describe('web M0', () => {
       guardian: 'assets/system.ai/guardian.svg',
     });
     expect(existsSync(join(outDir, 'assets/system.player/player.svg'))).toBe(true);
+    expect(result.config.items?.slime_gel).toBe('Slime Gel');
+    expect(result.config.loot?.wisp?.[0]?.item_id).toBe('wisp_essence');
+    expect(result.config.levels?.[2].enemy.attack_range).toBe(180);
     expect(result.config.levels?.[1].map.tileset.floor).toBe('3b3a5a');
     const html = readFileSync(join(outDir, 'index.html'), 'utf8');
     expect(html).toContain('id="inventory"');
@@ -104,6 +107,7 @@ describe('web M0', () => {
     expect(verified.passed).toBe(true);
     expect(verified.stdout).toContain('WEB_MAP_OK');
     expect(verified.stdout).toContain('WEB_QUEST_COMPLETE');
+    expect(verified.stdout).toContain('WEB_BOSS_PHASE');
   });
 
   it('refuses overwrite unless forced', () => {

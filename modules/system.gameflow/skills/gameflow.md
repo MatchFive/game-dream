@@ -7,6 +7,7 @@
 - `GAMEDREAM_AUDIO_OK` is printed after the audio service initializes.
 - Enemy death advances levels or wins. New Game / Restart resets the run.
 - Level two prints `GAMEDREAM_LEVEL_2`; `GAMEDREAM_BOSS` prints when the current
-  level enemy kind is `boss` (the final M2 level).
+  level enemy kind is `boss` (the final M2 level), and `GAMEDREAM_BOSS_PHASE`
+  prints once when the boss reaches half health.
 - Desktop win/lose shows the result screen; headless prints
   `GAMEDREAM_VICTORY` / `GAMEDREAM_LOSE` and quits.
