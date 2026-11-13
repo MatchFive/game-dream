@@ -70,6 +70,7 @@ describe('fixture content', () => {
       'system.progression',
       'system.quests',
       'system.settings',
+      'system.shooter',
       'system.skills',
       'system.sprites',
       'ui.dialogue_box',

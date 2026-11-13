@@ -16,7 +16,7 @@ const fakeGodot: CommandRunner = {
     return {
       exitCode: 0,
       stdout:
-        'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\nGAMEDREAM_MAP_OK\nGAMEDREAM_SPRITE_OK\nGAMEDREAM_AUDIO_OK\nGAMEDREAM_DIALOGUE\nGAMEDREAM_LEVEL_UP\nGAMEDREAM_EQUIPPED\nGAMEDREAM_SKILL_CAST\nGAMEDREAM_LEVEL_2\nGAMEDREAM_BOSS\nGAMEDREAM_BOSS_PHASE\nGAMEDREAM_QUEST_COMPLETE\nGAMEDREAM_COIN\nGAMEDREAM_VICTORY\nGAMEDREAM_WIN\n',
+        'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\nGAMEDREAM_MAP_OK\nGAMEDREAM_SPRITE_OK\nGAMEDREAM_AUDIO_OK\nGAMEDREAM_DIALOGUE\nGAMEDREAM_LEVEL_UP\nGAMEDREAM_EQUIPPED\nGAMEDREAM_SKILL_CAST\nGAMEDREAM_LEVEL_2\nGAMEDREAM_BOSS\nGAMEDREAM_BOSS_PHASE\nGAMEDREAM_QUEST_COMPLETE\nGAMEDREAM_COIN\nGAMEDREAM_KILL\nGAMEDREAM_VICTORY\nGAMEDREAM_WIN\n',
       stderr: '',
     };
   },
@@ -38,6 +38,8 @@ describe('case benchmark', () => {
     expect(report.results.find((result) => result.id === 'action-rpg')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'platformer')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'platformer')?.templateExists).toBe(true);
+    expect(report.results.find((result) => result.id === 'shooter')?.status).toBe('playable');
+    expect(report.results.find((result) => result.id === 'shooter')?.templateExists).toBe(true);
     expect(report.failed).toBe(0);
     expect(benchmarkExitCode(report)).toBe(1);
   });

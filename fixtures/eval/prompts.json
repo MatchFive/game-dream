@@ -104,19 +104,19 @@
   {
     "prompt": "做一个俯视角射击游戏",
     "expected_genre": "shooter",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:shooter-topdown->fixture-minimal"
+    "expected_template": "shooter-topdown",
+    "expected_reason": "rule:shooter-topdown"
   },
   {
     "prompt": "做一个双摇杆射击 demo",
     "expected_genre": "shooter",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:shooter-topdown->fixture-minimal"
+    "expected_template": "shooter-topdown",
+    "expected_reason": "rule:shooter-topdown"
   },
   {
     "prompt": "做一个太空射击游戏",
     "expected_genre": "shooter",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:shooter-topdown->fixture-minimal"
+    "expected_template": "shooter-topdown",
+    "expected_reason": "rule:shooter-topdown"
   }
 ]

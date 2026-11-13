@@ -1,0 +1,6 @@
+id: shooter.clear
+module: system.shooter
+when:
+  - input: attack
+then:
+  - assert_signal: enemy.killed

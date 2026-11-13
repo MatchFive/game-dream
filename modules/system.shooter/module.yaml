@@ -1,0 +1,30 @@
+id: system.shooter
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [shooter]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  components: [TopDownShooter]
+input_actions:
+  - name: move_left
+    keys: [A, LEFT]
+  - name: move_right
+    keys: [D, RIGHT]
+  - name: move_up
+    keys: [W, UP]
+  - name: move_down
+    keys: [S, DOWN]
+  - name: attack
+    keys: [J, SPACE]
+  - name: restart
+    keys: [R]
+main_scene: scenes/arena.tscn
+scenarios: [scenarios/shooter.yaml]
+tests: []
+ai_skill: skills/shooter.md
+docs: api.md
+license: Apache-2.0

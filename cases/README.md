@@ -25,6 +25,7 @@ With the deterministic fake provider and real Godot:
 - `puzzle`: fallback to `rpg-action-m1` (and genre misclassification)
 
 Result: `1 playable / 5 fallback / 0 failed` before the platformer slice. After
-adding `platformer-2d`: `2 playable / 4 fallback / 0 failed` (action RPG and
-platformer playable; shooter/roguelike/tower-defense/puzzle still fallback).
-This is the baseline to improve, not a release-quality score.
+adding `platformer-2d`: `2 playable / 4 fallback / 0 failed`. After adding
+`shooter-topdown`: `3 playable / 3 fallback / 0 failed` (action RPG, platformer,
+shooter playable; roguelike/tower-defense/puzzle still fallback). This is the
+baseline to improve, not a release-quality score.

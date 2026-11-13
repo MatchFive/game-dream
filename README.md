@@ -282,13 +282,17 @@ node packages/cli/dist/index.js benchmark --provider fake
 `cases/benchmark.json` covers action RPG, platformer, shooter, roguelike,
 tower-defense, and puzzle prompts. The command creates each project and runs
 normal G1/G2/G3, then reports `playable`, `fallback`, `unverified`, or `failed`.
-Fallback is not counted as success. The current baseline is 2 playable
-(action RPG, platformer) / 4 fallback; use case failures to decide which
-genres/templates to build next.
+Fallback is not counted as success. The current baseline is 3 playable
+(action RPG, platformer, shooter) / 3 fallback; use case failures to decide
+which genres/templates to build next.
 
 `platformer-2d` is a real Godot template (`system.platformer`): gravity/jump,
 coins, goal, HUD, camera follow, and headless autoplay. It passes G1/G2/G3/G6.
-The remaining benchmark gaps are shooter, roguelike, tower-defense, and puzzle.
+
+`shooter-topdown` is a real Godot template (`system.shooter`): top-down
+movement, nearest-enemy shooting, enemy chase, HP, kill/win markers, and
+headless auto-fire. It also passes G1/G2/G3/G6. Remaining benchmark gaps are
+roguelike, tower-defense, and puzzle.
 
 ## Release artifacts
 

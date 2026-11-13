@@ -1,0 +1,21 @@
+id: shooter-topdown
+genre: shooter
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.shooter
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 3
+  bosses: 0
+  skills: 0
+  items: 0
+  quests: 0
+acceptance:
+  - "玩家可移动并向敌人射击"
+  - "消灭全部敌人"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_KILL, GAMEDREAM_WIN]
