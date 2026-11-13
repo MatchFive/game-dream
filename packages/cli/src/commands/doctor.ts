@@ -1,6 +1,7 @@
 import {
   detectGodot,
   findExportTemplates,
+  hostTemplatePlatform,
   type CommandRunner,
   type ExportTemplateStatus,
   type GodotInstallation,
@@ -28,10 +29,17 @@ export async function doctorCommand(
   } else if (godot.major < 4 || (godot.major === 4 && godot.minor < 4)) {
     problems.push(`Godot ${godot.version} detected; 4.4+ required.`);
   }
-  const templates = godot ? findExportTemplates(godot.version, options.env ?? process.env) : null;
+  const templates = godot
+    ? findExportTemplates(
+        godot.version,
+        options.env ?? process.env,
+        process.platform,
+        hostTemplatePlatform(),
+      )
+    : null;
   if (templates && !templates.installed) {
     warnings.push(
-      `Godot export templates missing for ${templates.version}; native export unavailable at ${templates.dir}. Install templates via the Godot editor or use \`dream godot package\`.`,
+      `Godot export templates missing for ${templates.requested} ${templates.version}; native export unavailable at ${templates.dir}. Install templates via the Godot editor or use \`dream godot package\`.`,
     );
   }
   return {

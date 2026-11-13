@@ -2,9 +2,9 @@ import { Command } from 'commander';
 import {
   detectGodot,
   exportProject,
-  findExportTemplates,
   importProject,
   packageGodotProject,
+  type TemplatePlatform,
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { composeCommand } from './commands/compose.js';
@@ -18,6 +18,7 @@ import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
+import { templatesCommand } from './commands/templates.js';
 import {
   webComposeCommand,
   webPackageCommand,
@@ -192,32 +193,51 @@ export function createProgram(): Command {
   godotCommand
     .command('templates')
     .description('Check installed Godot export templates')
+    .option('--platform <name>', 'windows | linux | web | macos')
     .option('--json', 'print JSON')
-    .action(async (options: { json?: boolean }) => {
-      const godot = await detectGodot();
-      if (!godot) {
-        printLine('Godot not found; set GODOT_BIN.');
+    .action(async (options: { platform?: string; json?: boolean }) => {
+      const platforms = ['windows', 'linux', 'web', 'macos'] as const;
+      if (options.platform && !platforms.includes(options.platform as TemplatePlatform)) {
+        printLine('--platform must be windows, linux, web, or macos');
+        process.exitCode = 1;
+        return;
+      }
+      const result = await templatesCommand({
+        requested: options.platform as TemplatePlatform | undefined,
+      });
+      if (!result.godot || !result.status) {
+        if (options.json) {
+          printJson({
+            godot: null,
+            error: 'GODOT_NOT_FOUND',
+            installed: false,
+            platforms: { windows: false, linux: false, web: false, macos: false },
+          });
+        } else {
+          printLine('Godot not found; set GODOT_BIN.');
+        }
         process.exitCode = 3;
         return;
       }
-      const status = findExportTemplates(godot.version);
-      if (options.json) printJson({ godot: godot.version, ...status });
+      if (options.json) printJson({ godot: result.godot.version, ...result.status });
       else {
-        printLine(`Godot: ${godot.version}`);
-        printLine(`Templates: ${status.installed ? 'installed' : 'missing'} (${status.dir})`);
+        printLine(`Godot: ${result.godot.version}`);
         printLine(
-          `Platforms: ${Object.entries(status.platforms)
+          `Templates: ${result.status.installed ? 'installed' : 'missing'} (${result.status.dir})`,
+        );
+        printLine(
+          `Platforms: ${Object.entries(result.status.platforms)
             .filter(([, present]) => present)
             .map(([name]) => name)
             .join(', ') || 'none'}`,
         );
-        if (!status.installed) {
+        if (!result.status.installed) {
           printLine(
-            'Install the matching Godot 4.4 export templates from the Godot editor or the official download page, then re-run this command.',
+            `Install the matching Godot ${result.status.version} export templates from the Godot editor or the official download page, then re-run this command.`,
           );
         }
       }
-      process.exitCode = status.installed ? 0 : 1;
+      process.exitCode = result.exitCode;
     });
 
   godotCommand

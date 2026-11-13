@@ -8,9 +8,9 @@
 - `pnpm build`
 
 GitHub's Ubuntu runner has no Godot binary or Godot export templates, so the
-real Godot E2E and native export tests are skipped there. Run those locally with
-`GODOT_BIN` set; `dream godot templates` reports whether the matching templates
-are installed.
+real Godot E2E test is skipped there; export tests use fake runners. Run those
+locally with `GODOT_BIN` set; `dream godot templates` reports whether the
+matching templates are installed for the host platform.
 
 The optional `web-release` job is manually dispatched. It composes the M1 Web
 project, runs the deterministic marker gate, packages it with hashes, and uploads
@@ -18,11 +18,14 @@ project, runs the deterministic marker gate, packages it with hashes, and upload
 
 ## Godot templates
 
-Native export needs the exact Godot 4.4 export template version. The status
-command reports the expected directory:
+Native export needs the exact patch/status template version (for example
+`4.4.1.stable`; a 4.4.0 template set is not interchangeable). The status command
+reports the expected directory and exits 0 if the requested/host platform is
+present, 1 if missing, and 3 if Godot is not found:
 
 ```bash
 dream godot templates
+dream godot templates --platform windows
 dream godot templates --json
 ```
 

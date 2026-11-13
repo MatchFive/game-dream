@@ -11,12 +11,25 @@ describe('Godot export templates', () => {
     const dir = join(exportTemplatesRoot(env, 'win32'), '4.4.1.stable');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'windows_release_x86_64.exe'), 'template');
+    writeFileSync(join(dir, 'linux_release.arm64'), 'template');
     writeFileSync(join(dir, 'web_release.zip'), 'template');
-    const status = findExportTemplates('4.4.1.stable.official', env, 'win32');
+    writeFileSync(join(dir, 'macos.zip'), 'template');
+    const status = findExportTemplates('4.4.1.stable.official', env, 'win32', 'windows');
     expect(status.installed).toBe(true);
+    expect(status.complete).toBe(true);
     expect(status.platforms.windows).toBe(true);
     expect(status.platforms.web).toBe(true);
-    expect(status.platforms.linux).toBe(false);
+    expect(status.platforms.linux).toBe(true);
+    expect(status.platforms.macos).toBe(true);
+  });
+
+  it('reports partial installs against the requested platform', () => {
+    const env = { APPDATA: makeTempDir('gamedream templates partial ') };
+    const dir = join(exportTemplatesRoot(env, 'win32'), '4.4.1.stable');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'web_release.zip'), 'template');
+    expect(findExportTemplates('4.4.1.stable', env, 'win32', 'web').installed).toBe(true);
+    expect(findExportTemplates('4.4.1.stable', env, 'win32', 'windows').installed).toBe(false);
   });
 
   it('reports missing templates without throwing', () => {

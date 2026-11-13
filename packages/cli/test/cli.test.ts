@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { makeTempDir } from '@gamedream/testing';
 import { doctorCommand } from '../src/commands/doctor.js';
+import { templatesCommand } from '../src/commands/templates.js';
 import { composeCommand } from '../src/commands/compose.js';
 import { exitCodeFor, verifyCommand } from '../src/commands/verify.js';
 import { formatCliError } from '../src/errors.js';
@@ -45,6 +46,21 @@ describe('doctor', () => {
     const report = await doctorCommand({ env: { GODOT_BIN: 'godot' }, runner: fakeGodot });
     expect(report.godot?.version).toContain('4.4');
     expect(report.ok).toBe(true);
+  });
+
+  it('reports template command exit codes and missing-Godot JSON seam', async () => {
+    const env = { GODOT_BIN: 'godot', APPDATA: makeTempDir('gamedream template command ') };
+    const result = await templatesCommand({
+      env,
+      platform: 'win32',
+      requested: 'windows',
+      runner: fakeGodot,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.status?.requested).toBe('windows');
+    const missing = await templatesCommand({ godot: null });
+    expect(missing.exitCode).toBe(3);
+    expect(missing.status).toBeNull();
   });
 
   it('reports export template status as a warning without changing doctor ok', async () => {
