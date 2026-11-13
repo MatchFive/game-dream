@@ -82,16 +82,26 @@ func _update_animation(moving: bool) -> void:
 		return
 	if animated_sprite.animation == "attack" and animated_sprite.is_playing():
 		return
-	var target := "move" if moving else "idle"
-	if not animated_sprite.sprite_frames.has_animation(target):
-		target = "idle"
-	if animated_sprite.animation != target:
+	var target := _pick_animation("move" if moving else "idle")
+	if target != "" and animated_sprite.animation != target:
 		animated_sprite.play(target)
+
+func _pick_animation(preferred: String) -> String:
+	if animated_sprite.sprite_frames == null:
+		return ""
+	var frames := animated_sprite.sprite_frames
+	if frames.has_animation(preferred) and frames.get_frame_count(preferred) > 0:
+		return preferred
+	for name in frames.get_animation_names():
+		var candidate := str(name)
+		if candidate != "default" and frames.get_frame_count(candidate) > 0:
+			return candidate
+	return ""
 
 func _on_animation_finished() -> void:
 	if animated_sprite.animation == "attack":
-		var target := "move" if velocity.length() > 0.1 else "idle"
-		if animated_sprite.sprite_frames.has_animation(target):
+		var target := _pick_animation("move" if velocity.length() > 0.1 else "idle")
+		if target != "":
 			animated_sprite.play(target)
 
 func _on_health_changed(hp: int, max_hp: int) -> void:

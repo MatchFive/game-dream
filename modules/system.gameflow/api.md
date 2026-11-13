@@ -7,8 +7,8 @@
 - Optional `Game.get_service("levels")`; without it, one default enemy is spawned.
 - Optional `Game.get_service("maps")`; builds the current level's tile map under
   `MapRoot` and prints `GAMEDREAM_MAP_OK` once per run.
-- Optional `Game.get_service("sprites")`; prints `GAMEDREAM_SPRITE_OK` once at least
-  two sprites were applied by player/enemy.
+- Optional `Game.get_service("sprites")`; prints `GAMEDREAM_SPRITE_OK` after both
+  player and enemy sprites are applied (once per process).
 
 ## Behavior
 - Spawns an enemy under `EnemyRoot` from `levels.current_level().enemy`, or defaults

@@ -28,7 +28,6 @@ func _on_event(event_name: String, payload: Variant) -> void:
 				levels.reset()
 			_level2_reported = false
 			_map_reported = false
-			_sprite_reported = false
 			_apply_level()
 			call_deferred("_report_sprites")
 		var dialogue = Game.get_service("dialogue")
