@@ -1,0 +1,16 @@
+id: core.save
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: core
+genres: [any]
+depends: {}
+provides:
+  services: [save]
+autoloads:
+  - name: SaveService
+    path: src/save_service.gd
+    order: 80
+ai_skill: skills/save.md
+docs: api.md
+license: Apache-2.0

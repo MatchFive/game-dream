@@ -1,0 +1,7 @@
+id: save.roundtrip
+module: core.save
+when:
+  - call: save.save_game
+then:
+  - call: save.has_save
+    expect: true

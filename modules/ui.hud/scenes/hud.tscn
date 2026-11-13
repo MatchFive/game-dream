@@ -16,3 +16,6 @@ text = "Inventory: 0"
 
 [node name="HP" type="Label" parent="Panel/VBox"]
 text = "HP: 100/100"
+
+[node name="Level" type="Label" parent="Panel/VBox"]
+text = "Level: -"

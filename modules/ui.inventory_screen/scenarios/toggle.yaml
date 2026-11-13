@@ -1,0 +1,6 @@
+id: inventory_ui.toggle
+module: ui.inventory_screen
+when:
+  - input: toggle_inventory
+then:
+  - assert_node_visible: InventoryScreen

@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/ui.skill_screen/src/skill_screen.gd" id="1"]
+
+[node name="SkillScreen" type="CanvasLayer"]
+layer = 22
+visible = false
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 200.0
+offset_top = 120.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+text = "Skills"
+
+[node name="List" type="VBoxContainer" parent="Panel/VBox"]

@@ -7,6 +7,9 @@ genres: [any]
 depends:
   core.events: "^1.0.0"
   system.inventory: "^1.0.0"
+optional_depends:
+  system.progression: "^1.0.0"
+  system.player: "^1.0.0"
 provides:
   services: []
 ui_mounts:

@@ -2,6 +2,7 @@ extends CanvasLayer
 
 @onready var inventory_label: Label = $Panel/VBox/Inventory
 @onready var hp_label: Label = $Panel/VBox/HP
+@onready var level_label: Label = $Panel/VBox/Level
 
 func _ready() -> void:
 	Game.service_registered.connect(_on_service_registered)
@@ -10,6 +11,20 @@ func _ready() -> void:
 	if Game.has_service("inventory"):
 		_bind_inventory(Game.get_service("inventory"))
 	_bind_player_health()
+	_bind_progression()
+
+func _bind_progression() -> void:
+	var progression = Game.get_service("progression")
+	if progression == null:
+		level_label.text = "Level: -"
+		return
+	progression.changed.connect(_on_progression_changed)
+	_on_progression_changed(progression.level, progression.xp)
+
+func _on_progression_changed(level: int, xp: int) -> void:
+	var progression = Game.get_service("progression")
+	var next := int(progression.xp_to_next) if progression else 0
+	level_label.text = "Level: %d XP: %d/%d" % [level, xp, next]
 
 func _bind_player_health() -> void:
 	var player = get_tree().get_first_node_in_group("player")

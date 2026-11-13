@@ -37,6 +37,9 @@ func total_count() -> int:
 		total += int(value)
 	return total
 
+func items() -> Dictionary:
+	return _items.duplicate(true)
+
 func serialize() -> Dictionary:
 	return {"items": _items.duplicate(true)}
 

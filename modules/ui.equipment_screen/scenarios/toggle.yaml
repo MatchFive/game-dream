@@ -1,0 +1,6 @@
+id: equipment_ui.toggle
+module: ui.equipment_screen
+when:
+  - input: toggle_equipment
+then:
+  - assert_node_visible: EquipmentScreen

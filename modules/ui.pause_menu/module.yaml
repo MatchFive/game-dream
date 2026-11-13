@@ -1,0 +1,21 @@
+id: ui.pause_menu
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [any]
+depends:
+  core.save: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: pause
+    scene: scenes/pause_menu.tscn
+    layer: 30
+input_actions:
+  - name: pause
+    keys: [ESCAPE]
+scenarios: [scenarios/toggle.yaml]
+ai_skill: skills/pause_ui.md
+docs: api.md
+license: Apache-2.0

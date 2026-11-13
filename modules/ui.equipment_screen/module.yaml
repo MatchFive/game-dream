@@ -1,0 +1,22 @@
+id: ui.equipment_screen
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+  system.equipment: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: equipment
+    scene: scenes/equipment_screen.tscn
+    layer: 21
+input_actions:
+  - name: toggle_equipment
+    keys: [C]
+scenarios: [scenarios/toggle.yaml]
+ai_skill: skills/equipment_ui.md
+docs: api.md
+license: Apache-2.0

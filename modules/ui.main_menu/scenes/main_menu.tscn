@@ -1,0 +1,27 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/ui.main_menu/src/main_menu.gd" id="1"]
+
+[node name="MainMenu" type="CanvasLayer"]
+layer = 40
+visible = true
+process_mode = 3
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 480.0
+offset_top = 220.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+text = "GameDream"
+
+[node name="NewGame" type="Button" parent="Panel/VBox"]
+text = "New Game"
+
+[node name="Continue" type="Button" parent="Panel/VBox"]
+text = "Continue"
+
+[node name="Quit" type="Button" parent="Panel/VBox"]
+text = "Quit"

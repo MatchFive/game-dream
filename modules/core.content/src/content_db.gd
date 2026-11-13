@@ -9,13 +9,14 @@ func _ready() -> void:
 	_load_dir("items", items)
 	_load_dir("skills", skills)
 	_load_dir("loot", loot_tables)
-	_load_dir("loot_tables", loot_tables)
+	_load_dir("loot_tables", loot_tables, false)
 
-func _load_dir(folder: String, target: Dictionary) -> void:
+func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) -> void:
 	var path := "res://game/content/%s" % folder
 	var dir := DirAccess.open(path)
 	if dir == null:
-		push_warning("content: missing directory %s" % path)
+		if warn_missing:
+			push_warning("content: missing directory %s" % path)
 		return
 	dir.list_dir_begin()
 	var file := dir.get_next()

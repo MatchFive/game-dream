@@ -1,0 +1,21 @@
+id: ui.skill_screen
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: skills
+    scene: scenes/skill_screen.tscn
+    layer: 22
+input_actions:
+  - name: toggle_skills
+    keys: [L]
+scenarios: [scenarios/toggle.yaml]
+ai_skill: skills/skill_ui.md
+docs: api.md
+license: Apache-2.0

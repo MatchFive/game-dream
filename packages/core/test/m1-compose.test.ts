@@ -33,6 +33,22 @@ describe('m1 composition', () => {
     const progressionIndex = project.indexOf('ProgressionService=');
     expect(contentIndex).toBeGreaterThan(project.indexOf('Game='));
     expect(progressionIndex).toBeGreaterThan(contentIndex);
+    expect(project).toContain('SaveService=');
+
+    const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
+    expect(main).toContain('system.gameflow/scenes/game.tscn');
+    expect(main).toContain('ui.hud/scenes/hud.tscn');
+    expect(main).toContain('ui.inventory_screen/scenes/inventory_screen.tscn');
+    expect(main).toContain('ui.equipment_screen/scenes/equipment_screen.tscn');
+    expect(main).toContain('ui.skill_screen/scenes/skill_screen.tscn');
+    expect(main).toContain('ui.pause_menu/scenes/pause_menu.tscn');
+    expect(main).toContain('ui.main_menu/scenes/main_menu.tscn');
+
+    const input = readFileSync(join(outDir, 'game/_generated/input_map.gd'), 'utf8');
+    expect(input).toContain('_add("toggle_inventory"');
+    expect(input).toContain('_add("toggle_equipment"');
+    expect(input).toContain('_add("toggle_skills"');
+    expect(input).toContain('_add("pause"');
 
     const manifest = JSON.parse(
       readFileSync(join(outDir, 'game/game.manifest.json'), 'utf8'),

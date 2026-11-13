@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/ui.equipment_screen/src/equipment_screen.gd" id="1"]
+
+[node name="EquipmentScreen" type="CanvasLayer"]
+layer = 21
+visible = false
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 200.0
+offset_top = 120.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+text = "Equipment"
+
+[node name="List" type="VBoxContainer" parent="Panel/VBox"]

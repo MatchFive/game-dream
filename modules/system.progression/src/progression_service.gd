@@ -23,6 +23,12 @@ func add_xp(amount: int) -> void:
 		xp_to_next = 10 + level * 5
 		leveled_up.emit(level)
 	changed.emit(level, xp)
+	if Game.events:
+		Game.events.emit_event("progression.changed", {
+			"level": level,
+			"xp": xp,
+			"xp_to_next": xp_to_next,
+		})
 
 func serialize() -> Dictionary:
 	return {"level": level, "xp": xp, "xp_to_next": xp_to_next}

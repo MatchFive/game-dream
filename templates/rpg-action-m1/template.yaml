@@ -6,6 +6,7 @@ modules:
   required:
     - core.content
     - core.events
+    - core.save
     - core.stats
     - system.combat
     - system.player
@@ -17,6 +18,11 @@ modules:
     - system.skills
     - system.inventory
     - ui.hud
+    - ui.inventory_screen
+    - ui.equipment_screen
+    - ui.skill_screen
+    - ui.pause_menu
+    - ui.main_menu
   optional: []
 minimum_complete:
   levels: 1
@@ -29,4 +35,6 @@ acceptance:
   - "玩家可移动/攻击/释放技能"
   - "击杀敌人获得经验并升级"
   - "掉落并自动装备武器"
+  - "背包/装备/技能界面可用"
+  - "暂停菜单可保存"
 acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_WIN]

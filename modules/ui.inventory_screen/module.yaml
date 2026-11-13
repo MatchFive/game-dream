@@ -1,0 +1,23 @@
+id: ui.inventory_screen
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+  system.inventory: "^1.0.0"
+  system.equipment: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: inventory
+    scene: scenes/inventory_screen.tscn
+    layer: 20
+input_actions:
+  - name: toggle_inventory
+    keys: [I]
+scenarios: [scenarios/toggle.yaml]
+ai_skill: skills/inventory_ui.md
+docs: api.md
+license: Apache-2.0

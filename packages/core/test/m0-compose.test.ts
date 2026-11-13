@@ -32,6 +32,7 @@ describe('m0 composition', () => {
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');
     expect(main).toContain('ui.hud/scenes/hud.tscn');
+    expect(main).not.toContain('ui.inventory_screen');
 
     const mainScript = readFileSync(join(outDir, 'game/_generated/main.gd'), 'utf8');
     expect(mainScript).toContain('missing input action');

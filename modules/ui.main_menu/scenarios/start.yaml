@@ -1,0 +1,6 @@
+id: main_menu.start
+module: ui.main_menu
+when:
+  - press: NewGame
+then:
+  - assert_node_visible: { node: MainMenu, visible: false }

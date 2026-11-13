@@ -1,0 +1,6 @@
+id: pause_ui.toggle
+module: ui.pause_menu
+when:
+  - input: pause
+then:
+  - assert_paused: true

@@ -1,0 +1,6 @@
+id: skill_ui.toggle
+module: ui.skill_screen
+when:
+  - input: toggle_skills
+then:
+  - assert_node_visible: SkillScreen

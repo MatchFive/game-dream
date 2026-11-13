@@ -77,6 +77,10 @@ Desktop controls: **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
 Headless autoplay prints `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
 `GAMEDREAM_SKILL_CAST`, and `GAMEDREAM_WIN`.
 
+UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
+The pause menu saves to `user://save.json`; the main menu offers New Game /
+Continue on desktop. Headless runs hide the menu and autoplay.
+
 Content is data-driven under `game/content/`:
 
 - `items/*.json` — item id, slot, stat bonuses
