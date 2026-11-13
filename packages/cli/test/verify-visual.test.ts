@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import type { CommandRunner } from '@gamedream/godot';
+import { FakeVisionProvider } from '@gamedream/agent';
 import { composeCommand } from '../src/commands/compose.js';
 import { exitCodeFor, verifyCommand } from '../src/commands/verify.js';
 
@@ -70,6 +71,40 @@ describe('visual gate', () => {
     expect(withVisual.gates.G3.status).toBe('pass');
     expect(withVisual.gates.G6?.status).toBe('pass');
     expect(exitCodeFor(withVisual)).toBe(0);
+  });
+
+  it('runs a fake vision review and implies --visual', async () => {
+    const outDir = await composeM1('gamedream vision pass ');
+    const runner = runnerFor(
+      outDir,
+      '{"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
+    );
+    const report = await verifyCommand({
+      projectDir: outDir,
+      runner,
+      vision: 'fake',
+      visionProvider: new FakeVisionProvider(),
+      visualOut: join(outDir, 'shot.png'),
+    });
+    expect(report.gates.G6?.status).toBe('pass');
+    expect(report.gates.G6?.message).toContain('vision:fake');
+  });
+
+  it('fails G6 when the vision review is not readable', async () => {
+    const outDir = await composeM1('gamedream vision fail ');
+    const report = await verifyCommand({
+      projectDir: outDir,
+      runner: runnerFor(
+        outDir,
+        '{"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
+      ),
+      vision: 'fake',
+      visionProvider: new FakeVisionProvider({ review: { readable: false } }),
+      visualOut: join(outDir, 'shot.png'),
+    });
+    expect(report.gates.G6?.status).toBe('fail');
+    expect(report.gates.G6?.message).toContain('vision: not readable');
+    expect(exitCodeFor(report)).toBe(2);
   });
 
   it('fails G6 on invalid metrics', async () => {

@@ -21,6 +21,7 @@ describe.runIf(Boolean(process.env.GODOT_BIN))('visual gate end-to-end', () => {
     const report = await verifyCommand({
       projectDir: outDir,
       visual: true,
+      vision: 'fake',
       env: { GODOT_BIN: process.env.GODOT_BIN },
     });
     expect(report.gates.G3.status).toBe('pass');

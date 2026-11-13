@@ -1,5 +1,11 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  createVisionProvider,
+  type VisualReview,
+  type VisionProvider,
+  type VisionProviderKind,
+} from '@gamedream/agent';
 import { parseGameManifest, parseLockfile } from '@gamedream/core';
 import {
   detectGodot,
@@ -25,12 +31,24 @@ export interface VerifyReport {
 const GODOT_MISSING_MESSAGE =
   'Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.';
 
+const VISION_SYSTEM =
+  'You review game screenshots. Return JSON only with readable, hud_visible, player_visible, enemy_visible, dialogue_readable booleans and an issues string array.';
+const VISION_USER =
+  'Review this gameplay screenshot. Confirm the HUD, player, enemy, and dialogue are visible and readable.';
+
+export function parseVisionKind(value: string): VisionProviderKind {
+  if (value === 'fake' || value === 'openai') return value;
+  throw new Error(`unknown vision provider: ${value}`);
+}
+
 export async function verifyCommand(options: {
   projectDir: string;
   env?: NodeJS.ProcessEnv;
   runner?: CommandRunner;
   visual?: boolean;
   visualOut?: string;
+  vision?: VisionProviderKind;
+  visionProvider?: VisionProvider;
 }): Promise<VerifyReport> {
   let engine: VerifyReport['engine'] = 'missing';
   let markers = ['GAMEDREAM_BOOT_OK'];
@@ -39,7 +57,8 @@ export async function verifyCommand(options: {
     G2: { status: 'skip', message: GODOT_MISSING_MESSAGE },
     G3: { status: 'skip', message: GODOT_MISSING_MESSAGE },
   };
-  if (options.visual) gates.G6 = { status: 'skip', message: 'not run' };
+  const visualRequested = Boolean(options.visual || options.vision);
+  if (visualRequested) gates.G6 = { status: 'skip', message: 'not run' };
 
   try {
     parseLockfile(
@@ -103,7 +122,7 @@ export async function verifyCommand(options: {
       : { status: 'pass' };
   }
 
-  if (options.visual) {
+  if (visualRequested) {
     const outPath =
       options.visualOut ??
       join(options.projectDir, 'game/screenshots/screenshot.png');
@@ -113,12 +132,30 @@ export async function verifyCommand(options: {
         runner: options.runner,
       });
       const failure = visualFailure(shot);
-      gates.G6 = failure
-        ? { status: 'fail', message: failure }
-        : {
-            status: 'pass',
-            message: `${shot.metrics?.width}x${shot.metrics?.height}, ${shot.metrics?.colors} colors`,
-          };
+      if (failure) {
+        gates.G6 = { status: 'fail', message: failure };
+      } else if (options.vision && shot.imagePath) {
+        const provider =
+          options.visionProvider ??
+          createVisionProvider({ kind: options.vision, env: options.env });
+        const review = await provider.review({
+          imagePath: shot.imagePath,
+          system: VISION_SYSTEM,
+          user: VISION_USER,
+        });
+        const reviewFailure = visionFailure(review);
+        gates.G6 = reviewFailure
+          ? { status: 'fail', message: reviewFailure }
+          : {
+              status: 'pass',
+              message: `${shot.metrics?.width}x${shot.metrics?.height}, ${shot.metrics?.colors} colors, vision:${provider.name}`,
+            };
+      } else {
+        gates.G6 = {
+          status: 'pass',
+          message: `${shot.metrics?.width}x${shot.metrics?.height}, ${shot.metrics?.colors} colors`,
+        };
+      }
     } catch (error) {
       gates.G6 = {
         status: 'fail',
@@ -159,6 +196,15 @@ function visualFailure(shot: ScreenshotResult): string | null {
   }
   if (metrics.colors < 8) return 'screenshot has too few colors';
   if (metrics.center_colors < 4) return 'screenshot has too few center colors';
+  return null;
+}
+
+function visionFailure(review: VisualReview): string | null {
+  if (!review.readable) return 'vision: not readable';
+  if (!review.hud_visible) return 'vision: HUD not visible';
+  if (!review.player_visible) return 'vision: player not visible';
+  if (!review.enemy_visible) return 'vision: enemy not visible';
+  if (!review.dialogue_readable) return 'vision: dialogue not readable';
   return null;
 }
 

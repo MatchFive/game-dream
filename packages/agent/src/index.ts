@@ -10,3 +10,8 @@ export * from './intake/extract-json.js';
 export * from './classify/select-template.js';
 export * from './create/types.js';
 export * from './create/create-project.js';
+export * from './vision/types.js';
+export * from './vision/visual-review.js';
+export * from './vision/fake-vision-provider.js';
+export * from './vision/openai-vision-provider.js';
+export * from './vision/create-vision-provider.js';

@@ -120,6 +120,10 @@ with `--screenshot`, starts a new game, waits 60 frames, captures the viewport t
   G6 requires a windowed Godot run (no `--headless`), at least 640×360 output,
   ≥5% non-black samples, ≥8 distinct colors, and ≥4 center-region colors. Use
   `--screenshot-out` to choose the PNG path.
+- `dream verify --path ./my-game --visual --vision fake` — additionally review
+  HUD/player/enemy/dialogue readability. `--vision openai` uses
+  `OPENAI_API_KEY` and the OpenAI-compatible vision API (`GAMEDREAM_VISION_MODEL`
+  defaults to `gpt-4o-mini`). `--vision` implies `--visual`.
 
 G6 is opt-in so headless CI keeps running G1–G3. Golden images and a VLM
 readability rubric are deferred.

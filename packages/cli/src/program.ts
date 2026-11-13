@@ -10,7 +10,7 @@ import {
 } from './commands/create.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
-import { exitCodeFor, verifyCommand } from './commands/verify.js';
+import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
 
@@ -214,13 +214,15 @@ export function createProgram(): Command {
     .requiredOption('--path <dir>')
     .option('--visual', 'run G6 screenshot gate')
     .option('--screenshot-out <png>', 'G6 screenshot path')
+    .option('--vision <kind>', 'fake | openai')
     .option('--json', 'print JSON')
-    .action(async (options: { path: string; visual?: boolean; screenshotOut?: string; json?: boolean }) => {
+    .action(async (options: { path: string; visual?: boolean; screenshotOut?: string; vision?: string; json?: boolean }) => {
       try {
         const report = await verifyCommand({
           projectDir: options.path,
           visual: options.visual,
           visualOut: options.screenshotOut,
+          vision: options.vision ? parseVisionKind(options.vision) : undefined,
         });
         if (options.json) printJson(report);
         else {

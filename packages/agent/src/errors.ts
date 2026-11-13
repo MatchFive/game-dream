@@ -5,7 +5,8 @@ export type AgentErrorCode =
   | 'UNKNOWN_TEMPLATE'
   | 'MISSING_API_KEY'
   | 'PROVIDER_HTTP_ERROR'
-  | 'PROVIDER_EMPTY_RESPONSE';
+  | 'PROVIDER_EMPTY_RESPONSE'
+  | 'INVALID_VISION_REVIEW';
 
 export class AgentError extends Error {
   constructor(
