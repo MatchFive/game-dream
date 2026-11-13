@@ -20,4 +20,5 @@ export interface CreateResult {
   provider: string;
   compose?: ComposeResult;
   plannedModules?: string[];
+  plannedFiles?: string[];
 }

@@ -6,7 +6,7 @@ import {
   type ProviderKind,
 } from '@gamedream/agent';
 import type { CommandRunner } from '@gamedream/godot';
-import { verifyCommand, type VerifyReport } from './verify.js';
+import { exitCodeFor, verifyCommand, type VerifyReport } from './verify.js';
 
 export interface CreateCommandOptions {
   prompt: string;
@@ -24,17 +24,41 @@ export interface CreateCommandOptions {
 export interface CreateCommandResult {
   result: CreateResult;
   verify?: VerifyReport;
+  notice?: string;
+}
+
+export function parseCreateMode(value: string): CreateMode {
+  if (value === 'auto' || value === 'dry-run') return value;
+  throw new Error('--mode must be auto or dry-run');
+}
+
+export function parseProviderKind(value: string): ProviderKind {
+  if (value === 'auto' || value === 'fake' || value === 'openai') return value;
+  throw new Error('--provider must be auto, fake, or openai');
+}
+
+export function createExitCode(verify?: VerifyReport): 0 | 2 | 3 {
+  return verify ? exitCodeFor(verify) : 0;
 }
 
 export async function createCommand(
   options: CreateCommandOptions,
 ): Promise<CreateCommandResult> {
   const mode = options.mode ?? 'auto';
+  const providerKind = options.providerKind ?? 'auto';
+  const env = options.env ?? process.env;
   const provider = createProvider({
-    kind: options.providerKind ?? 'auto',
-    env: options.env,
+    kind: providerKind,
+    env,
     fetchImpl: options.fetchImpl,
   });
+  const notice =
+    providerKind === 'fake'
+      ? 'Using the deterministic fake provider; the prompt is not interpreted by a model.'
+      : providerKind === 'auto' && !env.OPENAI_API_KEY
+        ? 'OPENAI_API_KEY not set; using the deterministic fake provider — the prompt is not interpreted by a model.'
+        : undefined;
+
   const result = await createProject({
     prompt: options.prompt,
     outDir: options.outDir,
@@ -44,12 +68,14 @@ export async function createCommand(
     mode,
   });
 
-  if (mode === 'dry-run' || options.verify === false) return { result };
+  if (mode === 'dry-run' || options.verify === false) {
+    return { result, notice };
+  }
 
   const report = await verifyCommand({
     projectDir: result.outDir,
-    env: options.env,
+    env,
     runner: options.runner,
   });
-  return { result, verify: report };
+  return { result, verify: report, notice };
 }

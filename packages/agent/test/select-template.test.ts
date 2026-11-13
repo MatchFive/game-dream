@@ -50,6 +50,16 @@ describe('selectTemplate', () => {
     expect(selection.reason).toContain('fallback');
   });
 
+  it('tries later matching rules when the first template is unavailable', () => {
+    const templatesDir = makeTemplates(['shooter-topdown']);
+    const selection = selectTemplate({
+      prompt: '做一个 roguelike 射击游戏',
+      genre: 'shooter',
+      templatesDir,
+    });
+    expect(selection.templateId).toBe('shooter-topdown');
+  });
+
   it('fails when no templates exist', () => {
     const templatesDir = makeTemplates([]);
     expect(() =>

@@ -25,4 +25,15 @@ describe('FakeProvider', () => {
     expect(await provider.complete({ system: 's', user: 'u' })).toBe('first');
     expect(await provider.complete({ system: 's', user: 'u' })).toBe('second');
   });
+
+  it('strips the prompt envelope before writing the draft', async () => {
+    const provider = new FakeProvider();
+    const text = await provider.complete({
+      system: 's',
+      user: 'Game idea:\n做一个俯视角动作 RPG\n\nReturn the JSON object now.',
+    });
+    const draft = JSON.parse(text);
+    expect(draft.project.name).toBe('gamedream-demo');
+    expect(draft.vision.fantasy).toBe('做一个俯视角动作 RPG');
+  });
 });

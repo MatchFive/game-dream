@@ -7,6 +7,7 @@ import { doctorCommand } from '../src/commands/doctor.js';
 import { composeCommand } from '../src/commands/compose.js';
 import { exitCodeFor, verifyCommand } from '../src/commands/verify.js';
 import { formatCliError } from '../src/errors.js';
+import { AgentError } from '@gamedream/agent';
 import { ResolutionError } from '@gamedream/core';
 import type { CommandRunner } from '@gamedream/godot';
 
@@ -31,6 +32,11 @@ describe('formatCliError', () => {
     expect(formatted.message).toContain('MISSING_MODULE');
     expect(formatted.message).toContain('core.x');
     expect(formatted.exitCode).toBe(2);
+  });
+
+  it('maps AgentError codes to exit 3 for missing keys and exit 2 otherwise', () => {
+    expect(formatCliError(new AgentError('MISSING_API_KEY', 'x')).exitCode).toBe(3);
+    expect(formatCliError(new AgentError('INVALID_MODEL_JSON', 'x')).exitCode).toBe(2);
   });
 });
 

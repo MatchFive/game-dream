@@ -8,7 +8,9 @@ export const gameSpecSchema = z
     version: z.literal(1),
     project: z
       .object({
-        name: z.string().min(1),
+        name: z
+          .string()
+          .regex(/^[a-z0-9][a-z0-9-]*$/, 'project name must be kebab-case'),
         engine: engineSchema,
         godot_version: z.string().optional(),
         dimension: dimensionSchema,

@@ -3,7 +3,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync } from 'node:fs';
 import { makeTempDir } from '@gamedream/testing';
-import { createCommand } from '../src/commands/create.js';
+import {
+  createCommand,
+  createExitCode,
+  parseCreateMode,
+  parseProviderKind,
+} from '../src/commands/create.js';
+import type { VerifyReport } from '../src/commands/verify.js';
 import type { CommandRunner } from '@gamedream/godot';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -46,7 +52,65 @@ describe('createCommand', () => {
     const opts = { ...options(), mode: 'dry-run' as const };
     const { result, verify } = await createCommand(opts);
     expect(result.plannedModules).toContain('core.events');
+    expect(result.plannedFiles).toContain('project.godot');
     expect(verify).toBeUndefined();
     expect(existsSync(join(opts.outDir, 'gamedream.yaml'))).toBe(false);
+  });
+
+  it('notices when auto falls back to the fake provider', async () => {
+    const opts = {
+      ...options(),
+      providerKind: 'auto' as const,
+      env: { GODOT_BIN: 'godot' },
+    };
+    const { notice } = await createCommand(opts);
+    expect(notice).toContain('OPENAI_API_KEY');
+  });
+
+  it('propagates provider transport failures', async () => {
+    const opts = {
+      ...options(),
+      providerKind: 'openai' as const,
+      env: { OPENAI_API_KEY: 'secret-key-value', GAMEDREAM_MODEL: 'm' },
+      fetchImpl: (async () => {
+        throw new TypeError('fetch failed');
+      }) as unknown as typeof fetch,
+    };
+    try {
+      await createCommand(opts);
+      throw new Error('expected failure');
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'PROVIDER_HTTP_ERROR' });
+      expect((error as Error).message).not.toContain('secret-key-value');
+    }
+  });
+});
+
+describe('create option helpers', () => {
+  it('maps verify results to exit codes in every output mode', () => {
+    const missing: VerifyReport = {
+      engine: 'missing',
+      gates: {
+        G1: { status: 'pass' },
+        G2: { status: 'skip' },
+        G3: { status: 'skip' },
+      },
+    };
+    const failed: VerifyReport = {
+      engine: 'present',
+      gates: {
+        G1: { status: 'pass' },
+        G2: { status: 'fail' },
+        G3: { status: 'skip' },
+      },
+    };
+    expect(createExitCode(undefined)).toBe(0);
+    expect(createExitCode(missing)).toBe(3);
+    expect(createExitCode(failed)).toBe(2);
+  });
+
+  it('rejects unknown mode/provider values', () => {
+    expect(() => parseCreateMode('nonsense')).toThrow();
+    expect(() => parseProviderKind('OpenAI')).toThrow();
   });
 });

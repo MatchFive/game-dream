@@ -64,6 +64,64 @@ describe('OpenAICompatibleProvider', () => {
       code: 'PROVIDER_EMPTY_RESPONSE',
     });
   });
+
+  it('classifies transport failures and never leaks the key', async () => {
+    const secret = 'secret-key-value';
+    const fetchImpl = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider({
+      apiKey: secret,
+      baseUrl: 'https://example.test/v1',
+      model: 'm',
+      fetchImpl,
+    });
+    try {
+      await provider.complete({ system: 's', user: 'u' });
+      throw new Error('expected failure');
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'PROVIDER_HTTP_ERROR' });
+      expect((error as Error).message).not.toContain(secret);
+    }
+  });
+
+  it('times out a stalled provider', async () => {
+    const fetchImpl = ((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'TimeoutError')),
+        );
+      })) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider({
+      apiKey: 'k',
+      baseUrl: 'https://example.test/v1',
+      model: 'm',
+      timeoutMs: 10,
+      fetchImpl,
+    });
+    await expect(provider.complete({ system: 's', user: 'u' })).rejects.toMatchObject({
+      code: 'PROVIDER_HTTP_ERROR',
+    });
+  });
+
+  it('classifies a malformed JSON body', async () => {
+    const fetchImpl = (async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('bad json');
+      },
+    })) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider({
+      apiKey: 'k',
+      baseUrl: 'https://example.test/v1',
+      model: 'm',
+      fetchImpl,
+    });
+    await expect(provider.complete({ system: 's', user: 'u' })).rejects.toMatchObject({
+      code: 'PROVIDER_HTTP_ERROR',
+    });
+  });
 });
 
 describe('createProvider', () => {

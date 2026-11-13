@@ -37,14 +37,19 @@ export function selectTemplate(input: {
   }
 
   const haystack = `${input.prompt} ${input.genre}`;
-  const matched = RULES.find((rule) => rule.pattern.test(haystack));
-  if (matched && available.includes(matched.templateId)) {
-    return { templateId: matched.templateId, reason: `rule:${matched.templateId}` };
+  const matchedAvailable = RULES.find(
+    (rule) => rule.pattern.test(haystack) && available.includes(rule.templateId),
+  );
+  if (matchedAvailable) {
+    return {
+      templateId: matchedAvailable.templateId,
+      reason: `rule:${matchedAvailable.templateId}`,
+    };
   }
 
-  const fallback = available.includes('fixture-minimal')
-    ? 'fixture-minimal'
-    : available[0];
+  const matched = RULES.find((rule) => rule.pattern.test(haystack));
+  const sorted = [...available].sort();
+  const fallback = sorted.includes('fixture-minimal') ? 'fixture-minimal' : sorted[0];
   return {
     templateId: fallback,
     reason: matched

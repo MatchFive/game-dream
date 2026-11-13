@@ -2,7 +2,12 @@ import { Command } from 'commander';
 import { detectGodot } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { composeCommand } from './commands/compose.js';
-import { createCommand } from './commands/create.js';
+import {
+  createCommand,
+  createExitCode,
+  parseCreateMode,
+  parseProviderKind,
+} from './commands/create.js';
 import { runCommand as runProject } from './commands/run.js';
 import { exitCodeFor, verifyCommand } from './commands/verify.js';
 import { formatCliError } from './errors.js';
@@ -53,36 +58,48 @@ export function createProgram(): Command {
         },
       ) => {
         try {
-          const { result, verify } = await createCommand({
+          const mode = parseCreateMode(options.mode);
+          const providerKind = parseProviderKind(options.provider);
+          const { result, verify, notice } = await createCommand({
             prompt: promptParts.join(' '),
             outDir: options.out,
             modulesDir: options.modules,
             templatesDir: options.templates,
-            providerKind: options.provider as 'auto' | 'fake' | 'openai',
-            mode: options.mode as 'auto' | 'dry-run',
+            providerKind,
+            mode,
             verify: options.verify,
           });
+          if (notice) process.stderr.write(`${notice}\n`);
+          const exitCode = createExitCode(verify);
+
           if (options.json) {
             printJson({
               outDir: result.outDir,
               templateId: result.templateId,
               provider: result.provider,
+              notice,
               modules: result.compose?.order ?? result.plannedModules,
+              files: result.compose?.files ?? result.plannedFiles,
               verify,
             });
           } else {
             printLine(`Provider: ${result.provider}`);
             printLine(`Template: ${result.templateId} (${result.reason})`);
             printLine(`Project: ${result.outDir}`);
+            if (mode === 'dry-run') {
+              printLine(`Modules: ${result.plannedModules?.join(', ') ?? ''}`);
+              printLine(`Files: ${result.plannedFiles?.join(', ') ?? ''}`);
+              printLine(`Spec: ${result.outDir}/gamedream.yaml (not written)`);
+            }
             if (verify) {
               for (const [gate, gateResult] of Object.entries(verify.gates)) {
                 printLine(
                   `${gate}: ${gateResult.status}${gateResult.message ? ` (${gateResult.message})` : ''}`,
                 );
               }
-              process.exitCode = exitCodeFor(verify);
             }
           }
+          process.exitCode = exitCode;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

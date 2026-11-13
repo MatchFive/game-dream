@@ -1,9 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { LocalRegistry } from '../registry/local-registry.js';
-import { resolveModules } from '../resolver/resolve-modules.js';
-import { loadGameSpec } from '../spec/load-game-spec.js';
-import { loadTemplate } from '../spec/load-template.js';
+import { planProject } from './plan.js';
 import type { Lockfile } from '../schemas/lockfile.js';
 import type { ComposeOptions, ComposeResult } from './types.js';
 import { hashDirectory } from './file-hash.js';
@@ -16,17 +13,8 @@ import { mergeProjectGodot } from './merge-project-godot.js';
 import { writeGameManifest } from './write-game-manifest.js';
 
 export async function composeProject(options: ComposeOptions): Promise<ComposeResult> {
-  const spec = loadGameSpec(options.specPath);
-  const template = loadTemplate(resolveTemplatePath(options, spec.genre.template));
+  const { spec, resolution } = planProject(options);
   mkdirSync(options.outDir, { recursive: true });
-  const registry = new LocalRegistry(options.modulesDir);
-  const resolution = resolveModules({
-    spec,
-    template,
-    registry,
-    engine: spec.project.engine,
-    engineVersion: spec.project.godot_version,
-  });
 
   copyModules(options.outDir, resolution.modules);
 
@@ -97,8 +85,4 @@ func _ready() -> void:
     lockfile,
     files: [lockfilePath, projectGodot, mainScript, gameScript, mainScene, manifestPath],
   };
-}
-
-function resolveTemplatePath(options: ComposeOptions, templateId: string): string {
-  return join(options.templatesDir, templateId, 'template.yaml');
 }

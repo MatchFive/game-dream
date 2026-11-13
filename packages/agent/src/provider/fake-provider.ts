@@ -9,7 +9,15 @@ function slugify(input: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return ascii || 'gamedream-demo';
+  if (ascii.length < 3 || ['rpg', 'game', 'demo', 'test'].includes(ascii)) {
+    return 'gamedream-demo';
+  }
+  return ascii;
+}
+
+function rawPrompt(user: string): string {
+  const match = user.match(/Game idea:\s*([\s\S]*?)\n\nReturn the JSON object now\./);
+  return (match?.[1] ?? user).trim();
 }
 
 function inferGenre(prompt: string): string {
@@ -31,7 +39,7 @@ export class FakeProvider implements ModelProvider {
   async complete(request: ModelRequest): Promise<string> {
     const queued = this.responses.shift();
     if (queued !== undefined) return queued;
-    const prompt = request.user;
+    const prompt = rawPrompt(request.user);
     return JSON.stringify({
       version: 1,
       project: {
