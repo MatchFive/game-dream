@@ -1,0 +1,12 @@
+{
+  "id": "kill_wisp",
+  "title": "Shrine Lights",
+  "objective": {
+    "type": "kill",
+    "target": "wisp",
+    "count": 1
+  },
+  "reward": {
+    "xp": 12
+  }
+}

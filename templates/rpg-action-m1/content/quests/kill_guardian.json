@@ -1,0 +1,12 @@
+{
+  "id": "kill_guardian",
+  "title": "Stone Sentinel",
+  "objective": {
+    "type": "kill",
+    "target": "guardian",
+    "count": 1
+  },
+  "reward": {
+    "xp": 16
+  }
+}

@@ -28,13 +28,40 @@
       }
     },
     {
+      "id": "shrine",
+      "name": "Moonlit Shrine",
+      "map": "shrine",
+      "enemy": {
+        "kind": "wisp",
+        "max_hp": 35,
+        "attack_damage": 8,
+        "speed": 120,
+        "x": 650,
+        "y": 220
+      }
+    },
+    {
       "id": "throne",
       "name": "The Throne",
       "map": "throne",
       "enemy": {
+        "kind": "guardian",
+        "max_hp": 70,
+        "attack_damage": 10,
+        "speed": 85,
+        "x": 650,
+        "y": 240,
+        "scale": 1.15
+      }
+    },
+    {
+      "id": "sanctum",
+      "name": "Sanctum of Ash",
+      "map": "sanctum",
+      "enemy": {
         "kind": "boss",
-        "max_hp": 120,
-        "attack_damage": 12,
+        "max_hp": 150,
+        "attack_damage": 14,
         "speed": 70,
         "x": 700,
         "y": 240,

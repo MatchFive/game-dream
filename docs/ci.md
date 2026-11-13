@@ -12,7 +12,7 @@ real Godot E2E test is skipped there; export tests use fake runners. Run those
 locally with `GODOT_BIN` set; `dream godot templates` reports whether the
 matching templates are installed for the host platform.
 
-The optional `web-release` job is manually dispatched. It composes the M1 Web
+The optional `web-release` job is manually dispatched. It composes the M2 Web
 project, runs the deterministic marker gate, packages it with hashes, and uploads
 `gamedream-web-release` as a workflow artifact. It does not require a browser.
 

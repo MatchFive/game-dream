@@ -37,18 +37,18 @@ modules:
     - ui.main_menu
   optional: []
 minimum_complete:
-  levels: 3
-  enemies: 3
+  levels: 5
+  enemies: 4
   bosses: 1
   skills: 1
   items: 1
-  quests: 0
+  quests: 4
 acceptance:
   - "玩家可移动/攻击/释放技能"
   - "击杀敌人获得经验并升级"
   - "掉落并自动装备武器"
   - "背包/装备/技能界面可用"
   - "暂停菜单可保存"
-  - "三关切换并击败 Boss"
+  - "五关切换，穿越新地图并击败最终 Boss"
   - "胜利/失败结算可重开"
 acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_MAP_OK, GAMEDREAM_SPRITE_OK, GAMEDREAM_AUDIO_OK, GAMEDREAM_DIALOGUE, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_LEVEL_2, GAMEDREAM_BOSS, GAMEDREAM_QUEST_COMPLETE, GAMEDREAM_VICTORY, GAMEDREAM_WIN]

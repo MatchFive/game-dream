@@ -115,11 +115,24 @@ describe('m1 composition', () => {
     const campaign = JSON.parse(
       readFileSync(join(outDir, 'game/content/levels/campaign.json'), 'utf8'),
     );
-    expect(campaign.levels).toHaveLength(3);
-    expect(campaign.levels[2].enemy.kind).toBe('boss');
-    expect(
-      existsSync(join(outDir, 'game/content/maps/throne.json')),
-    ).toBe(true);
+    expect(campaign.levels).toHaveLength(5);
+    expect(campaign.levels[4].enemy.kind).toBe('boss');
+    expect(campaign.levels[2].enemy.kind).toBe('wisp');
+    expect(campaign.levels[3].enemy.kind).toBe('guardian');
+    expect(existsSync(join(outDir, 'game/content/maps/throne.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'game/content/maps/shrine.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'game/content/maps/sanctum.json'))).toBe(true);
+    for (const map of ['clearing', 'grove', 'shrine', 'throne', 'sanctum']) {
+      const data = JSON.parse(
+        readFileSync(join(outDir, `game/content/maps/${map}.json`), 'utf8'),
+      );
+      expect(data.rows).toHaveLength(20);
+      expect(data.rows.every((row: string) => row.length === 40)).toBe(true);
+    }
+    expect(existsSync(join(outDir, 'game/content/quests/kill_wisp.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'game/content/quests/kill_guardian.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'game/content/sprites/wisp.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'game/content/sprites/guardian.json'))).toBe(true);
     expect(
       existsSync(join(outDir, 'modules/system.player/assets/player.svg')),
     ).toBe(true);

@@ -43,12 +43,14 @@ describe('web M0', () => {
       modulesDir: join(root, 'modules'),
       name: 'm1-web',
     });
-    expect(result.config.levels).toHaveLength(3);
-    expect(result.config.quests).toHaveLength(2);
+    expect(result.config.levels).toHaveLength(5);
+    expect(result.config.quests).toHaveLength(4);
     expect(result.config.sprites).toMatchObject({
       player: 'assets/system.player/player.svg',
       enemy: 'assets/system.ai/enemy.svg',
       boss: 'assets/system.ai/enemy.svg',
+      wisp: 'assets/system.ai/wisp.svg',
+      guardian: 'assets/system.ai/guardian.svg',
     });
     expect(existsSync(join(outDir, 'assets/system.player/player.svg'))).toBe(true);
     expect(result.config.levels?.[1].map.tileset.floor).toBe('3b3a5a');

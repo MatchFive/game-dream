@@ -40,9 +40,13 @@ func _on_event(event_name: String, payload: Variant) -> void:
 		if levels and levels.current_index == 1 and not _level2_reported:
 			_level2_reported = true
 			print("GAMEDREAM_LEVEL_2")
-		if levels and levels.current_index == 2 and not _boss_reported:
-			_boss_reported = true
-			print("GAMEDREAM_BOSS")
+		if levels:
+			var level = levels.current_level()
+			var enemy_value = level.get("enemy", {})
+			var enemy_data: Dictionary = enemy_value if enemy_value is Dictionary else {}
+			if str(enemy_data.get("kind", "")) == "boss" and not _boss_reported:
+				_boss_reported = true
+				print("GAMEDREAM_BOSS")
 		_apply_level()
 
 func _reset_run() -> void:
