@@ -106,6 +106,20 @@ describe.skipIf(!browser)('web screenshot browser', () => {
     expect(visual.passed).toBe(true, visual.message);
   }, 30_000);
 
+  it('captures a narrow mobile viewport with touch layout', async () => {
+    const outDir = join(makeTempDir('gamedream web mobile '), 'web game');
+    composeWebProject({ outDir, templatesDir });
+    const result = await captureWebScreenshot({
+      projectDir: outDir,
+      outPath: join(outDir, 'mobile.png'),
+      width: 390,
+      height: 844,
+    });
+    expect(result.passed).toBe(true, result.message);
+    expect(result.metrics?.width).toBe(390);
+    expect(result.metrics?.height).toBe(844);
+  }, 30_000);
+
   it('captures a non-blank M1 Phaser screenshot', async () => {
     const outDir = join(makeTempDir('gamedream web screenshot '), 'web game');
     composeWebProject({

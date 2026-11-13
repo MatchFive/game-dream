@@ -14,6 +14,7 @@ const questLine = document.querySelector('#quests-line');
 const inventoryPanel = document.querySelector('#inventory');
 const questsPanel = document.querySelector('#quests');
 const settingsPanel = document.querySelector('#settings');
+const pausePanel = document.querySelector('#pause');
 const inventoryList = document.querySelector('#inventory-list');
 const questList = document.querySelector('#quest-list');
 const musicInput = document.querySelector('#music');
@@ -139,6 +140,22 @@ try {
   const restored = loadState(storage, saveKey, state);
   let lastSave = restored ? JSON.stringify(snapshot(state)) : '';
   let saveWarning = false;
+  let paused = false;
+  const touch = { left: false, right: false, up: false, down: false, attack: false };
+
+  function setPaused(value) {
+    paused = value;
+    pausePanel.classList.toggle('hidden', !value);
+  }
+
+  function resetGame() {
+    setPaused(false);
+    resetState(state);
+    clearSave(storage, saveKey);
+    lastSave = '';
+    saveWarning = false;
+    audio.play('reset');
+  }
 
   function worldSize() {
     return {
@@ -181,13 +198,6 @@ try {
     }
   }
 
-  function resetGame() {
-    resetState(state);
-    clearSave(storage, saveKey);
-    lastSave = '';
-    saveWarning = false;
-    audio.play('reset');
-  }
   document.addEventListener('fullscreenchange', () => {
     settings.fullscreen = Boolean(document.fullscreenElement);
     fullscreenInput.checked = settings.fullscreen;
@@ -201,14 +211,16 @@ try {
     const key = event.key.toLowerCase();
     const inPanel =
       event.target instanceof Element &&
-      Boolean(event.target.closest('#inventory, #quests, #settings'));
+      Boolean(event.target.closest('#inventory, #quests, #settings, #pause'));
     audio.init();
     if (inPanel && key !== 'escape') return;
     if (!event.repeat && key === 'i') inventoryPanel.classList.toggle('hidden');
     if (!event.repeat && key === 'q') questsPanel.classList.toggle('hidden');
     if (!event.repeat && key === 'o') settingsPanel.classList.toggle('hidden');
+    if (!event.repeat && key === 'p') setPaused(!paused);
     if (!event.repeat && key === 'r') resetGame();
     if (key === 'escape') {
+      if (!pausePanel.classList.contains('hidden')) setPaused(false);
       inventoryPanel.classList.add('hidden');
       questsPanel.classList.add('hidden');
       settingsPanel.classList.add('hidden');
@@ -223,6 +235,48 @@ try {
       document.activeElement.blur();
     }
     if (key === 'j' || key === ' ') audio.play('attack');
+  });
+
+  for (const button of document.querySelectorAll('[data-hold]')) {
+    const control = button.dataset.hold;
+    const set = (value) => {
+      touch[control] = value;
+      button.classList.toggle('active', value);
+    };
+    button.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      audio.init();
+      button.setPointerCapture?.(event.pointerId);
+      set(true);
+      if (control === 'attack') audio.play('attack');
+    });
+    for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+      button.addEventListener(type, () => set(false));
+    }
+    button.addEventListener('contextmenu', (event) => event.preventDefault());
+  }
+  for (const button of document.querySelectorAll('[data-panel]')) {
+    button.addEventListener('click', () => {
+      const panel = button.dataset.panel;
+      if (panel === 'pause') {
+        setPaused(!paused);
+      } else if (panel === 'inventory') {
+        inventoryPanel.classList.toggle('hidden');
+      } else if (panel === 'quests') {
+        questsPanel.classList.toggle('hidden');
+      } else if (panel === 'settings') {
+        settingsPanel.classList.toggle('hidden');
+      }
+    });
+  }
+  document.querySelector('#resume').addEventListener('click', () => setPaused(false));
+  document.querySelector('#pause-restart').addEventListener('click', () => {
+    setPaused(false);
+    resetGame();
+  });
+  document.querySelector('#pause-settings').addEventListener('click', () => {
+    setPaused(false);
+    settingsPanel.classList.remove('hidden');
   });
 
   musicInput.addEventListener('input', () => {
@@ -321,6 +375,10 @@ try {
     }
 
     update(_time, delta) {
+      if (paused) {
+        this.updateHud();
+        return;
+      }
       this.accumulator += Math.min(0.25, delta / 1000);
       const beforeHp = state.enemy.hp;
       const beforeLevel = state.levelIndex;
@@ -333,11 +391,11 @@ try {
         step(
           state,
           {
-            left: !blocked && (this.cursors.left.isDown || this.cursors.a.isDown),
-            right: !blocked && (this.cursors.right.isDown || this.cursors.d.isDown),
-            up: !blocked && (this.cursors.up.isDown || this.cursors.w.isDown),
-            down: !blocked && (this.cursors.down.isDown || this.cursors.s.isDown),
-            attack: !blocked && (this.cursors.j.isDown || this.cursors.space.isDown),
+            left: !blocked && (this.cursors.left.isDown || this.cursors.a.isDown || touch.left),
+            right: !blocked && (this.cursors.right.isDown || this.cursors.d.isDown || touch.right),
+            up: !blocked && (this.cursors.up.isDown || this.cursors.w.isDown || touch.up),
+            down: !blocked && (this.cursors.down.isDown || this.cursors.s.isDown || touch.down),
+            attack: !blocked && (this.cursors.j.isDown || this.cursors.space.isDown || touch.attack),
           },
           1 / 60,
         );

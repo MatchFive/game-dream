@@ -75,3 +75,127 @@ p {
 .hidden {
   display: none;
 }
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(5 12 8 / 78%);
+}
+
+.pause-card {
+  display: grid;
+  gap: 10px;
+  min-width: 220px;
+  padding: 20px;
+  background: #10261a;
+  border: 1px solid #2f5d3a;
+}
+
+.pause-card h2 {
+  margin: 0;
+}
+
+button {
+  min-height: 44px;
+  padding: 8px 14px;
+  color: #e8f5ee;
+  font: inherit;
+  background: #173a25;
+  border: 1px solid #3b7a4e;
+  border-radius: 6px;
+  touch-action: none;
+  user-select: none;
+}
+
+#touch-controls {
+  display: none;
+}
+
+.dpad {
+  display: grid;
+  grid-template-areas:
+    '. up .'
+    'left . right'
+    '. down .';
+  gap: 6px;
+}
+
+.dpad button[data-hold='up'] {
+  grid-area: up;
+}
+.dpad button[data-hold='left'] {
+  grid-area: left;
+}
+.dpad button[data-hold='down'] {
+  grid-area: down;
+}
+.dpad button[data-hold='right'] {
+  grid-area: right;
+}
+
+.touch-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(64px, 1fr));
+  gap: 6px;
+}
+
+.touch-actions .attack {
+  grid-column: span 2;
+  min-height: 64px;
+  font-weight: 700;
+}
+
+button.active {
+  background: #2f6f44;
+}
+
+@media (pointer: coarse), (max-width: 720px) {
+  body {
+    align-items: start;
+  }
+
+  main {
+    padding: 8px 8px 180px;
+  }
+
+  #game canvas {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  #touch-controls {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 5;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: none;
+  }
+
+  #touch-controls > * {
+    pointer-events: auto;
+  }
+
+  .dpad button {
+    width: 54px;
+  }
+
+  .touch-actions {
+    width: min(46vw, 220px);
+  }
+
+  .panel {
+    inset: auto 12px 150px;
+    width: auto;
+  }
+}

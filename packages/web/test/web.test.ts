@@ -56,6 +56,10 @@ describe('web M0', () => {
     expect(html).toContain('id="inventory"');
     expect(html).toContain('id="quests"');
     expect(html).toContain('id="quests-line"');
+    expect(html).toContain('id="touch-controls"');
+    expect(html).toContain('data-hold="attack"');
+    expect(html).toContain('data-panel="pause"');
+    expect(html).toContain('id="pause"');
     expect(html).toContain('class="panel hidden"');
     expect(html).toContain('vendor/phaser.min.js');
     expect(existsSync(join(outDir, 'vendor/phaser.min.js'))).toBe(true);
@@ -71,6 +75,9 @@ describe('web M0', () => {
     expect(game).toContain('loadState');
     expect(game).toContain('writeSave');
     expect(game).toContain('AudioContext');
+    expect(game).toContain('[data-hold]');
+    expect(game).toContain('setPaused');
+    expect(game).toContain('touch.left');
     expect(game).toContain('Object.values(state.inventory).reduce');
 
     const verified = verifyWebProject({ projectDir: outDir, frames: 900 });

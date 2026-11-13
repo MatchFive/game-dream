@@ -161,7 +161,9 @@ remains browser- and headless-compatible.
 - `dream web screenshot --path ./web-game [--out ./web.png] [--width 1280] [--height 720]`
   captures the page without running the marker gate.
 - The generated game saves level/HP/inventory/quests in localStorage, offers
-  `O` settings, `R` reset, and runtime WebAudio music/SFX with persisted volumes.
+  `O` settings, `P` pause, `R` reset, and runtime WebAudio music/SFX with
+  persisted volumes. Coarse-pointer/narrow viewports get touch D-pad, attack,
+  panel, and pause controls with a responsive canvas/panel layout.
 
 ## Prompt evaluation
 
