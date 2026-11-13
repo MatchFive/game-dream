@@ -28,6 +28,21 @@ describe('unity M0 scaffold', () => {
     );
   });
 
+  it('embeds the shared M1 campaign content', () => {
+    const outDir = join(makeTempDir('gamedream unity m1 '), 'unity game');
+    const result = composeUnityProject({
+      outDir,
+      templatesDir,
+      contentDir: join(root, 'templates/rpg-action-m1/content'),
+      name: 'm1-unity',
+    });
+    expect(result.config.levels).toHaveLength(5);
+    expect(result.config.quests).toHaveLength(4);
+    expect(result.config.levels?.[2].enemy.attack_range).toBe(180);
+    expect(result.config.levels?.[0].map?.rows.length).toBe(20);
+    expect(verifyUnityProject({ projectDir: outDir }).passed).toBe(true);
+  });
+
   it('refuses overwrite unless forced and preserves the old copy on failure', () => {
     const outDir = join(makeTempDir('gamedream unity force '), 'unity game');
     composeUnityProject({ outDir, templatesDir });

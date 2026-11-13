@@ -7,6 +7,8 @@ public sealed class GameBootstrap : MonoBehaviour
     private GameConfig _config;
     private Transform _player;
     private Transform _enemy;
+    private GameObject _mapRoot;
+    private int _lastLevel = -1;
     private bool _reportedWin;
     private bool _reportedLose;
 
@@ -27,10 +29,11 @@ public sealed class GameBootstrap : MonoBehaviour
         _config = GameConfigLoader.Load();
         _sim = new GameSim(_config);
         Debug.Log("UNITY_BOOT_OK");
+        _mapRoot = new GameObject("MapRoot");
         SetupCamera();
-        SetupBackground();
         _player = CreateSquare("Player", new Color(0.35f, 0.75f, 1f), 0.32f, 0);
         _enemy = CreateSquare("Enemy", new Color(0.95f, 0.3f, 0.25f), 0.5f, 1);
+        BuildLevelVisuals();
         SyncActors();
     }
 
@@ -44,38 +47,93 @@ public sealed class GameBootstrap : MonoBehaviour
             camera = cameraObject.AddComponent<Camera>();
         }
         camera.orthographic = true;
-        camera.orthographicSize = _config.arena.height / 200f;
+        float aspect = Screen.width > 0 && Screen.height > 0
+            ? (float)Screen.width / Screen.height
+            : 16f / 9f;
+        camera.orthographicSize = Mathf.Max(
+            _sim.ArenaHeight / 200f,
+            _sim.ArenaWidth / (2f * aspect * 100f)
+        );
         camera.transform.position = new Vector3(
-            _config.arena.width / 200f,
-            _config.arena.height / 200f,
+            _sim.ArenaWidth / 200f,
+            _sim.ArenaHeight / 200f,
             -10f
         );
         camera.backgroundColor = new Color(0.08f, 0.09f, 0.14f);
     }
 
-    private void SetupBackground()
+    private void BuildLevelVisuals()
     {
-        Transform background = CreateSquare(
-            "Arena",
-            new Color(0.16f, 0.17f, 0.25f),
-            1f,
-            -1
-        );
-        background.localScale = new Vector3(
-            _config.arena.width / 100f,
-            _config.arena.height / 100f,
-            1f
-        );
-        background.position = new Vector3(
-            _config.arena.width / 200f,
-            _config.arena.height / 200f,
-            1f
-        );
+        _lastLevel = _sim.LevelIndex;
+        foreach (Transform child in _mapRoot.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        Camera camera = Camera.main;
+        if (camera != null)
+        {
+            float aspect = Screen.width > 0 && Screen.height > 0
+                ? (float)Screen.width / Screen.height
+                : 16f / 9f;
+            camera.orthographicSize = Mathf.Max(
+                _sim.ArenaHeight / 200f,
+                _sim.ArenaWidth / (2f * aspect * 100f)
+            );
+            camera.transform.position = new Vector3(
+                _sim.ArenaWidth / 200f,
+                _sim.ArenaHeight / 200f,
+                -10f
+            );
+        }
+        if (_sim.HasMap)
+        {
+            Debug.Log("UNITY_MAP_OK");
+            for (int y = 0; y < _sim.MapRows.Length; y += 1)
+            {
+                string row = _sim.MapRows[y];
+                for (int x = 0; x < row.Length; x += 1)
+                {
+                    bool wall = row[x] == '#';
+                    Color color = wall
+                        ? ParseColor("181c2f", new Color(0.09f, 0.11f, 0.18f))
+                        : ParseColor("2f4f3f", new Color(0.18f, 0.31f, 0.25f));
+                    float size = _sim.MapTileSize / 100f;
+                    Transform tile = CreateSquare(
+                        wall ? "Wall" : "Floor",
+                        color,
+                        size,
+                        wall ? 1 : -1,
+                        _mapRoot.transform
+                    );
+                    tile.position = new Vector3(
+                        (x + 0.5f) * _sim.MapTileSize / 100f,
+                        (_sim.MapRows.Length - y - 0.5f) * _sim.MapTileSize / 100f,
+                        0f
+                    );
+                }
+            }
+        }
     }
 
-    private Transform CreateSquare(string name, Color color, float size, int order)
+    private Color ParseColor(string hex, Color fallback)
+    {
+        Color color;
+        return ColorUtility.TryParseHtmlString("#" + hex, out color) ? color : fallback;
+    }
+
+    private Transform CreateSquare(
+        string name,
+        Color color,
+        float size,
+        int order,
+        Transform parent = null
+    )
     {
         GameObject item = new GameObject(name);
+        if (parent != null)
+        {
+            item.transform.SetParent(parent, false);
+        }
         SpriteRenderer renderer = item.AddComponent<SpriteRenderer>();
         renderer.sprite = Sprite.Create(
             Texture2D.whiteTexture,
@@ -95,13 +153,19 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             return;
         }
+        if (_sim.LevelIndex != _lastLevel)
+        {
+            BuildLevelVisuals();
+        }
         if (_sim.Won || _sim.Lost)
         {
             if (Input.GetKey(KeyCode.R))
             {
                 _sim.Reset();
+                _lastLevel = -1;
                 _reportedWin = false;
                 _reportedLose = false;
+                BuildLevelVisuals();
                 SyncActors();
             }
             return;
@@ -145,6 +209,7 @@ public sealed class GameBootstrap : MonoBehaviour
     {
         _player.position = new Vector3(_sim.PlayerX / 100f, _sim.PlayerY / 100f, 0f);
         _enemy.position = new Vector3(_sim.EnemyX / 100f, _sim.EnemyY / 100f, 0f);
+        _enemy.localScale = Vector3.one * (_sim.EnemyKind == "boss" ? 0.8f : 0.5f);
     }
 
     private void OnGUI()
@@ -153,21 +218,33 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             return;
         }
+        int completed = 0;
+        foreach (QuestState quest in _sim.Quests)
+        {
+            if (quest.Completed)
+            {
+                completed += 1;
+            }
+        }
         GUI.Label(
-            new Rect(16f, 16f, 700f, 24f),
-            $"{_config.name}   HP {_sim.PlayerHp}   Enemy {_sim.EnemyHp}"
+            new Rect(16f, 16f, 900f, 24f),
+            $"{_config.name} · {_sim.LevelName}   HP {_sim.PlayerHp}   Enemy {_sim.EnemyHp}   Quests {completed}/{_sim.Quests.Count}"
         );
         GUI.Label(
-            new Rect(16f, 42f, 700f, 24f),
+            new Rect(16f, 42f, 900f, 24f),
             "WASD/Arrows move   J/Space attack   R restart"
         );
+        if (_sim.BossPhase)
+        {
+            GUI.Label(new Rect(16f, 68f, 900f, 24f), "Boss enraged");
+        }
         if (_sim.Won)
         {
-            GUI.Label(new Rect(16f, 74f, 700f, 24f), "Victory! Press R to restart.");
+            GUI.Label(new Rect(16f, 94f, 900f, 24f), "Victory! Press R to restart.");
         }
         else if (_sim.Lost)
         {
-            GUI.Label(new Rect(16f, 74f, 700f, 24f), "Defeat. Press R to restart.");
+            GUI.Label(new Rect(16f, 94f, 900f, 24f), "Defeat. Press R to restart.");
         }
     }
 }

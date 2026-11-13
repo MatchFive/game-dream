@@ -11,6 +11,12 @@ import {
   type UnityRuntimeResult,
 } from '@gamedream/unity';
 
+export interface UnityComposeOptions extends ComposeUnityOptions {}
+
+export function unityComposeCommand(options: UnityComposeOptions) {
+  return composeUnityProject(options);
+}
+
 export interface UnityVerifyOptions {
   projectDir: string;
   runtime?: boolean;
@@ -23,10 +29,6 @@ export interface UnityVerifyCommandResult {
   exitCode: number;
   message?: string;
   runtime: UnityRuntimeResult | null;
-}
-
-export function unityComposeCommand(options: ComposeUnityOptions) {
-  return composeUnityProject(options);
 }
 
 export function unityVerifyCommand(options: UnityVerifyOptions): UnityVerifyCommandResult {

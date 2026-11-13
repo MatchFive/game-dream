@@ -598,6 +598,7 @@ export function createProgram(): Command {
     .command('compose')
     .requiredOption('--out <dir>')
     .option('--templates <dir>', 'Unity template directory', 'templates/unity-2d-m0')
+    .option('--content <dir>', 'campaign content directory to embed')
     .option('--name <name>', 'game name', 'unity-m0')
     .option('--force', 'overwrite existing project')
     .option('--json', 'print JSON')
@@ -605,6 +606,7 @@ export function createProgram(): Command {
       (options: {
         out: string;
         templates: string;
+        content?: string;
         name: string;
         force?: boolean;
         json?: boolean;
@@ -613,6 +615,7 @@ export function createProgram(): Command {
           const result = unityComposeCommand({
             outDir: options.out,
             templatesDir: options.templates,
+            contentDir: options.content,
             name: options.name,
             force: options.force,
           });

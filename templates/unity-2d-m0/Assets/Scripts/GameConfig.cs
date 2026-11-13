@@ -20,6 +20,54 @@ namespace GameDream
     }
 
     [Serializable]
+    public sealed class TilesetConfig
+    {
+        public string floor = "2f4f3f";
+        public string wall = "181c2f";
+    }
+
+    [Serializable]
+    public sealed class MapConfig
+    {
+        public string[] rows;
+        public int tile_size = 32;
+        public TilesetConfig tileset = new TilesetConfig();
+    }
+
+    [Serializable]
+    public sealed class EnemyConfig
+    {
+        public string kind = "slime";
+        public int max_hp = 30;
+        public int attack_damage = 5;
+        public float attack_range = 40f;
+        public float attack_cooldown = 1f;
+        public float speed = 80f;
+        public float x = 600f;
+        public float y = 240f;
+        public float scale = 1f;
+    }
+
+    [Serializable]
+    public sealed class LevelConfig
+    {
+        public string id = "arena";
+        public string name = "Arena";
+        public MapConfig map;
+        public EnemyConfig enemy = new EnemyConfig();
+    }
+
+    [Serializable]
+    public sealed class QuestConfig
+    {
+        public string id;
+        public string title;
+        public string type = "kill";
+        public string target;
+        public int count = 1;
+    }
+
+    [Serializable]
     public sealed class GameConfig
     {
         public string name = "unity-m0";
@@ -32,6 +80,8 @@ namespace GameDream
             speed = 70f,
             attack_range = 40f,
         };
+        public LevelConfig[] levels;
+        public QuestConfig[] quests;
     }
 
     public static class GameConfigLoader

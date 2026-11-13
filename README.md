@@ -145,7 +145,7 @@ multi-frame review are deferred. `--vision fake` keeps the image local;
 ## Unity 2D M0
 
 ```bash
-dream unity compose --out ./unity-game
+dream unity compose --out ./unity-game --content templates/rpg-action-m1/content
 dream unity verify --path ./unity-game
 dream unity verify --path ./unity-game --runtime
 dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
@@ -156,7 +156,9 @@ dream unity screenshot --path ./unity-game
 ```
 
 `unity compose` generates a Unity 6 (`6000.x`) source project with a pure C#
-`GameSim`, runtime bootstrap, and `EditorVerifier`. No Unity binary is bundled.
+`GameSim`, runtime bootstrap, and `EditorVerifier`. With `--content` it embeds the
+same five-level campaign/maps/quests used by Godot/Web; without it, the M0
+single-arena fallback is used. No Unity binary is bundled.
 `unity verify` is a fast static file/marker check. `--runtime` launches
 `Unity.exe -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run
 -logFile -` and requires `UNITY_SIM_OK` + `UNITY_WIN`; it auto-detects common

@@ -30,6 +30,13 @@ uncompressed files, so serve the output directory over HTTP, not `file://`.
 player without a fresh build stamp. `screenshot` enters play mode, renders the
 arena to a PNG, and exits. All require Unity 6000.x and are opt-in slow runs.
 
+## M1 campaign
+
+Compose with `--content templates/rpg-action-m1/content` to embed the shared
+five-level campaign, maps, enemy variants, and kill quests. The C# sim handles
+wall collision, spawn snapping, level progression, quest progress, boss phase,
+and the campaign win. Without content it remains the M0 single arena.
+
 ## Headless verification
 
 With Unity installed:
