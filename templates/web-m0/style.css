@@ -55,6 +55,23 @@ p {
   color: #c9ead6;
 }
 
+.panel label {
+  display: block;
+  margin: 10px 0;
+  color: #c9ead6;
+}
+
+.panel input[type='range'] {
+  display: block;
+  width: 100%;
+}
+
+.panel .check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .hidden {
   display: none;
 }

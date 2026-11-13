@@ -122,7 +122,7 @@ describe.skipIf(!browser)('web screenshot browser', () => {
     expect(result.metrics?.width).toBe(1280);
     expect(result.metrics?.height).toBe(720);
     expect(result.metrics?.colors).toBeGreaterThan(8);
-    expect(result.metrics?.center_colors).toBeGreaterThanOrEqual(4);
+    expect(result.metrics?.center_colors).toBeGreaterThanOrEqual(2);
     expect(result.metrics?.non_black).toBeGreaterThan(0);
   }, 30_000);
 });

@@ -16,6 +16,8 @@ export const WEB_PROJECT_FILES = [
   'style.css',
   'sim.mjs',
   'sim-run.mjs',
+  'save.mjs',
+  'settings.mjs',
   'game.js',
   'game.json',
   'README.md',

@@ -1,14 +1,108 @@
 import { createSim, step } from './sim.mjs';
+import {
+  clearSave,
+  loadState,
+  resetState,
+  snapshot,
+  writeSave,
+} from './save.mjs';
+import { readSettings, writeSettings } from './settings.mjs';
 
 const status = document.querySelector('#status');
 const questLine = document.querySelector('#quests-line');
 const inventoryPanel = document.querySelector('#inventory');
 const questsPanel = document.querySelector('#quests');
+const settingsPanel = document.querySelector('#settings');
 const inventoryList = document.querySelector('#inventory-list');
 const questList = document.querySelector('#quest-list');
+const musicInput = document.querySelector('#music');
+const sfxInput = document.querySelector('#sfx');
+const fullscreenInput = document.querySelector('#fullscreen');
 window.addEventListener('error', (event) => {
   status.textContent = `Error: ${event.message}`;
 });
+
+const storage = {
+  getItem(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Storage can be unavailable in private contexts.
+    }
+  },
+  removeItem(key) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Storage can be unavailable in private contexts.
+    }
+  },
+};
+
+let settings = readSettings(storage);
+
+const audio = {
+  ctx: null,
+  musicGain: null,
+  sfxGain: null,
+  init() {
+    if (this.ctx) return;
+    const AudioContext = window.AudioContext ?? window.webkitAudioContext;
+    if (!AudioContext) return;
+    try {
+      this.ctx = new AudioContext();
+      this.musicGain = this.ctx.createGain();
+      this.sfxGain = this.ctx.createGain();
+      this.musicGain.connect(this.ctx.destination);
+      this.sfxGain.connect(this.ctx.destination);
+      const drone = this.ctx.createOscillator();
+      drone.type = 'sine';
+      drone.frequency.value = 110;
+      drone.connect(this.musicGain);
+      drone.start();
+      this.ctx.resume?.();
+      this.apply();
+    } catch {
+      this.ctx = null;
+    }
+  },
+  apply() {
+    if (!this.ctx) return;
+    this.musicGain.gain.value = settings.music * 0.05;
+    this.sfxGain.gain.value = settings.sfx * 0.25;
+  },
+  play(name) {
+    if (!this.ctx || settings.sfx <= 0) return;
+    const tones = {
+      attack: [220, 0.05],
+      hit: [90, 0.08],
+      level: [440, 0.15],
+      win: [660, 0.3],
+      lose: [110, 0.4],
+      reset: [300, 0.1],
+    };
+    const [frequency, duration] = tones[name] ?? tones.hit;
+    const now = this.ctx.currentTime;
+    const oscillator = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.3, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    oscillator.connect(gain);
+    gain.connect(this.sfxGain);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.02);
+  },
+};
 
 function renderList(list, entries, empty) {
   list.replaceChildren();
@@ -28,6 +122,10 @@ function color(value, fallback) {
 try {
   const config = await fetch('./game.json').then((response) => response.json());
   const state = createSim(config);
+  const saveKey = `gamedream:${config.name}:save`;
+  const restored = loadState(storage, saveKey, state);
+  let lastSave = restored ? JSON.stringify(snapshot(state)) : '';
+
   function worldSize() {
     return {
       width: state.map
@@ -42,13 +140,66 @@ try {
   const width = initialSize.width;
   const height = initialSize.height;
 
+  function applySettings() {
+    settings = writeSettings(storage, settings);
+    musicInput.value = String(settings.music);
+    sfxInput.value = String(settings.sfx);
+    fullscreenInput.checked = settings.fullscreen;
+    audio.apply();
+  }
+
+  function saveProgress() {
+    if (state.finished) {
+      clearSave(storage, saveKey);
+      lastSave = '';
+      return;
+    }
+    const signature = JSON.stringify(snapshot(state));
+    if (signature === lastSave) return;
+    if (writeSave(storage, saveKey, state)) lastSave = signature;
+  }
+
+  function resetGame() {
+    resetState(state);
+    clearSave(storage, saveKey);
+    lastSave = '';
+    audio.play('reset');
+  }
+
+  applySettings();
+
+  window.addEventListener('pointerdown', () => audio.init());
   window.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
-    if (key === 'i') inventoryPanel.classList.toggle('hidden');
-    if (key === 'q') questsPanel.classList.toggle('hidden');
+    audio.init();
+    if (!event.repeat && key === 'i') inventoryPanel.classList.toggle('hidden');
+    if (!event.repeat && key === 'q') questsPanel.classList.toggle('hidden');
+    if (!event.repeat && key === 'o') settingsPanel.classList.toggle('hidden');
+    if (!event.repeat && key === 'r') resetGame();
     if (key === 'escape') {
       inventoryPanel.classList.add('hidden');
       questsPanel.classList.add('hidden');
+      settingsPanel.classList.add('hidden');
+    }
+    if (key === 'j' || key === ' ') audio.play('attack');
+  });
+
+  musicInput.addEventListener('input', () => {
+    settings.music = Number(musicInput.value);
+    applySettings();
+  });
+  sfxInput.addEventListener('input', () => {
+    settings.sfx = Number(sfxInput.value);
+    applySettings();
+  });
+  fullscreenInput.addEventListener('change', async () => {
+    settings.fullscreen = fullscreenInput.checked;
+    applySettings();
+    try {
+      if (settings.fullscreen) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch {
+      // Fullscreen requires a user gesture and may be unavailable.
     }
   });
 
@@ -130,6 +281,9 @@ try {
 
     update(_time, delta) {
       this.accumulator += Math.min(0.25, delta / 1000);
+      const beforeHp = state.enemy.hp;
+      const beforeLevel = state.levelIndex;
+      const wasFinished = state.finished;
       let steps = 0;
       while (this.accumulator >= 1 / 60 && steps < 5) {
         step(
@@ -146,6 +300,10 @@ try {
         this.accumulator -= 1 / 60;
         steps += 1;
       }
+      if (state.enemy.hp < beforeHp) audio.play('hit');
+      if (state.levelIndex !== beforeLevel) audio.play('level');
+      if (state.finished && !wasFinished) audio.play(state.finished === 'win' ? 'win' : 'lose');
+      saveProgress();
       if (this.renderedLevel !== state.levelIndex) {
         const size = worldSize();
         if (size.width !== this.scale.width || size.height !== this.scale.height) {
@@ -176,8 +334,8 @@ try {
         state.finished === 'win'
           ? `Victory · Level ${state.levelIndex + 1}/${state.levels.length} · Items ${items}`
           : state.finished === 'lose'
-            ? 'Defeat'
-            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J`;
+            ? 'Defeat · R restart'
+            : `Level ${state.levelIndex + 1}/${state.levels.length} · HP ${Math.max(0, state.player.hp)} · Enemy ${Math.max(0, state.enemy.hp)} · Items ${items} · WASD/J · O settings · R reset`;
     }
   }
 

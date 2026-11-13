@@ -160,6 +160,8 @@ remains browser- and headless-compatible.
   2 visual gate, 3 browser missing.
 - `dream web screenshot --path ./web-game [--out ./web.png] [--width 1280] [--height 720]`
   captures the page without running the marker gate.
+- The generated game saves level/HP/inventory/quests in localStorage, offers
+  `O` settings, `R` reset, and runtime WebAudio music/SFX with persisted volumes.
 
 ## Prompt evaluation
 

@@ -62,10 +62,15 @@ describe('web M0', () => {
     const game = readFileSync(join(outDir, 'game.js'), 'utf8');
     expect(game).toContain("key === 'i'");
     expect(game).toContain("key === 'q'");
+    expect(game).toContain("key === 'o'");
+    expect(game).toContain("key === 'r'");
     expect(game).toContain("key === 'escape'");
     expect(game).toContain('new Phaser.Game');
     expect(game).toContain('this.scale.resize');
     expect(game).toContain('questLine.textContent');
+    expect(game).toContain('loadState');
+    expect(game).toContain('writeSave');
+    expect(game).toContain('AudioContext');
     expect(game).toContain('Object.values(state.inventory).reduce');
 
     const verified = verifyWebProject({ projectDir: outDir, frames: 900 });
