@@ -14,7 +14,8 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-WASD / arrows move, J / Space attacks.
+WASD / arrows move, J / Space attacks, I opens inventory, Q opens quests, Esc
+closes panels. Walls block movement.
 
 ## Headless verify
 

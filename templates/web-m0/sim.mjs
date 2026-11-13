@@ -23,7 +23,7 @@ export function createSim(config) {
     levelIndex: 0,
     time: 0,
     finished: null,
-    inventory: 0,
+    inventory: {},
     quests: (config.quests ?? []).map((quest) => ({
       ...quest,
       progress: 0,
@@ -69,6 +69,38 @@ export function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+function tileAt(state, x, y) {
+  if (!state.map) return '.';
+  const size = state.map.tile_size;
+  const tx = Math.floor(x / size);
+  const ty = Math.floor(y / size);
+  if (ty < 0 || ty >= state.map.rows.length) return '#';
+  const row = state.map.rows[ty];
+  if (tx < 0 || tx >= row.length) return '#';
+  return row[tx];
+}
+
+export function isWall(state, x, y, half = 12) {
+  return [
+    [-half, -half],
+    [half, -half],
+    [-half, half],
+    [half, half],
+  ].some(([dx, dy]) => tileAt(state, x + dx, y + dy) === '#');
+}
+
+function moveActor(state, actor, dx, dy, half) {
+  const nextX = actor.x + dx;
+  if (!isWall(state, nextX, actor.y, half)) actor.x = nextX;
+  const nextY = actor.y + dy;
+  if (!isWall(state, actor.x, nextY, half)) actor.y = nextY;
+}
+
+function addLoot(state, kind) {
+  const item = kind === 'boss' ? 'Boss Core' : 'Slime Gel';
+  state.inventory[item] = (state.inventory[item] ?? 0) + 1;
+}
+
 function completeKillQuests(state, kind) {
   for (const quest of state.quests) {
     if (quest.completed || quest.type !== 'kill' || quest.target !== kind) continue;
@@ -92,8 +124,13 @@ export function step(state, input, dt) {
   const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
   const length = Math.hypot(dx, dy) || 1;
-  player.x += (dx / length) * config.player.speed * dt;
-  player.y += (dy / length) * config.player.speed * dt;
+  moveActor(
+    state,
+    player,
+    (dx / length) * config.player.speed * dt,
+    (dy / length) * config.player.speed * dt,
+    12,
+  );
   player.x = Math.max(16, Math.min(width - 16, player.x));
   player.y = Math.max(16, Math.min(height - 16, player.y));
 
@@ -102,8 +139,13 @@ export function step(state, input, dt) {
     const ex = player.x - enemy.x;
     const ey = player.y - enemy.y;
     const el = Math.hypot(ex, ey) || 1;
-    enemy.x += (ex / el) * enemy.speed * dt;
-    enemy.y += (ey / el) * enemy.speed * dt;
+    moveActor(
+      state,
+      enemy,
+      (ex / el) * enemy.speed * dt,
+      (ey / el) * enemy.speed * dt,
+      12 * enemy.scale,
+    );
     enemy.x = Math.max(16, Math.min(width - 16, enemy.x));
     enemy.y = Math.max(16, Math.min(height - 16, enemy.y));
   } else {
@@ -125,7 +167,7 @@ export function step(state, input, dt) {
   }
 
   if (enemy.hp <= 0) {
-    state.inventory += 1;
+    addLoot(state, enemy.kind);
     completeKillQuests(state, enemy.kind);
     if (state.levelIndex + 1 < state.levels.length) {
       startLevel(state, state.levelIndex + 1);

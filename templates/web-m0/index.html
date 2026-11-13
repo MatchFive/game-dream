@@ -10,7 +10,15 @@
     <main>
       <h1>GameDream Web M0</h1>
       <canvas></canvas>
-      <p id="status">WASD move · J attack</p>
+      <p id="status">WASD move · J attack · I inventory · Q quests</p>
+      <section id="inventory" class="panel hidden">
+        <h2>Inventory</h2>
+        <ul id="inventory-list"></ul>
+      </section>
+      <section id="quests" class="panel hidden">
+        <h2>Quests</h2>
+        <ul id="quest-list"></ul>
+      </section>
     </main>
     <script type="module" src="./game.js"></script>
   </body>

@@ -2,6 +2,10 @@ import { createSim, step } from './sim.mjs';
 
 const canvas = document.querySelector('canvas');
 const status = document.querySelector('#status');
+const inventoryPanel = document.querySelector('#inventory');
+const questsPanel = document.querySelector('#quests');
+const inventoryList = document.querySelector('#inventory-list');
+const questList = document.querySelector('#quest-list');
 window.addEventListener('error', (event) => {
   status.textContent = `Error: ${event.message}`;
 });
@@ -13,7 +17,16 @@ try {
   const keys = new Set();
   const images = {};
 
-  window.addEventListener('keydown', (event) => keys.add(event.key.toLowerCase()));
+  window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    keys.add(key);
+    if (key === 'i') inventoryPanel.classList.toggle('hidden');
+    if (key === 'q') questsPanel.classList.toggle('hidden');
+    if (key === 'escape') {
+      inventoryPanel.classList.add('hidden');
+      questsPanel.classList.add('hidden');
+    }
+  });
   window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 
   function loadSprite(name, path) {
@@ -77,11 +90,36 @@ try {
     }
   }
 
+  function renderList(list, entries, empty) {
+    list.replaceChildren();
+    const values = entries.length > 0 ? entries : [empty];
+    for (const entry of values) {
+      const item = document.createElement('li');
+      item.textContent = entry;
+      list.appendChild(item);
+    }
+  }
+
   function draw() {
     resizeCanvas();
     drawMap();
     drawActor(state.player, 'player', '#2ec4f1');
     drawActor(state.enemy, state.enemy.kind === 'boss' ? 'boss' : 'enemy', '#ef5350', state.enemy.scale);
+
+    const items = Object.values(state.inventory).reduce((total, count) => total + count, 0);
+    renderList(
+      inventoryList,
+      Object.entries(state.inventory).map(([name, count]) => `${name} × ${count}`),
+      'Empty',
+    );
+    renderList(
+      questList,
+      state.quests.map(
+        (quest) =>
+          `${quest.title} ${Math.min(quest.progress, quest.count)}/${quest.count}${quest.completed ? ' ✓' : ''}`,
+      ),
+      'No quests',
+    );
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '16px monospace';
@@ -89,7 +127,7 @@ try {
       .map((quest) => `${quest.title} ${Math.min(quest.progress, quest.count)}/${quest.count}`)
       .join(' · ');
     ctx.fillText(
-      `Level ${state.levelIndex + 1}/${state.levels.length}  HP ${Math.max(0, state.player.hp)}  Enemy ${Math.max(0, state.enemy.hp)}  Items ${state.inventory}`,
+      `Level ${state.levelIndex + 1}/${state.levels.length}  HP ${Math.max(0, state.player.hp)}  Enemy ${Math.max(0, state.enemy.hp)}  Items ${items}`,
       16,
       28,
     );
@@ -99,7 +137,7 @@ try {
         ? 'Victory'
         : state.finished === 'lose'
           ? 'Defeat'
-          : 'WASD move · J attack';
+          : 'WASD move · J attack · I inventory · Q quests';
   }
 
   let last = performance.now();

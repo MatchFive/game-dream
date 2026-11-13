@@ -32,3 +32,29 @@ h1 {
 p {
   color: #9bc7ad;
 }
+
+.panel {
+  position: fixed;
+  top: 90px;
+  right: 24px;
+  width: 240px;
+  padding: 12px;
+  text-align: left;
+  background: rgb(10 24 17 / 92%);
+  border: 1px solid #2f5d3a;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.panel ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c9ead6;
+}
+
+.hidden {
+  display: none;
+}
