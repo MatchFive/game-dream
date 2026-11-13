@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { detectGodot } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { composeCommand } from './commands/compose.js';
+import { createCommand } from './commands/create.js';
 import { runCommand as runProject } from './commands/run.js';
 import { exitCodeFor, verifyCommand } from './commands/verify.js';
 import { formatCliError } from './errors.js';
@@ -27,6 +28,68 @@ export function createProgram(): Command {
       }
       if (!report.ok) process.exitCode = 3;
     });
+
+  program
+    .command('create')
+    .argument('<prompt...>', 'game idea')
+    .requiredOption('--out <dir>')
+    .option('--modules <dir>', 'modules directory', 'modules')
+    .option('--templates <dir>', 'templates directory', 'templates')
+    .option('--provider <kind>', 'auto | fake | openai', 'auto')
+    .option('--mode <mode>', 'auto | dry-run', 'auto')
+    .option('--no-verify', 'skip Godot verification')
+    .option('--json', 'print JSON')
+    .action(
+      async (
+        promptParts: string[],
+        options: {
+          out: string;
+          modules: string;
+          templates: string;
+          provider: string;
+          mode: string;
+          verify: boolean;
+          json?: boolean;
+        },
+      ) => {
+        try {
+          const { result, verify } = await createCommand({
+            prompt: promptParts.join(' '),
+            outDir: options.out,
+            modulesDir: options.modules,
+            templatesDir: options.templates,
+            providerKind: options.provider as 'auto' | 'fake' | 'openai',
+            mode: options.mode as 'auto' | 'dry-run',
+            verify: options.verify,
+          });
+          if (options.json) {
+            printJson({
+              outDir: result.outDir,
+              templateId: result.templateId,
+              provider: result.provider,
+              modules: result.compose?.order ?? result.plannedModules,
+              verify,
+            });
+          } else {
+            printLine(`Provider: ${result.provider}`);
+            printLine(`Template: ${result.templateId} (${result.reason})`);
+            printLine(`Project: ${result.outDir}`);
+            if (verify) {
+              for (const [gate, gateResult] of Object.entries(verify.gates)) {
+                printLine(
+                  `${gate}: ${gateResult.status}${gateResult.message ? ` (${gateResult.message})` : ''}`,
+                );
+              }
+              process.exitCode = exitCodeFor(verify);
+            }
+          }
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
 
   program
     .command('compose')
