@@ -95,8 +95,8 @@ public sealed class GameBootstrap : MonoBehaviour
                 {
                     bool wall = row[x] == '#';
                     Color color = wall
-                        ? ParseColor("181c2f", new Color(0.09f, 0.11f, 0.18f))
-                        : ParseColor("2f4f3f", new Color(0.18f, 0.31f, 0.25f));
+                        ? ParseColor(_sim.MapWallColor, new Color(0.09f, 0.11f, 0.18f))
+                        : ParseColor(_sim.MapFloorColor, new Color(0.18f, 0.31f, 0.25f));
                     float size = _sim.MapTileSize / 100f;
                     Transform tile = CreateSquare(
                         wall ? "Wall" : "Floor",
@@ -112,6 +112,22 @@ public sealed class GameBootstrap : MonoBehaviour
                     );
                 }
             }
+        }
+        else
+        {
+            Transform floor = CreateSquare(
+                "Arena",
+                ParseColor(_sim.MapFloorColor, new Color(0.18f, 0.31f, 0.25f)),
+                1f,
+                -1,
+                _mapRoot.transform
+            );
+            floor.localScale = new Vector3(_sim.ArenaWidth / 100f, _sim.ArenaHeight / 100f, 1f);
+            floor.position = new Vector3(
+                _sim.ArenaWidth / 200f,
+                _sim.ArenaHeight / 200f,
+                0f
+            );
         }
     }
 
@@ -183,11 +199,11 @@ public sealed class GameBootstrap : MonoBehaviour
         }
         if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
         {
-            y += 1f;
+            y -= 1f;
         }
         if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
         {
-            y -= 1f;
+            y += 1f;
         }
         bool attack = Input.GetKey(KeyCode.J) || Input.GetKey(KeyCode.Space);
         _sim.Step(x, y, attack, Mathf.Min(Time.deltaTime, 0.05f));
@@ -207,9 +223,17 @@ public sealed class GameBootstrap : MonoBehaviour
 
     private void SyncActors()
     {
-        _player.position = new Vector3(_sim.PlayerX / 100f, _sim.PlayerY / 100f, 0f);
-        _enemy.position = new Vector3(_sim.EnemyX / 100f, _sim.EnemyY / 100f, 0f);
-        _enemy.localScale = Vector3.one * (_sim.EnemyKind == "boss" ? 0.8f : 0.5f);
+        _player.position = new Vector3(
+            _sim.PlayerX / 100f,
+            (_sim.ArenaHeight - _sim.PlayerY) / 100f,
+            0f
+        );
+        _enemy.position = new Vector3(
+            _sim.EnemyX / 100f,
+            (_sim.ArenaHeight - _sim.EnemyY) / 100f,
+            0f
+        );
+        _enemy.localScale = Vector3.one * (0.5f * _sim.EnemyScale);
     }
 
     private void OnGUI()

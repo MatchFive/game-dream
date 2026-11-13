@@ -126,6 +126,9 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'UNITY_WIN',
       'UNITY_LOSE',
       'UNITY_TIMEOUT',
+      'UNITY_MAP_OK',
+      'UNITY_QUEST_COMPLETE',
+      'UNITY_BOSS_PHASE',
       'EditorApplication.Exit',
     ],
   );

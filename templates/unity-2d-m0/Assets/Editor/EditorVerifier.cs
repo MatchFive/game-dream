@@ -9,6 +9,8 @@ public static class EditorVerifier
         Debug.Log("UNITY_SIM_OK");
         GameSim sim = new GameSim(GameConfigLoader.Load());
         bool mapLogged = false;
+        bool bossLogged = false;
+        bool questsLogged = false;
         for (int frame = 0; frame < 12000 && !sim.Won && !sim.Lost; frame += 1)
         {
             if (sim.HasMap && !mapLogged)
@@ -22,22 +24,24 @@ public static class EditorVerifier
             float y =
                 sim.PlayerY < sim.EnemyY - 20f ? 1f : sim.PlayerY > sim.EnemyY + 20f ? -1f : 0f;
             sim.Step(x, y, gap <= sim.PlayerAttackRange, 1f / 60f);
-        }
-        if (sim.BossPhase)
-        {
-            Debug.Log("UNITY_BOSS_PHASE");
-        }
-        bool allKillQuests = sim.Quests.Count > 0;
-        foreach (QuestState quest in sim.Quests)
-        {
-            if (quest.Type == "kill" && !quest.Completed)
+            if (sim.BossPhase && !bossLogged)
             {
-                allKillQuests = false;
+                bossLogged = true;
+                Debug.Log("UNITY_BOSS_PHASE");
             }
-        }
-        if (allKillQuests)
-        {
-            Debug.Log("UNITY_QUEST_COMPLETE");
+            bool allKillQuests = sim.Quests.Count > 0;
+            foreach (QuestState quest in sim.Quests)
+            {
+                if (quest.Type == "kill" && !quest.Completed)
+                {
+                    allKillQuests = false;
+                }
+            }
+            if (allKillQuests && !questsLogged)
+            {
+                questsLogged = true;
+                Debug.Log("UNITY_QUEST_COMPLETE");
+            }
         }
         if (sim.Won)
         {

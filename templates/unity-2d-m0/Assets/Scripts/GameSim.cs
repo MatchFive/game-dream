@@ -31,9 +31,12 @@ namespace GameDream
         public int MapTileSize { get; private set; } = 32;
         public string EnemyKind { get; private set; } = "slime";
         public int EnemyMaxHp { get; private set; } = 30;
+        public float EnemyScale { get; private set; } = 1f;
         public bool BossPhase { get; private set; }
         public float ArenaWidth { get; private set; }
         public float ArenaHeight { get; private set; }
+        public string MapFloorColor { get; private set; } = "2f4f3f";
+        public string MapWallColor { get; private set; } = "181c2f";
         public readonly List<QuestState> Quests = new List<QuestState>();
         public float PlayerAttackRange => _config.player.attack_range;
         public float PlayerSpeed => _config.player.speed;
@@ -135,8 +138,15 @@ namespace GameDream
                 scale = source.scale,
             };
             EnemyKind = _enemyConfig.kind;
+            EnemyScale = Math.Max(0.1f, _enemyConfig.scale);
             EnemyMaxHp = Math.Max(1, _enemyConfig.max_hp);
             EnemyHp = EnemyMaxHp;
+            MapFloorColor = _map != null && _map.tileset != null
+                ? _map.tileset.floor
+                : "2f4f3f";
+            MapWallColor = _map != null && _map.tileset != null
+                ? _map.tileset.wall
+                : "181c2f";
             EnemyX = _enemyConfig.x;
             EnemyY = _enemyConfig.y;
             PlayerX = 100f;
