@@ -1,0 +1,18 @@
+id: core.content
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: core
+genres: [any]
+depends:
+  core.events: "^1.0.0"
+provides:
+  services: [content]
+autoloads:
+  - name: ContentDB
+    path: src/content_db.gd
+    order: 5
+tests: [tests/test_content_db.gd]
+ai_skill: skills/content.md
+docs: api.md
+license: Apache-2.0

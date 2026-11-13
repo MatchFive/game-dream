@@ -1,0 +1,7 @@
+id: content.load
+module: core.content
+when:
+  - call: content.get_item
+    args: [rusty_sword]
+then:
+  - assert_not_empty: true

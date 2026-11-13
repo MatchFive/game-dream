@@ -1,0 +1,32 @@
+id: rpg-action-m1
+genre: action-rpg
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.content
+    - core.events
+    - core.stats
+    - system.combat
+    - system.player
+    - system.ai
+    - system.gameflow
+    - system.progression
+    - system.equipment
+    - system.loot
+    - system.skills
+    - system.inventory
+    - ui.hud
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 1
+  bosses: 0
+  skills: 1
+  items: 1
+  quests: 0
+acceptance:
+  - "玩家可移动/攻击/释放技能"
+  - "击杀敌人获得经验并升级"
+  - "掉落并自动装备武器"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_LEVEL_UP, GAMEDREAM_EQUIPPED, GAMEDREAM_SKILL_CAST, GAMEDREAM_WIN]

@@ -1,0 +1,8 @@
+id: progression.level_up
+module: system.progression
+when:
+  - call: progression.add_xp
+    args: [10]
+then:
+  - call: progression.level
+    expect: 2

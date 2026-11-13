@@ -6,6 +6,7 @@ export * from './registry/local-registry.js';
 export * from './resolver/resolve-modules.js';
 export * from './composer/types.js';
 export * from './composer/compose.js';
+export * from './composer/copy-template-content.js';
 export * from './composer/plan.js';
 export * from './composer/file-hash.js';
 export * from './composer/generate-game-script.js';

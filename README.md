@@ -71,11 +71,21 @@ verification.
 
 ## Playable M0 slice
 
-Action-RPG prompts now select the `rpg-action-m0` template: a single arena with a
-player, one enemy, health/combat, and win/lose. Desktop controls: **WASD** to move,
-**J / Space** to attack. Headless runs autoplay and print `GAMEDREAM_WIN` when the
-enemy dies, or `GAMEDREAM_LOSE` otherwise. The fixture template keeps its original
-inventory-only behavior.
+Action-RPG prompts now select the `rpg-action-m1` template: a single arena with a
+player, one enemy, health/combat, progression, loot, equipment, and a skill.
+Desktop controls: **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
+Headless autoplay prints `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
+`GAMEDREAM_SKILL_CAST`, and `GAMEDREAM_WIN`.
+
+Content is data-driven under `game/content/`:
+
+- `items/*.json` — item id, slot, stat bonuses
+- `skills/*.json` — damage, range, cooldown
+- `loot/*.json` — enemy kind → drop table
+
+The composer copies template content only when a file does not already exist, so
+user edits survive recompose. `rpg-action-m0` and `fixture-minimal` remain available
+as smaller templates.
 
 ## Generated project layout
 

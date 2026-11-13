@@ -1,0 +1,23 @@
+id: system.equipment
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+  core.events: "^1.0.0"
+  system.inventory: "^1.0.0"
+provides:
+  services: [equipment]
+autoloads:
+  - name: EquipmentService
+    path: src/equipment_service.gd
+    order: 50
+save_sections:
+  - key: equipment
+    serializer: src/equipment_service.gd
+tests: [tests/test_equipment.gd]
+ai_skill: skills/equipment.md
+docs: api.md
+license: Apache-2.0

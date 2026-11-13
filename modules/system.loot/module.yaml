@@ -1,0 +1,21 @@
+id: system.loot
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+  core.events: "^1.0.0"
+  system.inventory: "^1.0.0"
+  system.equipment: "^1.0.0"
+provides:
+  services: [loot]
+autoloads:
+  - name: LootService
+    path: src/loot_service.gd
+    order: 60
+tests: [tests/test_loot.gd]
+ai_skill: skills/loot.md
+docs: api.md
+license: Apache-2.0

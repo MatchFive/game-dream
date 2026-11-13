@@ -21,6 +21,8 @@ input_actions:
     keys: [S, DOWN]
   - name: attack
     keys: [J, SPACE]
+  - name: skill_1
+    keys: [K]
 tests: [tests/test_player.gd]
 ai_skill: skills/player.md
 docs: api.md

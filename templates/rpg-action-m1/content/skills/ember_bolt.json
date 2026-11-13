@@ -1,0 +1,7 @@
+{
+  "id": "ember_bolt",
+  "name": "Ember Bolt",
+  "damage": 20,
+  "range": 240,
+  "cooldown": 1.0
+}

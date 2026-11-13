@@ -5,6 +5,7 @@ import type { Lockfile } from '../schemas/lockfile.js';
 import type { ComposeOptions, ComposeResult } from './types.js';
 import { hashDirectory } from './file-hash.js';
 import { copyModules } from './copy-modules.js';
+import { copyTemplateContent } from './copy-template-content.js';
 import { writeLockfile } from './write-lockfile.js';
 import { generateGameScript } from './generate-game-script.js';
 import { generateProjectGodot } from './generate-project-godot.js';
@@ -17,6 +18,10 @@ import { writeGameManifest } from './write-game-manifest.js';
 export async function composeProject(options: ComposeOptions): Promise<ComposeResult> {
   const { spec, resolution, template } = planProject(options);
   mkdirSync(options.outDir, { recursive: true });
+  copyTemplateContent(
+    join(options.templatesDir, spec.genre.template),
+    options.outDir,
+  );
 
   copyModules(options.outDir, resolution.modules);
 

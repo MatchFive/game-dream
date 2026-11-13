@@ -4,6 +4,7 @@ extends CharacterBody2D
 @export var attack_range: float = 40.0
 @export var attack_damage: int = 5
 @export var attack_cooldown: float = 1.0
+@export var enemy_kind: String = "slime"
 
 @onready var health = $Health
 
@@ -33,4 +34,6 @@ func _physics_process(delta: float) -> void:
 				player_health.take_damage(attack_damage)
 
 func _on_died() -> void:
+	if Game.events:
+		Game.events.emit_event("enemy.died", {"kind": enemy_kind})
 	queue_free()

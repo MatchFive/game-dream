@@ -18,3 +18,13 @@ func take_damage(amount: int) -> void:
 	health_changed.emit(hp, max_hp)
 	if hp == 0:
 		died.emit()
+
+func set_max_hp(value: int) -> void:
+	if value == max_hp:
+		return
+	var old_max := max_hp
+	max_hp = value
+	if hp <= 0:
+		return
+	hp = clampi(hp + max(0, value - old_max), 1, max_hp)
+	health_changed.emit(hp, max_hp)

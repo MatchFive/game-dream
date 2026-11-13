@@ -1,0 +1,21 @@
+id: system.progression
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike]
+depends:
+  core.events: "^1.0.0"
+provides:
+  services: [progression]
+autoloads:
+  - name: ProgressionService
+    path: src/progression_service.gd
+    order: 40
+save_sections:
+  - key: progression
+    serializer: src/progression_service.gd
+tests: [tests/test_progression.gd]
+ai_skill: skills/progression.md
+docs: api.md
+license: Apache-2.0

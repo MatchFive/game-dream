@@ -1,0 +1,7 @@
+id: skills.cast
+module: system.skills
+when:
+  - call: skills.cast
+    args: [ember_bolt, player]
+then:
+  - assert_signal: skill.cast

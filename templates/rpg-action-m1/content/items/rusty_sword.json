@@ -1,0 +1,8 @@
+{
+  "id": "rusty_sword",
+  "name": "Rusty Sword",
+  "slot": "weapon",
+  "bonuses": {
+    "attack_damage": 5
+  }
+}

@@ -18,7 +18,7 @@ const bootOnly: CommandRunner = {
 };
 
 describe('m0 verify markers', () => {
-  it('fails G3 when the template marker is missing', async () => {
+  it('fails G3 when an M0 template marker is missing', async () => {
     const outDir = join(makeTempDir('gamedream m0 verify '), 'm0 game');
     await composeCommand({
       specPath: join(root, 'fixtures/specs/m0.yaml'),
@@ -33,6 +33,24 @@ describe('m0 verify markers', () => {
     });
     expect(report.gates.G3.status).toBe('fail');
     expect(report.gates.G3.message).toContain('GAMEDREAM_WIN');
+    expect(exitCodeFor(report)).toBe(2);
+  });
+
+  it('fails G3 when an M1 template marker is missing', async () => {
+    const outDir = join(makeTempDir('gamedream m1 verify '), 'm1 game');
+    await composeCommand({
+      specPath: join(root, 'fixtures/specs/m1.yaml'),
+      outDir,
+      modulesDir: join(root, 'modules'),
+      templatesDir: join(root, 'templates'),
+    });
+    const report = await verifyCommand({
+      projectDir: outDir,
+      env: { GODOT_BIN: 'godot' },
+      runner: bootOnly,
+    });
+    expect(report.gates.G3.status).toBe('fail');
+    expect(report.gates.G3.message).toContain('GAMEDREAM_LEVEL_UP');
     expect(exitCodeFor(report)).toBe(2);
   });
 });

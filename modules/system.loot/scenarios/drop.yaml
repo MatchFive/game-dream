@@ -1,0 +1,7 @@
+id: loot.drop
+module: system.loot
+when:
+  - emit: enemy.died
+    payload: { kind: slime }
+then:
+  - assert_inventory: { item_id: rusty_sword, count: 1 }

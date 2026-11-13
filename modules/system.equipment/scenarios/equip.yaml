@@ -1,0 +1,9 @@
+id: equipment.equip
+module: system.equipment
+when:
+  - call: equipment.equip
+    args: [rusty_sword]
+then:
+  - call: equipment.get_equipped
+    args: [weapon]
+    expect: rusty_sword

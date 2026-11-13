@@ -21,7 +21,8 @@ const fakeGodot: CommandRunner = {
     }
     return {
       exitCode: 0,
-      stdout: 'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\nGAMEDREAM_WIN\n',
+      stdout:
+        'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\nGAMEDREAM_LEVEL_UP\nGAMEDREAM_EQUIPPED\nGAMEDREAM_SKILL_CAST\nGAMEDREAM_WIN\n',
       stderr: '',
     };
   },
@@ -44,10 +45,10 @@ describe('createCommand', () => {
   it('creates a project and verifies it', async () => {
     const opts = options();
     const { result, verify } = await createCommand(opts);
-    expect(result.templateId).toBe('rpg-action-m0');
+    expect(result.templateId).toBe('rpg-action-m1');
     expect(existsSync(join(opts.outDir, 'gamedream.yaml'))).toBe(true);
     expect(readFileSync(join(opts.outDir, 'gamedream.yaml'), 'utf8')).toContain(
-      'template: rpg-action-m0',
+      'template: rpg-action-m1',
     );
     expect(verify?.gates.G3.status).toBe('pass');
   });
