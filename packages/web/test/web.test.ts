@@ -88,6 +88,10 @@ describe('web M0', () => {
     expect(game).toContain('startFollow');
     expect(game).toContain('setBounds');
     expect(game).toContain('cameraZoom');
+    expect(game).toContain('centerOn');
+    expect(game).toContain('resetView');
+    expect(game).toMatch(/ensureActors[\s\S]{0,400}configureCamera/);
+    expect(game).toContain('scale.off');
     const css = readFileSync(join(outDir, 'style.css'), 'utf8');
     expect(css).toContain('@media (pointer: coarse)');
     expect(css).toContain('body.paused #touch-controls');

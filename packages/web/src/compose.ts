@@ -18,6 +18,7 @@ export const WEB_PROJECT_FILES = [
   'sim-run.mjs',
   'save.mjs',
   'settings.mjs',
+  'camera.mjs',
   'game.js',
   'game.json',
   'README.md',

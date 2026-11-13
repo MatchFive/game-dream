@@ -143,7 +143,7 @@ multi-frame review are deferred. `--vision fake` keeps the image local;
 The second engine track is a Web M0 prototype: a pure ESM simulation plus a
 vendored Phaser 3 renderer and keyboard controls. `dream web compose` writes
 `index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `save.mjs`, `settings.mjs`,
-`game.js`, `game.json`, and `vendor/phaser.min.js`; `dream web verify` runs the deterministic simulation and checks
+`camera.mjs`, `game.js`, `game.json`, and `vendor/phaser.min.js`; `dream web verify` runs the deterministic simulation and checks
 `WEB_BOOT_OK`/`WEB_WIN`. Serve the generated directory over HTTP (ES modules and
 `fetch` do not work from `file://`); the generated `README.md` shows the command.
 The generated project vendors `vendor/phaser.min.js`; the simulation contract

@@ -8,6 +8,7 @@ import {
   writeSave,
 } from './save.mjs';
 import { readSettings, writeSettings } from './settings.mjs';
+import { cameraZoom, worldSize } from './camera.mjs';
 
 const status = document.querySelector('#status');
 const questLine = document.querySelector('#quests-line');
@@ -142,6 +143,7 @@ try {
   let saveWarning = false;
   let paused = false;
   let lastFocus = null;
+  let gameScene = null;
   let restartArmed = false;
   let restartTimer = 0;
   const touch = { left: false, right: false, up: false, down: false, attack: false };
@@ -201,6 +203,7 @@ try {
     clearSave(storage, saveKey);
     lastSave = '';
     saveWarning = false;
+    gameScene?.resetView();
     audio.play('reset');
   }
 
@@ -209,21 +212,7 @@ try {
       ? window.matchMedia('(pointer: coarse)')
       : null;
 
-  function worldSize() {
-    return {
-      width: state.map
-        ? state.map.rows[0].length * state.map.tile_size
-        : config.arena.width,
-      height: state.map
-        ? state.map.rows.length * state.map.tile_size
-        : config.arena.height,
-    };
-  }
-
-  function cameraZoom() {
-    return coarsePointer?.matches || window.innerWidth < 720 ? 2 : 1.2;
-  }
-  const initialSize = worldSize();
+  const initialSize = worldSize(state, config);
   const width = initialSize.width;
   const height = initialSize.height;
 
@@ -389,17 +378,30 @@ try {
     }
 
     configureCamera() {
-      const size = worldSize();
-      const camera = this.cameras.main;
+      const camera = this.cameras?.main;
+      if (!camera) return;
+      const size = worldSize(state, config);
       camera.setBounds(0, 0, size.width, size.height);
-      camera.setZoom(cameraZoom());
+      camera.setZoom(cameraZoom(Boolean(coarsePointer?.matches), window.innerWidth));
       if (this.playerActor) {
         camera.startFollow(this.playerActor, true, 0.15, 0.15);
         camera.setDeadzone(96, 64);
+        if (this.cameraTarget !== this.playerActor) {
+          camera.centerOn(this.playerActor.x, this.playerActor.y);
+          this.cameraTarget = this.playerActor;
+        }
       }
     }
 
+    resetView() {
+      this.renderedLevel = -1;
+      this.cameraTarget = null;
+      this.accumulator = 0;
+      this.configureCamera();
+    }
+
     create() {
+      gameScene = this;
       this.graphics = this.add.graphics();
       this.cursors = this.input.keyboard.addKeys({
         left: Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -416,7 +418,12 @@ try {
       this.drawMap();
       this.ensureActors();
       this.configureCamera();
-      this.scale.on('resize', this.configureCamera, this);
+      this.reconfigure = () => this.configureCamera();
+      this.scale.on('resize', this.reconfigure);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        this.scale.off('resize', this.reconfigure);
+        gameScene = null;
+      });
     }
 
     drawMap() {
@@ -455,6 +462,7 @@ try {
     ensureActors() {
       this.playerActor?.destroy();
       this.enemyActor?.destroy();
+      this.cameraTarget = null;
       this.playerActor = this.createActor('player', state.player, 0x2ec4f1, 1);
       this.enemyActor = this.createActor(
         state.enemy.kind === 'boss' ? 'boss' : 'enemy',
