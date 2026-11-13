@@ -290,8 +290,8 @@ fallback; `dream benchmark` now exits 0.
 coins, goal, HUD, camera follow, and headless autoplay. It passes G1/G2/G3/G6.
 
 `shooter-topdown` is a real Godot template (`system.shooter`): top-down
-movement, nearest-enemy shooting, enemy chase, HP, kill/win markers, and
-headless auto-fire. It also passes G1/G2/G3/G6.
+movement, three waves, nearest-enemy shooting, enemy chase, HP, wave/kill/win
+markers, and headless auto-fire. It also passes G1/G2/G3/G6.
 
 `roguelike-topdown` is a real Godot template (`system.roguelike`): seeded maze
 generation, turn-based movement, bump combat, chasing enemies, permadeath, and

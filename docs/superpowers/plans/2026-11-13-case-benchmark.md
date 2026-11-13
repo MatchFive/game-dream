@@ -24,8 +24,8 @@
 - After adding `puzzle-2d`: 6 playable / 0 fallback / 0 failed; exit 0.
 - Platformer verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
 - Platformer slice: gravity/jump, coins, goal, background, HUD, headless autoplay.
-- Shooter verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
-- Shooter slice: movement, shooting, chase AI, HP, background, HUD, auto-fire.
+- Shooter verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 25 colors.
+- Shooter slice: movement, three waves, shooting, chase AI, HP, HUD, auto-fire.
 - Roguelike verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 26 colors.
 - Roguelike slice: seeded maze, turn-based combat, chasing enemies, permadeath.
 - Tower-defense verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 32 colors.

@@ -7,6 +7,14 @@ const BULLET_SPEED := 680.0
 const FIRE_INTERVAL := 0.18
 const PLAYER_RADIUS := 16.0
 const ENEMY_RADIUS := 18.0
+const TOTAL_WAVES := 3
+const ENEMIES_PER_WAVE := 4
+const SPAWNS := [
+	Vector2(110, 100),
+	Vector2(850, 100),
+	Vector2(480, 80),
+	Vector2(480, 440),
+]
 
 var player: Node2D
 var hud: Label
@@ -14,7 +22,8 @@ var enemies: Array = []
 var bullets: Array = []
 var player_hp := 100.0
 var killed := 0
-var total_enemies := 5
+var wave := 0
+var total_enemies := TOTAL_WAVES * ENEMIES_PER_WAVE
 var finished := false
 var autoplay := false
 var fire_cooldown := 0.0
@@ -54,23 +63,21 @@ func _build_level() -> void:
 	player.position = Vector2(480, 270)
 	add_child(player)
 
-	var spawns := [
-		Vector2(110, 100),
-		Vector2(850, 100),
-		Vector2(110, 440),
-		Vector2(850, 440),
-		Vector2(480, 80),
-	]
-	for position in spawns:
-		_spawn_enemy(position)
-
 	var layer := CanvasLayer.new()
 	layer.layer = 5
 	add_child(layer)
 	hud = Label.new()
 	hud.position = Vector2(20, 20)
 	layer.add_child(hud)
-	_update_hud()
+	_start_wave()
+
+func _start_wave() -> void:
+	if finished or wave >= TOTAL_WAVES:
+		return
+	wave += 1
+	print("GAMEDREAM_WAVE")
+	for i in ENEMIES_PER_WAVE:
+		_spawn_enemy(SPAWNS[i])
 
 func _spawn_enemy(position: Vector2) -> void:
 	var node := Polygon2D.new()
@@ -194,13 +201,18 @@ func _on_enemy_killed() -> void:
 	if killed == 1:
 		print("GAMEDREAM_KILL")
 	if enemies.is_empty():
-		_finish(true)
+		if wave < TOTAL_WAVES:
+			_start_wave()
+		else:
+			_finish(true)
 
 func _update_hud() -> void:
 	if hud == null:
 		return
-	hud.text = "Enemies %d/%d   HP %d   WASD move · Space/J shoot" % [
-		total_enemies - enemies.size(),
+	hud.text = "Wave %d/%d   Enemies %d/%d   HP %d   WASD move · Space/J shoot" % [
+		wave,
+		TOTAL_WAVES,
+		killed,
 		total_enemies,
 		maxi(0, int(player_hp)),
 	]

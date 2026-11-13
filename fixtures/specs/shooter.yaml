@@ -11,7 +11,7 @@ genre:
   template: shooter-topdown
 scope:
   levels: 1
-  enemies: 5
+  enemies: 12
 systems:
   inventory: false
 content:

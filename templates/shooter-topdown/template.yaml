@@ -18,4 +18,4 @@ minimum_complete:
 acceptance:
   - "玩家可移动并向敌人射击"
   - "消灭全部敌人"
-acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_KILL, GAMEDREAM_WIN]
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_KILL, GAMEDREAM_WAVE, GAMEDREAM_WIN]
