@@ -5,3 +5,4 @@ export * from './provider/fake-provider.js';
 export * from './intake/draft-schema.js';
 export * from './intake/draft-game-spec.js';
 export * from './intake/extract-json.js';
+export * from './classify/select-template.js';
