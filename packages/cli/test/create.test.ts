@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { makeTempDir } from '@gamedream/testing';
 import {
   createCommand,
@@ -59,6 +59,16 @@ describe('createCommand', () => {
     expect(result.plannedFiles).toContain('project.godot');
     expect(verify).toBeUndefined();
     expect(existsSync(join(opts.outDir, 'gamedream.yaml'))).toBe(false);
+  });
+
+  it('preserves user content on a second create', async () => {
+    const opts = options();
+    await createCommand(opts);
+    const userFile = join(opts.outDir, 'game/content/items/keep.json');
+    mkdirSync(join(opts.outDir, 'game/content/items'), { recursive: true });
+    writeFileSync(userFile, '{"id":"keep"}\n', 'utf8');
+    await createCommand(opts);
+    expect(readFileSync(userFile, 'utf8')).toBe('{"id":"keep"}\n');
   });
 
   it('notices when auto falls back to the fake provider', async () => {

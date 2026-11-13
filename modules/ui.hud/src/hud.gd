@@ -9,6 +9,20 @@ func _ready() -> void:
 		Game.events.event_emitted.connect(_on_event)
 	if Game.has_service("inventory"):
 		_bind_inventory(Game.get_service("inventory"))
+	_bind_player_health()
+
+func _bind_player_health() -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return
+	var health = player.get_node_or_null("Health")
+	if health == null:
+		return
+	health.health_changed.connect(_on_health_changed)
+	_on_health_changed(health.hp, health.max_hp)
+
+func _on_health_changed(hp: int, max_hp: int) -> void:
+	hp_label.text = "HP: %d/%d" % [hp, max_hp]
 
 func _on_service_registered(service_name: String, service: Node) -> void:
 	if service_name == "inventory":
@@ -27,4 +41,4 @@ func _update_inventory() -> void:
 
 func _on_event(event_name: String, payload: Variant) -> void:
 	if event_name == "player.health_changed":
-		hp_label.text = "HP: %d/%d" % [int(payload["hp"]), int(payload["max_hp"])]
+		_on_health_changed(int(payload["hp"]), int(payload["max_hp"]))

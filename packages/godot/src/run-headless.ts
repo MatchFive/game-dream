@@ -8,7 +8,7 @@ export async function runHeadless(
   options: { quitAfter?: number; timeoutMs?: number; runner?: CommandRunner } = {},
 ): Promise<CommandResult> {
   const runner = options.runner ?? runCommand;
-  const args = ['--headless', '--path', projectDir];
+  const args = ['--headless', '--fixed-fps', '60', '--path', projectDir];
   if (options.quitAfter !== undefined) args.push('--quit-after', String(options.quitAfter));
   return runner.run(godot.bin, args, { timeoutMs: options.timeoutMs ?? 120_000 });
 }

@@ -9,5 +9,7 @@ export function hasMarker(result: CommandResult, marker: string): boolean {
 export function findScriptErrors(result: CommandResult): string[] {
   return `${result.stdout}\n${result.stderr}`
     .split(/\r?\n/)
-    .filter((line) => /SCRIPT ERROR|Parse Error|Failed to load|Cannot open/.test(line));
+    .filter((line) =>
+      /SCRIPT ERROR|Parse Error|Failed to load|Cannot open|missing input action/.test(line),
+    );
 }
