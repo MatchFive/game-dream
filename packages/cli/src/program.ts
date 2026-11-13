@@ -8,6 +8,7 @@ import {
   parseCreateMode,
   parseProviderKind,
 } from './commands/create.js';
+import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
@@ -162,6 +163,49 @@ export function createProgram(): Command {
       if (result.stderr) printLine(result.stderr);
       process.exitCode = result.exitCode;
     });
+
+  program
+    .command('eval')
+    .description('Run prompt-to-template regression cases')
+    .option('--fixtures <file>', 'eval prompts JSON', 'fixtures/eval/prompts.json')
+    .option('--templates <dir>', 'templates directory', 'templates')
+    .option('--provider <kind>', 'fake | openai | auto', 'fake')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: {
+        fixtures: string;
+        templates: string;
+        provider: string;
+        json?: boolean;
+      }) => {
+        try {
+          const report = await evalCommand({
+            fixturesPath: options.fixtures,
+            templatesDir: options.templates,
+            providerKind: parseProviderKind(options.provider),
+          });
+          if (options.json) printJson(report);
+          else {
+            for (const result of report.results) {
+              if (result.passed) continue;
+              if (result.error) {
+                printLine(`FAIL ${result.prompt}: ${result.error}`);
+              } else {
+                printLine(
+                  `FAIL ${result.prompt}: ${result.actualGenre} -> ${result.actualTemplate} (expected ${result.expectedGenre} -> ${result.expectedTemplate})`,
+                );
+              }
+            }
+            printLine(`${report.passed}/${report.total} eval cases passed (${report.provider})`);
+          }
+          process.exitCode = evalExitCode(report);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
 
   const mapCommand = program
     .command('map')

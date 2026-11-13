@@ -138,6 +138,14 @@ G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
 multi-frame review are deferred. `--vision fake` keeps the image local;
 `--vision openai` uploads it to the configured vision endpoint.
 
+## Prompt evaluation
+
+`dream eval` runs 20 prompt → GameSpec → template cases from
+`fixtures/eval/prompts.json`. The default fake provider is deterministic and needs
+no API key; each case checks genre and template. `--provider openai` runs the same
+cases against the configured model. Use `--fixtures`, `--templates`, and `--json`
+to override paths/output.
+
 ## Tiled maps
 
 Internal maps use rows (`#` wall, `.` floor). Tiled JSON `.tmj` uses gid `1` =

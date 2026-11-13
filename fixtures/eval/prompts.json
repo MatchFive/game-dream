@@ -1,0 +1,102 @@
+[
+  {
+    "prompt": "做一个俯视角动作 RPG，有背包和 1 个敌人",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个带装备和技能系统的动作 RPG",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个有 Boss 战和任务系统的 RPG",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个地牢冒险 RPG，有掉落和升级",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个 2D 动作角色扮演游戏，有血条和技能",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个有背包、装备、进度和敌人的动作 RPG",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个类似塞尔达的俯视角 RPG 原型",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个有 Boss 和战利品的 RPG",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个动作 RPG，包含技能树和装备",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个有任务和对话的 RPG",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1"
+  },
+  {
+    "prompt": "做一个 roguelike，随机地牢和永久死亡",
+    "expected_genre": "roguelike",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个随机生成的 roguelike 地牢",
+    "expected_genre": "roguelike",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个 rogue 风格冒险",
+    "expected_genre": "roguelike",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个带永久死亡的随机地牢游戏",
+    "expected_genre": "roguelike",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个 2D 平台跳跃游戏",
+    "expected_genre": "platformer",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个横版跳跃平台游戏",
+    "expected_genre": "platformer",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个有跳跃和金币的平台游戏",
+    "expected_genre": "platformer",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个俯视角射击游戏",
+    "expected_genre": "shooter",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个双摇杆射击 demo",
+    "expected_genre": "shooter",
+    "expected_template": "fixture-minimal"
+  },
+  {
+    "prompt": "做一个太空射击游戏",
+    "expected_genre": "shooter",
+    "expected_template": "fixture-minimal"
+  }
+]
