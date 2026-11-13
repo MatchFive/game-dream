@@ -1,0 +1,20 @@
+{
+  "name": "@gamedream/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "dream": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@gamedream/core": "workspace:*",
+    "@gamedream/godot": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@gamedream/testing": "workspace:*"
+  }
+}
