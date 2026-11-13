@@ -2,7 +2,8 @@
 
 AI game development assistant. Plan 1 implements the deterministic core + Godot vertical slice:
 a fixture GameSpec + template is composed into a bootable Godot project with four local modules,
-and verified with a real headless boot/inventory check.
+and verified with a real headless boot/inventory check. Plan 2 adds prompt → GameSpec drafting,
+genre template selection, and the `dream create` command.
 
 ## Prerequisites
 
@@ -42,6 +43,32 @@ Godot. `G3` boots it headlessly and checks the `GAMEDREAM_BOOT_OK` and
 `INVENTORY_COUNT=1` markers. If Godot is not found, `G2`/`G3` report `skip` — never a
 false pass.
 
+## One-command create
+
+```bash
+# offline deterministic provider (no API key)
+corepack pnpm exec tsx packages/cli/src/index.ts create \
+  "做一个俯视角动作 RPG，有背包和 1 个敌人" \
+  --out "tmp/my-game" \
+  --provider fake \
+  --modules modules \
+  --templates templates
+
+# review the plan without writing anything
+corepack pnpm exec tsx packages/cli/src/index.ts create \
+  "做一个俯视角动作 RPG" \
+  --out "tmp/plan-only" \
+  --provider fake \
+  --mode dry-run \
+  --modules modules \
+  --templates templates
+```
+
+`--provider auto` uses the OpenAI-compatible provider when `OPENAI_API_KEY` is set,
+otherwise the deterministic fake provider. Real-model runs also read `OPENAI_BASE_URL`
+and `GAMEDREAM_MODEL`. `--mode dry-run` writes nothing; `--no-verify` skips Godot
+verification.
+
 ## Generated project layout
 
 - `modules/` — managed by the composer; do not edit
@@ -62,5 +89,6 @@ false pass.
 ## Docs
 
 - Design spec: `docs/superpowers/specs/2026-11-12-gamedream-design.md`
-- Implementation plan: `docs/superpowers/plans/2026-11-12-core-godot-vertical-slice.md`
+- Plan 1 (core + Godot slice): `docs/superpowers/plans/2026-11-12-core-godot-vertical-slice.md`
+- Plan 2 (agent runtime + create): `docs/superpowers/plans/2026-11-12-agent-runtime-create.md`
 - Technical research: `docs/architecture.md`
