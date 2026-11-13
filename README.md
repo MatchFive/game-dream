@@ -150,6 +150,8 @@ dream unity verify --path ./unity-game
 dream unity verify --path ./unity-game --runtime
 dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
 dream unity build --path ./unity-game
+dream unity build --path ./unity-game --target webgl
+dream unity smoke --path ./unity-game
 dream unity screenshot --path ./unity-game
 ```
 
@@ -172,7 +174,10 @@ asset is required).
 (default `Builds/Windows/GameDream.exe`). `unity screenshot` enters play mode,
 renders the arena to a PNG, and exits. Both require a fresh output file and
 `UNITY_BUILD_OK` / `UNITY_SCREENSHOT_OK`; use a short project path on Windows to
-avoid Unity's long-path build issues.
+avoid Unity's long-path build issues. `--target webgl` requires a fresh
+`index.html` + `Build/` directory. `unity smoke` launches the built exe with
+`GAMEDREAM_SMOKE_OUT=1` and requires `UNITY_BOOT_OK` + `UNITY_SMOKE_OK` in its
+log.
 
 ## Web M0 (Phaser)
 

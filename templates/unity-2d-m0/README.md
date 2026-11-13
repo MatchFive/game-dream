@@ -18,12 +18,16 @@ Headless markers: `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
 
 ```text
 dream unity build --path <this-folder> --out <this-folder>/Builds/Windows/GameDream.exe
+dream unity build --path <this-folder> --target webgl
+dream unity smoke --path <this-folder>
 dream unity screenshot --path <this-folder> --out <this-folder>/Screenshots/unity.png
 ```
 
 `build` creates/updates `Assets/Scenes/Main.unity` and `EditorBuildSettings.asset`,
-then builds a Windows 64-bit player. `screenshot` enters play mode, renders the
-arena to a PNG, and exits. Both require Unity 6000.x and are opt-in slow runs.
+then builds a Windows 64-bit player or WebGL static output. `smoke` launches the
+Windows player and waits for `UNITY_SMOKE_OK`. `screenshot` enters play mode,
+renders the arena to a PNG, and exits. All require Unity 6000.x and are opt-in
+slow runs.
 
 ## Headless verification
 

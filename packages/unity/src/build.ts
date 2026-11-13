@@ -1,10 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
+export type UnityBuildTarget = 'windows' | 'webgl';
 
 export interface UnityBuildOptions {
   projectDir: string;
   unityBin: string;
+  target?: UnityBuildTarget;
   outPath?: string;
   timeoutMs?: number;
 }
@@ -12,6 +15,7 @@ export interface UnityBuildOptions {
 export interface UnityBuildResult {
   passed: boolean;
   exitCode: number;
+  target: UnityBuildTarget;
   outputPath: string;
   stdout: string;
   stderr: string;
@@ -54,11 +58,20 @@ function screenshotMetrics(stdout: string): { width: number; height: number; col
 
 export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
   const projectDir = resolve(options.projectDir);
+  const target = options.target ?? 'windows';
   const outputPath = resolve(
-    options.outPath ?? `${projectDir}/Builds/Windows/GameDream.exe`,
+    options.outPath ??
+      (target === 'webgl'
+        ? `${projectDir}/Builds/WebGL`
+        : `${projectDir}/Builds/Windows/GameDream.exe`),
   );
   mkdirSync(dirname(outputPath), { recursive: true });
-  rmSync(outputPath, { force: true });
+  if (target === 'webgl') {
+    rmSync(outputPath, { recursive: true, force: true });
+    mkdirSync(outputPath, { recursive: true });
+  } else {
+    rmSync(outputPath, { force: true });
+  }
   const result = spawnSync(
     resolve(options.unityBin),
     [
@@ -69,7 +82,7 @@ export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
       '-projectPath',
       projectDir,
       '-executeMethod',
-      'ProjectBuilder.BuildWindows',
+      target === 'webgl' ? 'ProjectBuilder.BuildWebGL' : 'ProjectBuilder.BuildWindows',
       '-logFile',
       '-',
     ],
@@ -92,6 +105,7 @@ export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
     return {
       passed: false,
       exitCode,
+      target,
       outputPath,
       stdout,
       stderr,
@@ -104,34 +118,122 @@ export function runUnityBuild(options: UnityBuildOptions): UnityBuildResult {
     };
   }
   if (exitCode !== 0) {
-    const missingTarget = stdout.includes('UNITY_BUILD_MISSING_TARGET');
+    const missingTarget = stdout.includes('UNITY_BUILD_MISSING_TARGET') ||
+      stdout.includes('UNITY_WEBGL_BUILD_MISSING_TARGET');
     return {
       passed: false,
       exitCode,
+      target,
       outputPath,
       stdout,
       stderr,
       message: missingTarget
-        ? 'Windows Build Support is not installed for this Unity editor'
+        ? `${target === 'webgl' ? 'WebGL' : 'Windows'} Build Support is not installed for this Unity editor`
         : result.signal
           ? `Unity killed by ${result.signal}`
           : `Unity exited ${exitCode}`,
     };
   }
-  if (!hasMarker(stdout, 'UNITY_BUILD_OK')) {
-    return { passed: false, exitCode: 1, outputPath, stdout, stderr, message: 'missing UNITY_BUILD_OK' };
+  const marker = target === 'webgl' ? 'UNITY_WEBGL_BUILD_OK' : 'UNITY_BUILD_OK';
+  if (!hasMarker(stdout, marker)) {
+    return { passed: false, exitCode: 1, target, outputPath, stdout, stderr, message: `missing ${marker}` };
   }
-  if (!outputFile(outputPath) || !existsSync(dataDir(outputPath))) {
+  const valid = target === 'webgl'
+    ? outputFile(join(outputPath, 'index.html')) && existsSync(join(outputPath, 'Build'))
+    : outputFile(outputPath) && existsSync(dataDir(outputPath));
+  if (!valid) {
     return {
       passed: false,
       exitCode: 1,
+      target,
       outputPath,
       stdout,
       stderr,
-      message: 'Unity reported success but produced no player/_Data directory',
+      message:
+        target === 'webgl'
+          ? 'Unity reported success but produced no WebGL index.html/Build directory'
+          : 'Unity reported success but produced no player/_Data directory',
     };
   }
-  return { passed: true, exitCode: 0, outputPath, stdout, stderr };
+  return { passed: true, exitCode: 0, target, outputPath, stdout, stderr };
+}
+
+export interface UnitySmokeOptions {
+  projectDir: string;
+  exePath?: string;
+  timeoutMs?: number;
+}
+
+export interface UnitySmokeResult {
+  passed: boolean;
+  exitCode: number;
+  exePath: string;
+  logPath: string;
+  stdout: string;
+  stderr: string;
+  message?: string;
+}
+
+export function runUnitySmoke(options: UnitySmokeOptions): UnitySmokeResult {
+  const projectDir = resolve(options.projectDir);
+  const exePath = resolve(
+    options.exePath ?? `${projectDir}/Builds/Windows/GameDream.exe`,
+  );
+  const logPath = join(projectDir, 'Temp/smoke.log');
+  mkdirSync(dirname(logPath), { recursive: true });
+  rmSync(logPath, { force: true });
+  if (!outputFile(exePath)) {
+    return {
+      passed: false,
+      exitCode: 1,
+      exePath,
+      logPath,
+      stdout: '',
+      stderr: '',
+      message: 'player executable not found; run unity build first',
+    };
+  }
+  const result = spawnSync(exePath, ['-batchmode', '-nographics', '-logFile', logPath], {
+    cwd: projectDir,
+    encoding: 'utf8',
+    timeout: options.timeoutMs ?? 30_000,
+    maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, GAMEDREAM_SMOKE_OUT: '1' },
+  });
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
+  const exitCode = result.status ?? (errorCode === 'ETIMEDOUT' ? 124 : 1);
+  const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : '';
+  if (result.error) {
+    return {
+      passed: false,
+      exitCode,
+      exePath,
+      logPath,
+      stdout,
+      stderr,
+      message:
+        errorCode === 'ETIMEDOUT'
+          ? 'player smoke timed out'
+          : `player failed to start: ${result.error.message}`,
+    };
+  }
+  if (exitCode !== 0) {
+    return { passed: false, exitCode, exePath, logPath, stdout, stderr, message: `player exited ${exitCode}` };
+  }
+  if (!hasMarker(log, 'UNITY_BOOT_OK') || !hasMarker(log, 'UNITY_SMOKE_OK')) {
+    return {
+      passed: false,
+      exitCode: 1,
+      exePath,
+      logPath,
+      stdout,
+      stderr,
+      message: 'player log is missing UNITY_BOOT_OK or UNITY_SMOKE_OK',
+    };
+  }
+  return { passed: true, exitCode: 0, exePath, logPath, stdout, stderr };
 }
 
 export function runUnityScreenshot(options: UnityScreenshotOptions): UnityScreenshotResult {

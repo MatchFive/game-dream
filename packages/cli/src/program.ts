@@ -31,6 +31,7 @@ import {
   unityBuildCommand,
   unityComposeCommand,
   unityScreenshotCommand,
+  unitySmokeCommand,
   unityVerifyCommand,
 } from './commands/unity.js';
 import { formatCliError } from './errors.js';
@@ -680,19 +681,26 @@ export function createProgram(): Command {
   unityCommand
     .command('build')
     .requiredOption('--path <dir>')
-    .option('--out <exe>', 'Windows player output path')
+    .option('--target <target>', 'windows | webgl', 'windows')
+    .option('--out <path>', 'output exe or WebGL directory')
     .option('--unity <path>', 'Unity executable or Editor directory')
     .option('--timeout <ms>', 'Unity build timeout', '300000')
     .option('--json', 'print JSON')
     .action(
       (options: {
         path: string;
+        target: string;
         out?: string;
         unity?: string;
         timeout: string;
         json?: boolean;
       }) => {
         try {
+          if (options.target !== 'windows' && options.target !== 'webgl') {
+            printLine('--target must be windows or webgl');
+            process.exitCode = 1;
+            return;
+          }
           const timeoutMs = Number(options.timeout);
           if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
             printLine('--timeout must be a positive number');
@@ -701,6 +709,7 @@ export function createProgram(): Command {
           }
           const result = unityBuildCommand({
             projectDir: options.path,
+            target: options.target,
             outPath: options.out,
             unityBin: options.unity,
             timeoutMs,
@@ -755,6 +764,43 @@ export function createProgram(): Command {
           } else {
             printLine(`Unity screenshot failed: ${result.message ?? 'unknown error'}`);
             if ('stdout' in result) printUnityDiagnostics(result);
+          }
+          process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  unityCommand
+    .command('smoke')
+    .requiredOption('--path <dir>')
+    .option('--exe <exe>', 'built Windows player path')
+    .option('--timeout <ms>', 'player smoke timeout', '30000')
+    .option('--json', 'print JSON')
+    .action(
+      (options: { path: string; exe?: string; timeout: string; json?: boolean }) => {
+        try {
+          const timeoutMs = Number(options.timeout);
+          if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            printLine('--timeout must be a positive number');
+            process.exitCode = 1;
+            return;
+          }
+          const result = unitySmokeCommand({
+            projectDir: options.path,
+            exePath: options.exe,
+            timeoutMs,
+          });
+          if (options.json) printJson(result);
+          else if (result.passed) {
+            printLine(`Unity player smoke passed: ${result.exePath}`);
+            printLine(`Log: ${result.logPath}`);
+          } else {
+            printLine(`Unity player smoke failed: ${result.message ?? 'unknown error'}`);
+            if (result.stdout) printUnityDiagnostics(result);
           }
           process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
         } catch (error) {

@@ -3,6 +3,7 @@ import {
   detectUnity,
   runUnityBuild,
   runUnityScreenshot,
+  runUnitySmoke,
   runUnityVerifier,
   verifyUnityProject,
   type ComposeUnityOptions,
@@ -60,6 +61,7 @@ export function unityVerifyCommand(options: UnityVerifyOptions): UnityVerifyComm
 
 export function unityBuildCommand(options: {
   projectDir: string;
+  target?: 'windows' | 'webgl';
   outPath?: string;
   unityBin?: string;
   timeoutMs?: number;
@@ -75,7 +77,20 @@ export function unityBuildCommand(options: {
   return runUnityBuild({
     projectDir: options.projectDir,
     unityBin: unity.bin,
+    target: options.target,
     outPath: options.outPath,
+    timeoutMs: options.timeoutMs,
+  });
+}
+
+export function unitySmokeCommand(options: {
+  projectDir: string;
+  exePath?: string;
+  timeoutMs?: number;
+}) {
+  return runUnitySmoke({
+    projectDir: options.projectDir,
+    exePath: options.exePath,
     timeoutMs: options.timeoutMs,
   });
 }

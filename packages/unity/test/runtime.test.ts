@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import {
@@ -9,6 +9,7 @@ import {
   hasUnityMarker,
   runUnityBuild,
   runUnityScreenshot,
+  runUnitySmoke,
   runUnityVerifier,
 } from '../src/index.js';
 
@@ -69,6 +70,10 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(build.message).toBeUndefined();
     expect(build.passed).toBe(true);
     expect(existsSync(build.outputPath)).toBe(true);
+    const smoke = runUnitySmoke({ projectDir: outDir, exePath: build.outputPath });
+    expect(smoke.message).toBeUndefined();
+    expect(smoke.passed).toBe(true);
+    expect(readFileSync(smoke.logPath, 'utf8')).toContain('UNITY_SMOKE_OK');
     const shot = runUnityScreenshot({
       projectDir: outDir,
       unityBin: unity!.bin,
@@ -77,5 +82,6 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(shot.message).toBeUndefined();
     expect(shot.passed).toBe(true);
     expect(existsSync(shot.imagePath)).toBe(true);
+    rmSync(dirname(outDir), { recursive: true, force: true });
   }, 400_000);
 });

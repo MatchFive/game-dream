@@ -9,6 +9,54 @@ public static class ProjectBuilder
 {
     private const string ScenePath = "Assets/Scenes/Main.unity";
 
+    public static void BuildWebGL()
+    {
+        try
+        {
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL))
+            {
+                Debug.LogError("UNITY_WEBGL_BUILD_MISSING_TARGET: install WebGL Build Support");
+                EditorApplication.Exit(1);
+                return;
+            }
+            EnsureScene();
+            string output = Environment.GetEnvironmentVariable("GAMEDREAM_BUILD_OUT");
+            if (string.IsNullOrEmpty(output))
+            {
+                output = "Builds/WebGL";
+            }
+            output = Path.GetFullPath(output);
+            if (Directory.Exists(output))
+            {
+                Directory.Delete(output, true);
+            }
+            Directory.CreateDirectory(output);
+            BuildReport report = BuildPipeline.BuildPlayer(
+                new BuildPlayerOptions
+                {
+                    scenes = new[] { ScenePath },
+                    locationPathName = output,
+                    target = BuildTarget.WebGL,
+                    options = BuildOptions.None,
+                }
+            );
+            string index = Path.Combine(output, "index.html");
+            if (report.summary.result != BuildResult.Succeeded || !File.Exists(index))
+            {
+                Debug.LogError("UNITY_WEBGL_BUILD_FAILED: " + report.summary.result);
+                EditorApplication.Exit(1);
+                return;
+            }
+            Debug.Log("UNITY_WEBGL_BUILD_OK " + output);
+            EditorApplication.Exit(0);
+        }
+        catch (Exception error)
+        {
+            Debug.LogException(error);
+            EditorApplication.Exit(1);
+        }
+    }
+
     public static void BuildWindows()
     {
         try

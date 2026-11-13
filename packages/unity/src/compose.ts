@@ -21,6 +21,7 @@ export const UNITY_PROJECT_FILES = [
   'Assets/Scripts/GameSim.cs',
   'Assets/Scripts/GameBootstrap.cs',
   'Assets/Scripts/ScreenshotRunner.cs',
+  'Assets/Scripts/SmokeRunner.cs',
   'Assets/Editor/EditorVerifier.cs',
   'Assets/Editor/ProjectBuilder.cs',
   'Assets/Editor/ScreenshotCapture.cs',

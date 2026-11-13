@@ -12,6 +12,7 @@ const SCRIPT_META_FILES = [
   'Assets/Scripts/GameSim.cs.meta',
   'Assets/Scripts/GameBootstrap.cs.meta',
   'Assets/Scripts/ScreenshotRunner.cs.meta',
+  'Assets/Scripts/SmokeRunner.cs.meta',
   'Assets/Editor/EditorVerifier.cs.meta',
   'Assets/Editor/ProjectBuilder.cs.meta',
   'Assets/Editor/ScreenshotCapture.cs.meta',
@@ -139,10 +140,19 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'BuildPipeline.BuildPlayer',
       'StandaloneWindows64',
       'UNITY_BUILD_OK',
+      'BuildWebGL',
+      'UNITY_WEBGL_BUILD_OK',
       'EnsureScene',
     ],
   );
   if (builderError) return { passed: false, message: builderError };
+
+  const smokeError = checkContains(
+    'Assets/Scripts/SmokeRunner.cs',
+    read(join(projectDir, 'Assets/Scripts/SmokeRunner.cs')),
+    ['class SmokeRunner', 'UNITY_SMOKE_OK', 'GAMEDREAM_SMOKE_OUT', 'Application.Quit'],
+  );
+  if (smokeError) return { passed: false, message: smokeError };
 
   const screenshotError = checkContains(
     'Assets/Editor/ScreenshotCapture.cs',
