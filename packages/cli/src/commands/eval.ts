@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import {
+  AgentError,
   createProvider,
   draftGameSpec,
   selectTemplate,
@@ -11,6 +12,7 @@ export interface EvalCase {
   prompt: string;
   expected_template: string;
   expected_genre?: string;
+  expected_reason?: string;
 }
 
 export interface EvalResult {
@@ -19,6 +21,7 @@ export interface EvalResult {
   actualTemplate?: string;
   expectedGenre?: string;
   actualGenre?: string;
+  expectedReason?: string;
   reason?: string;
   passed: boolean;
   error?: string;
@@ -43,6 +46,8 @@ export interface EvalOptions {
 export function loadEvalCases(path: string): EvalCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
   if (!Array.isArray(data)) throw new Error('eval fixtures must be an array');
+  if (data.length === 0) throw new Error('eval fixtures must not be empty');
+  const seen = new Set<string>();
   return data.map((entry, index) => {
     if (
       typeof entry !== 'object' ||
@@ -53,17 +58,28 @@ export function loadEvalCases(path: string): EvalCase[] {
       throw new Error(`invalid eval case at index ${index}`);
     }
     const value = entry as EvalCase;
+    const key = value.prompt.trim().toLowerCase();
+    if (seen.has(key)) throw new Error(`duplicate eval prompt at index ${index}`);
+    seen.add(key);
     return {
       prompt: value.prompt,
       expected_template: value.expected_template,
       expected_genre:
         typeof value.expected_genre === 'string' ? value.expected_genre : undefined,
+      expected_reason:
+        typeof value.expected_reason === 'string' ? value.expected_reason : undefined,
     };
   });
 }
 
+function errorText(error: unknown): string {
+  if (error instanceof AgentError) return `${error.code}: ${error.message}`;
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function evalCommand(options: EvalOptions): Promise<EvalReport> {
   const cases = loadEvalCases(options.fixturesPath);
+  selectTemplate({ prompt: '', genre: '', templatesDir: options.templatesDir });
   const provider =
     options.provider ??
     createProvider({
@@ -86,22 +102,26 @@ export async function evalCommand(options: EvalOptions): Promise<EvalReport> {
       const genreOk =
         !testCase.expected_genre || draft.genre.primary === testCase.expected_genre;
       const templateOk = selection.templateId === testCase.expected_template;
+      const reasonOk =
+        !testCase.expected_reason || selection.reason === testCase.expected_reason;
       results.push({
         prompt: testCase.prompt,
         expectedTemplate: testCase.expected_template,
         actualTemplate: selection.templateId,
         expectedGenre: testCase.expected_genre,
         actualGenre: draft.genre.primary,
+        expectedReason: testCase.expected_reason,
         reason: selection.reason,
-        passed: genreOk && templateOk,
+        passed: genreOk && templateOk && reasonOk,
       });
     } catch (error) {
       results.push({
         prompt: testCase.prompt,
         expectedTemplate: testCase.expected_template,
         expectedGenre: testCase.expected_genre,
+        expectedReason: testCase.expected_reason,
         passed: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorText(error),
       });
     }
   }
