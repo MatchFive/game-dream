@@ -11,6 +11,7 @@
     "test:e2e": "vitest run test/e2e.test.ts"
   },
   "dependencies": {
+    "@gamedream/agent": "workspace:*",
     "@gamedream/core": "workspace:*",
     "@gamedream/godot": "workspace:*",
     "commander": "^12.1.0"

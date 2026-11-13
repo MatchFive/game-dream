@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
+      '@gamedream/agent': fileURLToPath(
+        new URL('./packages/agent/src/index.ts', import.meta.url),
+      ),
       '@gamedream/core': fileURLToPath(
         new URL('./packages/core/src/index.ts', import.meta.url),
       ),

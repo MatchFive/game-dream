@@ -21,8 +21,27 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.5)
 
+  packages/agent:
+    dependencies:
+      '@gamedream/core':
+        specifier: workspace:*
+        version: link:../core
+      yaml:
+        specifier: ^2.6.1
+        version: 2.9.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/cli:
     dependencies:
+      '@gamedream/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@gamedream/core':
         specifier: workspace:*
         version: link:../core
