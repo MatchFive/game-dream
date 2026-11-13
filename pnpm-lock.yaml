@@ -33,9 +33,18 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
       '@types/semver':
         specifier: ^7.5.8
         version: 7.8.0
+
+  packages/testing:
+    dependencies:
+      yaml:
+        specifier: ^2.6.1
+        version: 2.9.1
 
 packages:
 
