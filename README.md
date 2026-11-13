@@ -13,6 +13,18 @@ genre template selection, and the `dream create` command.
   - Windows: `C:\path\to\Godot_v4.4.1-stable_win64_console.exe`
   - Linux/macOS: the `godot` binary
 
+## Configuration
+
+Copy `.env.example` to `.env` in the repository root and fill in the values. The
+CLI loads `.env` automatically; explicit environment variables take precedence.
+
+- `OPENAI_API_KEY` — required for `--provider openai`
+- `OPENAI_BASE_URL` — defaults to `https://api.openai.com/v1`
+- `GAMEDREAM_MODEL` — defaults to `gpt-4o-mini`
+- `GAMEDREAM_VISION_MODEL` — defaults to `gpt-4o-mini`
+- `GODOT_BIN` — console Godot 4.4+ executable
+- `UNITY_BIN` — optional Unity editor path
+
 ## Commands
 
 ```bash
