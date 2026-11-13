@@ -151,6 +151,7 @@ dream unity verify --path ./unity-game --runtime
 dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
 dream unity build --path ./unity-game
 dream unity build --path ./unity-game --target webgl
+dream unity webgl-check --path ./unity-game/Builds/WebGL
 dream unity smoke --path ./unity-game
 dream unity screenshot --path ./unity-game
 ```
@@ -184,7 +185,8 @@ renders the arena to a PNG, and exits. Both require a fresh output file and
 avoid Unity's long-path build issues. `--target webgl` requires a fresh
 `index.html` + `Build/` directory. WebGL is built with compression disabled, so
 serve `Builds/WebGL` over HTTP (for example `python -m http.server`) rather than
-opening `index.html` via `file://`. `unity smoke` launches the built exe with
+opening `index.html` via `file://`. `unity webgl-check` serves the directory,
+loads it in headless Chrome/Edge, and requires a non-blank 1280×720 screenshot. `unity smoke` launches the built exe with
 `GAMEDREAM_SMOKE_OUT=1` and requires `UNITY_BOOT_OK` + `UNITY_SMOKE_OK` in its
 log; a player without a matching build stamp is rejected.
 

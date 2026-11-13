@@ -14,6 +14,7 @@ public sealed class GameBootstrap : MonoBehaviour
     private bool _reportedLose;
     private bool _showInventory;
     private bool _showQuests;
+    private bool _showEquipment;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -193,6 +194,10 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             _showQuests = !_showQuests;
         }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            _showEquipment = !_showEquipment;
+        }
         if (Input.GetKeyDown(KeyCode.F5) && !Application.isEditor)
         {
             SaveStore.Save(_sim, _config.name);
@@ -286,7 +291,7 @@ public sealed class GameBootstrap : MonoBehaviour
         );
         GUI.Label(
             new Rect(16f, 42f, 900f, 24f),
-            $"WASD/Arrows move   J/Space attack   I inventory   Q quests   F5 save   R restart   DMG {_sim.PlayerDamage}   MAX {_sim.PlayerMaxHp}"
+            $"WASD/Arrows move   J/Space attack   I inventory   Q quests   E equipment   F5 save   R restart   DMG {_sim.PlayerDamage}   MAX {_sim.PlayerMaxHp}"
         );
         string items = "";
         foreach (var entry in _sim.Inventory)
@@ -314,6 +319,25 @@ public sealed class GameBootstrap : MonoBehaviour
             {
                 GUI.Label(new Rect(28f, y, 390f, 22f), "Empty");
             }
+        }
+        if (_showEquipment)
+        {
+            GUI.Box(new Rect(16f, 310f, 420f, 180f), "Equipment");
+            float y = 336f;
+            foreach (var entry in _sim.Equipment)
+            {
+                GUI.Label(
+                    new Rect(28f, y, 390f, 22f),
+                    entry.Key + ": " + _sim.EquippedName(entry.Key)
+                );
+                y += 22f;
+            }
+            if (_sim.Equipment.Count == 0)
+            {
+                GUI.Label(new Rect(28f, y, 390f, 22f), "Empty");
+            }
+            GUI.Label(new Rect(28f, y + 28f, 390f, 22f), "DMG " + _sim.PlayerDamage);
+            GUI.Label(new Rect(28f, y + 50f, 390f, 22f), "MAX HP " + _sim.PlayerMaxHp);
         }
         if (_showQuests)
         {

@@ -10,6 +10,7 @@ import {
   type UnityGameConfig,
   type UnityRuntimeResult,
 } from '@gamedream/unity';
+import { verifyWebVisual } from '@gamedream/web';
 
 export interface UnityComposeOptions extends ComposeUnityOptions {}
 
@@ -116,6 +117,26 @@ export function unityScreenshotCommand(options: {
     unityBin: unity.bin,
     outPath: options.outPath,
     timeoutMs: options.timeoutMs,
+  });
+}
+
+export async function unityWebGLVerifyCommand(options: {
+  projectDir: string;
+  outPath?: string;
+  width?: number;
+  height?: number;
+  browserBin?: string;
+  settleMs?: number;
+  timeoutMs?: number;
+}) {
+  return verifyWebVisual({
+    projectDir: options.projectDir,
+    outPath: options.outPath,
+    width: options.width ?? 1280,
+    height: options.height ?? 720,
+    browserBin: options.browserBin,
+    settleMs: options.settleMs ?? 12_000,
+    timeoutMs: options.timeoutMs ?? 90_000,
   });
 }
 

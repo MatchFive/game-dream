@@ -33,6 +33,7 @@ import {
   unityScreenshotCommand,
   unitySmokeCommand,
   unityVerifyCommand,
+  unityWebGLVerifyCommand,
 } from './commands/unity.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
@@ -807,6 +808,78 @@ export function createProgram(): Command {
             if (result.stdout) printUnityDiagnostics(result);
           }
           process.exitCode = result.passed ? 0 : result.exitCode ?? 1;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  unityCommand
+    .command('webgl-check')
+    .description('Load a built WebGL directory in a real headless browser')
+    .requiredOption('--path <dir>')
+    .option('--out <png>', 'screenshot output path')
+    .option('--width <px>', 'viewport width', '1280')
+    .option('--height <px>', 'viewport height', '720')
+    .option('--browser <path>', 'Chrome/Edge executable')
+    .option('--settle <ms>', 'extra settle time after page load', '12000')
+    .option('--timeout <ms>', 'browser timeout', '90000')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: {
+        path: string;
+        out?: string;
+        width: string;
+        height: string;
+        browser?: string;
+        settle: string;
+        timeout: string;
+        json?: boolean;
+      }) => {
+        try {
+          const width = Number(options.width);
+          const height = Number(options.height);
+          const settleMs = Number(options.settle);
+          const timeoutMs = Number(options.timeout);
+          if (
+            !Number.isInteger(width) ||
+            !Number.isInteger(height) ||
+            width < 320 ||
+            height < 240 ||
+            !Number.isFinite(settleMs) ||
+            settleMs < 0 ||
+            !Number.isFinite(timeoutMs) ||
+            timeoutMs <= 0
+          ) {
+            printLine('invalid WebGL check width/height/settle/timeout');
+            process.exitCode = 1;
+            return;
+          }
+          const result = await unityWebGLVerifyCommand({
+            projectDir: options.path,
+            outPath: options.out,
+            width,
+            height,
+            browserBin: options.browser,
+            settleMs,
+            timeoutMs,
+          });
+          if (options.json) printJson(result);
+          else if (result.passed) {
+            printLine(`WebGL screenshot: ${result.imagePath}`);
+            if (result.metrics) {
+              printLine(
+                `Metrics: ${result.metrics.width}x${result.metrics.height}, ${result.metrics.colors} colors`,
+              );
+            }
+          } else {
+            printLine(`Unity WebGL check failed: ${result.message ?? 'unknown error'}`);
+            if (result.pageErrors?.length) printLine(result.pageErrors.slice(0, 3).join('; '));
+            if (result.stderr) printLine(result.stderr);
+          }
+          process.exitCode = result.passed ? 0 : result.exitCode;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

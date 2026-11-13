@@ -45,6 +45,19 @@ namespace GameDream
         public float PlayerAttackRange => _config.player.attack_range;
         public float PlayerSpeed => _config.player.speed;
 
+        public string EquippedName(string slot)
+        {
+            string itemId;
+            if (!Equipment.TryGetValue(slot, out itemId))
+            {
+                return "";
+            }
+            ItemConfig item;
+            return _items.TryGetValue(itemId, out item)
+                ? (string.IsNullOrEmpty(item.name) ? item.id : item.name)
+                : itemId;
+        }
+
         private readonly GameConfig _config;
         private readonly Dictionary<string, ItemConfig> _items = new Dictionary<string, ItemConfig>();
         private readonly Dictionary<string, LootTableConfig> _loot =

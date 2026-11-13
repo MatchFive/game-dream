@@ -22,6 +22,7 @@ before any marker appears.
 ```text
 dream unity build --path <this-folder> --out <this-folder>/Builds/Windows/GameDream.exe
 dream unity build --path <this-folder> --target webgl
+dream unity webgl-check --path <this-folder>/Builds/WebGL
 dream unity smoke --path <this-folder>
 dream unity screenshot --path <this-folder> --out <this-folder>/Screenshots/unity.png
 ```
