@@ -43,7 +43,7 @@
   },
   {
     "id": "survivor",
-    "prompt": "做一个类吸血鬼幸存者的俯视角生存游戏，自动攻击、升级和怪潮",
+    "prompt": "做一个类吸血鬼幸存者 demo，有自动攻击、武器升级选择、精英怪、Boss 和 60 秒生存",
     "expected_genre": "survivor",
     "expected_template": "survivor-topdown",
     "expected_playable": true

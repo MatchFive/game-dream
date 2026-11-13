@@ -305,9 +305,10 @@ headless wave management. It also passes G1/G2/G3/G6.
 boxes, two levels, push/win markers, and a headless BFS solver. Puzzle prompts
 now classify as puzzle instead of action-rpg.
 
-`survivor-topdown` is a real Godot template (`system.survivor`): top-down
-survival, continuous enemy spawns, auto-attacks, XP levels that increase damage,
-a survival timer, and headless auto-play. It also passes G1/G2/G3/G6.
+`survivor-topdown` is a real Godot template (`system.survivor`): a 60-second
+demo with crawlers, brutes, XP gems, three auto-weapons (bolt/aura/nova),
+level-up upgrade choices, a boss at 40 seconds, and a half-HP boss phase. It
+also passes G1/G2/G3/G6, with headless time scaling for CI.
 
 ## Release artifacts
 

@@ -31,5 +31,6 @@ adding `platformer-2d`: `2 playable / 4 fallback / 0 failed`. After adding
 `tower-defense`: `5 playable / 1 fallback / 0 failed`. After adding
 `puzzle-2d`: `6 playable / 0 fallback / 0 failed`. After adding
 `survivor-topdown`: `7 playable / 0 fallback / 0 failed` (all seven cases
-playable; `dream benchmark` exits 0). This is the baseline to improve, not a
-release-quality score.
+playable; `dream benchmark` exits 0). The survivor case is now a 60-second demo
+with three weapons, upgrade choices, XP gems, elite brutes, and a phased boss.
+This is the baseline to improve, not a release-quality score.

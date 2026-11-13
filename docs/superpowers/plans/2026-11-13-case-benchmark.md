@@ -33,7 +33,8 @@
 - Tower-defense slice: path, waves, build/upgrade, automatic fire.
 - Puzzle verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 20 colors.
 - Puzzle slice: Sokoban levels, pushes, BFS autoplay, corrected classification.
-- Survivor verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 24 colors.
-- Survivor slice: continuous spawns, auto-attack, XP levels, survival timer.
+- Survivor verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 27 colors.
+- Survivor demo: 60 seconds, three weapons, upgrade choices, XP gems, brutes,
+  phased boss; headless time scaling.
 - Unit tests cover playable-vs-fallback and duplicate case rejection.
 - No UE changes.

@@ -20,6 +20,12 @@ input_actions:
     keys: [S, DOWN]
   - name: restart
     keys: [R]
+  - name: upgrade_1
+    keys: ["1"]
+  - name: upgrade_2
+    keys: ["2"]
+  - name: upgrade_3
+    keys: ["3"]
 main_scene: scenes/arena.tscn
 scenarios: [scenarios/survivor.yaml]
 tests: []

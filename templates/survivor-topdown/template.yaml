@@ -10,13 +10,14 @@ modules:
   optional: []
 minimum_complete:
   levels: 1
-  enemies: 12
-  bosses: 0
-  skills: 0
+  enemies: 20
+  bosses: 1
+  skills: 3
   items: 0
   quests: 0
 acceptance:
   - "玩家可移动，角色自动攻击附近的怪潮"
-  - "击杀获得经验并升级，存活到计时结束"
+  - "击杀获得经验和掉落宝石，升级时选择武器强化"
+  - "精英怪、Boss、Boss 半血阶段和 60 秒生存"
 acceptance_markers:
-  [GAMEDREAM_BOOT_OK, GAMEDREAM_SURVIVOR_SPAWN, GAMEDREAM_SURVIVOR_LEVEL, GAMEDREAM_WIN]
+  [GAMEDREAM_BOOT_OK, GAMEDREAM_SURVIVOR_SPAWN, GAMEDREAM_SURVIVOR_LEVEL, GAMEDREAM_UPGRADE, GAMEDREAM_BOSS, GAMEDREAM_BOSS_PHASE, GAMEDREAM_WIN]
