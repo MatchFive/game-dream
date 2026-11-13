@@ -1,0 +1,7 @@
+id: quests.kill
+module: system.quests
+when:
+  - emit: enemy.died
+    payload: { kind: slime }
+then:
+  - assert_signal: quest.completed

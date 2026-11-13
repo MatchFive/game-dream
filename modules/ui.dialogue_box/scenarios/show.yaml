@@ -1,0 +1,7 @@
+id: dialogue_box.show
+module: ui.dialogue_box
+when:
+  - emit: dialogue.line
+    payload: { speaker: Guide, text: Hello }
+then:
+  - assert_node_visible: DialogueBox

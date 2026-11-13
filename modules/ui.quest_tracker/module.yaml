@@ -1,0 +1,19 @@
+id: ui.quest_tracker
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike]
+depends:
+  core.events: "^1.0.0"
+  system.quests: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: quest_tracker
+    scene: scenes/quest_tracker.tscn
+    layer: 15
+scenarios: [scenarios/update.yaml]
+ai_skill: skills/quest_tracker.md
+docs: api.md
+license: Apache-2.0

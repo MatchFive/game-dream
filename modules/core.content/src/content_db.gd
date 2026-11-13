@@ -3,6 +3,8 @@ extends Node
 var items: Dictionary = {}
 var skills: Dictionary = {}
 var loot_tables: Dictionary = {}
+var quests: Dictionary = {}
+var dialogue: Dictionary = {}
 
 func _ready() -> void:
 	Game.register_service("content", self)
@@ -10,6 +12,8 @@ func _ready() -> void:
 	_load_dir("skills", skills)
 	_load_dir("loot", loot_tables)
 	_load_dir("loot_tables", loot_tables, false)
+	_load_dir("quests", quests)
+	_load_dir("dialogue", dialogue)
 
 func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) -> void:
 	var path := "res://game/content/%s" % folder
@@ -39,3 +43,9 @@ func get_skill(id: String) -> Dictionary:
 
 func get_loot_table(id: String) -> Dictionary:
 	return loot_tables.get(id, {})
+
+func get_quest(id: String) -> Dictionary:
+	return quests.get(id, {})
+
+func get_dialogue(id: String) -> Dictionary:
+	return dialogue.get(id, {})

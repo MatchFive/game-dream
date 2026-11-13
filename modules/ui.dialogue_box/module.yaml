@@ -1,0 +1,19 @@
+id: ui.dialogue_box
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike]
+depends:
+  core.events: "^1.0.0"
+  system.dialogue: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: dialogue
+    scene: scenes/dialogue_box.tscn
+    layer: 35
+scenarios: [scenarios/show.yaml]
+ai_skill: skills/dialogue_box.md
+docs: api.md
+license: Apache-2.0

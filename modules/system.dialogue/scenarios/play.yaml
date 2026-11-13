@@ -1,0 +1,8 @@
+id: dialogue.play
+module: system.dialogue
+when:
+  - call: dialogue.start
+    args: [intro]
+  - call: dialogue.advance
+then:
+  - assert_signal: dialogue.line

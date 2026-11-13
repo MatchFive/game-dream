@@ -33,6 +33,8 @@ describe('m0 composition', () => {
     expect(main).toContain('system.gameflow/scenes/game.tscn');
     expect(main).toContain('ui.hud/scenes/hud.tscn');
     expect(main).not.toContain('ui.inventory_screen');
+    expect(main).not.toContain('ui.quest_tracker');
+    expect(main).not.toContain('ui.dialogue_box');
 
     const mainScript = readFileSync(join(outDir, 'game/_generated/main.gd'), 'utf8');
     expect(mainScript).toContain('missing input action');

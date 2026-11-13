@@ -74,8 +74,10 @@ verification.
 Action-RPG prompts now select the `rpg-action-m1` template: a single arena with a
 player, one enemy, health/combat, progression, loot, equipment, and a skill.
 Desktop controls: **WASD** move, **J / Space** attack, **K** cast Ember Bolt.
-Headless autoplay prints `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
-`GAMEDREAM_SKILL_CAST`, and `GAMEDREAM_WIN`.
+Headless autoplay prints `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`,
+`GAMEDREAM_EQUIPPED`, `GAMEDREAM_SKILL_CAST`, `GAMEDREAM_QUEST_COMPLETE`, and
+`GAMEDREAM_WIN`. The intro dialogue and kill quest come from
+`game/content/dialogue` and `game/content/quests`; the quest tracker is always on.
 
 UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
 The pause menu saves to `user://save.json`; the main menu offers New Game /

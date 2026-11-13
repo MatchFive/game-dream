@@ -1,0 +1,19 @@
+id: system.dialogue
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, roguelike]
+depends:
+  core.content: "^1.0.0"
+  core.events: "^1.0.0"
+provides:
+  services: [dialogue]
+autoloads:
+  - name: DialogueService
+    path: src/dialogue_service.gd
+    order: 46
+scenarios: [scenarios/play.yaml]
+ai_skill: skills/dialogue.md
+docs: api.md
+license: Apache-2.0

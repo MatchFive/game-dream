@@ -38,6 +38,8 @@ describe('m1 composition', () => {
     const main = readFileSync(join(outDir, 'game/_generated/main.tscn'), 'utf8');
     expect(main).toContain('system.gameflow/scenes/game.tscn');
     expect(main).toContain('ui.hud/scenes/hud.tscn');
+    expect(main).toContain('ui.quest_tracker/scenes/quest_tracker.tscn');
+    expect(main).toContain('ui.dialogue_box/scenes/dialogue_box.tscn');
     expect(main).toContain('ui.inventory_screen/scenes/inventory_screen.tscn');
     expect(main).toContain('ui.equipment_screen/scenes/equipment_screen.tscn');
     expect(main).toContain('ui.skill_screen/scenes/skill_screen.tscn');
@@ -65,7 +67,15 @@ describe('m1 composition', () => {
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',
       'GAMEDREAM_SKILL_CAST',
+      'GAMEDREAM_QUEST_COMPLETE',
+      'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_WIN',
     ]);
+    expect(
+      existsSync(join(outDir, 'game/content/quests/kill_slime.json')),
+    ).toBe(true);
+    expect(
+      existsSync(join(outDir, 'game/content/dialogue/intro.json')),
+    ).toBe(true);
   });
 });

@@ -1,0 +1,13 @@
+{
+  "id": "intro",
+  "lines": [
+    {
+      "speaker": "Guide",
+      "text": "The forest is corrupted. Defeat the slime."
+    },
+    {
+      "speaker": "Guide",
+      "text": "Use your blade and Ember Bolt. Stay alive."
+    }
+  ]
+}

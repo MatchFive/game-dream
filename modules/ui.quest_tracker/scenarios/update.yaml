@@ -1,0 +1,6 @@
+id: quest_tracker.update
+module: ui.quest_tracker
+when:
+  - emit: quest.changed
+then:
+  - assert_node_text: { node: QuestTracker/Panel/Label, contains: "Slime" }

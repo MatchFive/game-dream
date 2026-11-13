@@ -1,0 +1,12 @@
+{
+  "id": "kill_slime",
+  "title": "Slime Trouble",
+  "objective": {
+    "type": "kill",
+    "target": "slime",
+    "count": 1
+  },
+  "reward": {
+    "xp": 10
+  }
+}

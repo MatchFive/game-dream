@@ -9,7 +9,20 @@ func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
 	enemy.get_node("Health").died.connect(_win)
 	if DisplayServer.get_name() == "headless":
-		_autoplay()
+		_headless_start()
+	else:
+		var dialogue = Game.get_service("dialogue")
+		if dialogue:
+			dialogue.start("intro")
+
+func _headless_start() -> void:
+	var dialogue = Game.get_service("dialogue")
+	if dialogue and dialogue.start("intro"):
+		while dialogue.is_active():
+			await get_tree().create_timer(0.05).timeout
+			dialogue.advance()
+		print("GAMEDREAM_DIALOGUE")
+	_autoplay()
 
 func _win() -> void:
 	if _finished:
@@ -40,6 +53,9 @@ func _win() -> void:
 	var skills = Game.get_service("skills")
 	if skills and skills.cast_count > 0:
 		print("GAMEDREAM_SKILL_CAST")
+	var quests = Game.get_service("quests")
+	if quests and quests.completed_count > 0:
+		print("GAMEDREAM_QUEST_COMPLETE")
 	print("GAMEDREAM_WIN")
 	get_tree().quit(0)
 
