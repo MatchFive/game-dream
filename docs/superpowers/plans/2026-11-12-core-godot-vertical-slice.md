@@ -1,5 +1,11 @@
 # GameDream Core + Godot Vertical Slice Implementation Plan
 
+> **Post-review corrections (2026-11-12):** the implementation review found four plan defects; the code now follows the design spec and is covered by tests:
+> - Task 7: `copyModules` fully syncs/prunes `modules/` and the lockfile hashes the **copied** tree.
+> - Task 8: `project.godot` is merged (managed autoloads/main scene only; user sections preserved; `.bak` written), not overwritten.
+> - Task 5: the resolver checks each module's `engine_version` and includes `template.modules.optional` when the matching `spec.systems` flag is true.
+> - CLI `verify` exits `3` when engine gates are skipped; `doctor` exits `3` for missing/older-than-4.4 Godot.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the deterministic core pipeline that turns a fixture GameSpec + genre template into a bootable Godot project with four local modules, and prove it with a headless boot/inventory test.
