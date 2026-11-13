@@ -42,7 +42,57 @@ describe('web sim', () => {
     expect(sim.isWall(state, 20, 48)).toBe(true);
   });
 
-  it('adds loot and completes kill quests', async () => {
+  it('snaps spawns out of walls and has no walls without a map', async () => {
+    const sim = await loadSim();
+    const m0 = sim.createSim(config);
+    expect(sim.isWall(m0, 0, 0)).toBe(false);
+
+    const state = sim.createSim({
+      ...config,
+      levels: [
+        {
+          id: 'spawn',
+          name: 'Spawn',
+          map: {
+            rows: ['#####', '##.##', '#####'],
+            tile_size: 32,
+            tileset: { floor: '2f5d3a', wall: '1b3324' },
+          },
+          enemy: { kind: 'slime', max_hp: 30, attack_damage: 5, speed: 0, x: 80, y: 48, scale: 1 },
+        },
+      ],
+    });
+    expect(sim.isWall(state, state.player.x, state.player.y, 12)).toBe(false);
+    expect(state.player.x).toBe(80);
+  });
+
+  it('samples the whole boss box against thin walls', async () => {
+    const sim = await loadSim();
+    const rows = [
+      '############',
+      '#..........#',
+      '#..........#',
+      '#..........#',
+      '#..........#',
+      '#.......#..#',
+      '#..........#',
+      '############',
+    ];
+    const state = sim.createSim({
+      ...config,
+      levels: [
+        {
+          id: 'boss',
+          name: 'Boss',
+          map: { rows, tile_size: 32, tileset: { floor: '2f5d3a', wall: '1b3324' } },
+          enemy: { kind: 'boss', max_hp: 120, attack_damage: 8, speed: 70, x: 700, y: 240, scale: 1.8 },
+        },
+      ],
+    });
+    expect(sim.isWall(state, 272, 176, 21.6)).toBe(true);
+  });
+
+  it('adds boss loot and completes kill quests', async () => {
     const sim = await loadSim();
     const state = sim.createSim({
       ...config,

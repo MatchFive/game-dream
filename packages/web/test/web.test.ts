@@ -52,6 +52,15 @@ describe('web M0', () => {
     });
     expect(existsSync(join(outDir, 'assets/system.player/player.svg'))).toBe(true);
     expect(result.config.levels?.[1].map.tileset.floor).toBe('3b3a5a');
+    const html = readFileSync(join(outDir, 'index.html'), 'utf8');
+    expect(html).toContain('id="inventory"');
+    expect(html).toContain('id="quests"');
+    expect(html).toContain('class="panel hidden"');
+    const game = readFileSync(join(outDir, 'game.js'), 'utf8');
+    expect(game).toContain("key === 'i'");
+    expect(game).toContain("key === 'q'");
+    expect(game).toContain("key === 'escape'");
+    expect(game).toContain('Object.values(state.inventory).reduce');
 
     const verified = verifyWebProject({ projectDir: outDir, frames: 900 });
     expect(verified.passed).toBe(true);

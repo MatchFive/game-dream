@@ -63,6 +63,8 @@ export function startLevel(state, index) {
     speed: level.enemy.speed,
     damage: level.enemy.attack_damage,
   };
+  snapToFloor(state, state.player, 12);
+  snapToFloor(state, state.enemy, 12 * state.enemy.scale);
 }
 
 export function distance(a, b) {
@@ -81,12 +83,56 @@ function tileAt(state, x, y) {
 }
 
 export function isWall(state, x, y, half = 12) {
-  return [
-    [-half, -half],
-    [half, -half],
-    [-half, half],
-    [half, half],
-  ].some(([dx, dy]) => tileAt(state, x + dx, y + dy) === '#');
+  if (!state.map) return false;
+  const size = state.map.tile_size;
+  const x0 = Math.floor((x - half) / size);
+  const x1 = Math.floor((x + half - 1e-6) / size);
+  const y0 = Math.floor((y - half) / size);
+  const y1 = Math.floor((y + half - 1e-6) / size);
+  for (let ty = y0; ty <= y1; ty += 1) {
+    for (let tx = x0; tx <= x1; tx += 1) {
+      if (tileAt(state, tx * size + size / 2, ty * size + size / 2) === '#') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function snapToFloor(state, actor, half) {
+  if (!state.map || !isWall(state, actor.x, actor.y, half)) return;
+  const size = state.map.tile_size;
+  let best = null;
+  let bestDistance = Infinity;
+  for (let ty = 0; ty < state.map.rows.length; ty += 1) {
+    for (let tx = 0; tx < state.map.rows[ty].length; tx += 1) {
+      if (state.map.rows[ty][tx] === '#') continue;
+      const x = tx * size + size / 2;
+      const y = ty * size + size / 2;
+      if (isWall(state, x, y, half)) continue;
+      const d = Math.hypot(x - actor.x, y - actor.y);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = { x, y };
+      }
+    }
+  }
+  if (best) {
+    actor.x = best.x;
+    actor.y = best.y;
+  }
+}
+
+function hasLineOfSight(state, a, b) {
+  if (!state.map) return true;
+  const steps = Math.ceil(distance(a, b) / (state.map.tile_size / 2));
+  for (let i = 1; i < steps; i += 1) {
+    const t = i / steps;
+    if (tileAt(state, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t) === '#') {
+      return false;
+    }
+  }
+  return true;
 }
 
 function moveActor(state, actor, dx, dy, half) {
@@ -109,8 +155,9 @@ function completeKillQuests(state, kind) {
   }
 }
 
-export function step(state, input, dt) {
+export function step(state, input, rawDt) {
   if (state.finished) return state;
+  const dt = Math.min(rawDt, 1 / 30);
   const player = state.player;
   const enemy = state.enemy;
   const config = state.config;
@@ -131,8 +178,10 @@ export function step(state, input, dt) {
     (dy / length) * config.player.speed * dt,
     12,
   );
-  player.x = Math.max(16, Math.min(width - 16, player.x));
-  player.y = Math.max(16, Math.min(height - 16, player.y));
+  if (!state.map) {
+    player.x = Math.max(16, Math.min(width - 16, player.x));
+    player.y = Math.max(16, Math.min(height - 16, player.y));
+  }
 
   const gap = distance(player, enemy);
   if (gap > config.enemy.attack_range) {
@@ -146,13 +195,15 @@ export function step(state, input, dt) {
       (ey / el) * enemy.speed * dt,
       12 * enemy.scale,
     );
-    enemy.x = Math.max(16, Math.min(width - 16, enemy.x));
-    enemy.y = Math.max(16, Math.min(height - 16, enemy.y));
+    if (!state.map) {
+      enemy.x = Math.max(16, Math.min(width - 16, enemy.x));
+      enemy.y = Math.max(16, Math.min(height - 16, enemy.y));
+    }
   } else {
     enemy.cooldown = Math.max(0, enemy.cooldown - dt);
     if (enemy.cooldown <= 0) {
       enemy.cooldown = config.enemy.attack_cooldown;
-      player.hp -= enemy.damage;
+      if (hasLineOfSight(state, player, enemy)) player.hp -= enemy.damage;
     }
   }
 
@@ -160,7 +211,8 @@ export function step(state, input, dt) {
   if (
     input.attack &&
     player.cooldown <= 0 &&
-    distance(player, enemy) <= config.player.attack_range
+    distance(player, enemy) <= config.player.attack_range &&
+    hasLineOfSight(state, player, enemy)
   ) {
     player.cooldown = config.player.attack_cooldown;
     enemy.hp -= config.player.damage;
