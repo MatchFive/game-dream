@@ -81,14 +81,13 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
     if (existsSync(configPath)) {
       const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
         levels?: unknown[];
+        loot?: unknown[];
       };
       if (Array.isArray(config.levels) && config.levels.length > 0) {
-        required.push(
-          'UNITY_MAP_OK',
-          'UNITY_QUEST_COMPLETE',
-          'UNITY_BOSS_PHASE',
-          'UNITY_LOOT_OK',
-        );
+        required.push('UNITY_MAP_OK', 'UNITY_QUEST_COMPLETE', 'UNITY_BOSS_PHASE');
+      }
+      if (Array.isArray(config.loot) && config.loot.length > 0) {
+        required.push('UNITY_LOOT_OK');
       }
     }
   } catch {

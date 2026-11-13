@@ -103,6 +103,21 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
   );
   if (simError) return { passed: false, message: simError };
 
+  const configError = checkContains(
+    'Assets/Scripts/GameConfig.cs',
+    read(join(projectDir, 'Assets/Scripts/GameConfig.cs')),
+    [
+      'class ItemConfig',
+      'class LootDropConfig',
+      'item_id',
+      'chance',
+      'class LootTableConfig',
+      'public ItemConfig[] items',
+      'public LootTableConfig[] loot',
+    ],
+  );
+  if (configError) return { passed: false, message: configError };
+
   const bootstrapError = checkContains(
     'Assets/Scripts/GameBootstrap.cs',
     read(join(projectDir, 'Assets/Scripts/GameBootstrap.cs')),
@@ -112,6 +127,8 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'UNITY_WIN',
       'UNITY_LOSE',
       'Input.GetKey',
+      'KeyCode.I',
+      'KeyCode.Q',
       'OnGUI',
       'GameSim',
     ],

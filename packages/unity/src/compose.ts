@@ -228,6 +228,12 @@ export function readUnityContent(contentDir: string): {
       loot.push({ id, drops: parsed });
     }
   }
+  for (const kind of new Set(levels.map((level) => level.enemy.kind))) {
+    const table = loot.find((entry) => entry.id === kind);
+    if (!table || table.drops.length === 0) {
+      throw new Error(`invalid Unity content: no loot table for enemy kind ${kind}`);
+    }
+  }
   return { levels, quests, items, loot };
 }
 

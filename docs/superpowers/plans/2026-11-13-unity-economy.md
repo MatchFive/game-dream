@@ -11,6 +11,8 @@
     `UNITY_QUEST_COMPLETE`, `UNITY_BOSS_PHASE`, `UNITY_WIN`.
   - content test: 6 items, 4 loot tables, wisp → `wisp_essence`.
 - M0 remains itemless and uses the existing arena fallback.
+- Loot tables are validated against every enemy kind; M1 runtime requires
+  `UNITY_LOOT_OK` only when loot tables are embedded.
 
 ## Notes
 

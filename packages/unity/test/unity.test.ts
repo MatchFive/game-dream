@@ -46,6 +46,11 @@ describe('unity M0 scaffold', () => {
       'wisp_essence',
     );
     expect(verifyUnityProject({ projectDir: outDir }).passed).toBe(true);
+
+    const m0 = join(makeTempDir('gamedream unity m0 content '), 'unity game');
+    const m0Result = composeUnityProject({ outDir: m0, templatesDir });
+    expect(m0Result.config.items).toBeUndefined();
+    expect(m0Result.config.loot).toBeUndefined();
   });
 
   it('refuses overwrite unless forced and preserves the old copy on failure', () => {
