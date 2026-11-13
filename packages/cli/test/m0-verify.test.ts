@@ -50,7 +50,7 @@ describe('m0 verify markers', () => {
       runner: bootOnly,
     });
     expect(report.gates.G3.status).toBe('fail');
-    expect(report.gates.G3.message).toContain('GAMEDREAM_LEVEL_UP');
+    expect(report.gates.G3.message).toContain('GAMEDREAM_DIALOGUE');
     expect(exitCodeFor(report)).toBe(2);
   });
 });

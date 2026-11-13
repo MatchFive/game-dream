@@ -8,11 +8,14 @@ var _finished := false
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
 	enemy.get_node("Health").died.connect(_win)
+	Game.events.event_emitted.connect(_on_event)
 	if DisplayServer.get_name() == "headless":
 		_headless_start()
-	else:
+
+func _on_event(event_name: String, _payload: Variant) -> void:
+	if event_name == "game.started":
 		var dialogue = Game.get_service("dialogue")
-		if dialogue:
+		if dialogue and not dialogue.is_active():
 			dialogue.start("intro")
 
 func _headless_start() -> void:

@@ -56,7 +56,7 @@ describe('m1 composition', () => {
       readFileSync(join(outDir, 'game/_generated/save_sections.json'), 'utf8'),
     );
     expect(saveSections.sections).toEqual(
-      expect.arrayContaining(['inventory', 'progression', 'equipment']),
+      expect.arrayContaining(['inventory', 'progression', 'equipment', 'quests']),
     );
 
     const manifest = JSON.parse(
@@ -64,11 +64,11 @@ describe('m1 composition', () => {
     );
     expect(manifest.acceptance.markers).toEqual([
       'GAMEDREAM_BOOT_OK',
+      'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_LEVEL_UP',
       'GAMEDREAM_EQUIPPED',
       'GAMEDREAM_SKILL_CAST',
       'GAMEDREAM_QUEST_COMPLETE',
-      'GAMEDREAM_DIALOGUE',
       'GAMEDREAM_WIN',
     ]);
     expect(

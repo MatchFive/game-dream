@@ -25,6 +25,7 @@ func _start() -> void:
 	_close_pause()
 	visible = false
 	get_tree().paused = false
+	Game.events.emit_event("game.started", {})
 
 func _continue() -> void:
 	var save = Game.get_service("save")
@@ -32,6 +33,7 @@ func _continue() -> void:
 		_close_pause()
 		visible = false
 		get_tree().paused = false
+		Game.events.emit_event("game.started", {})
 	else:
 		continue_button.text = "No save"
 

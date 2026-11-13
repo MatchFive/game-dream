@@ -13,6 +13,9 @@ autoloads:
   - name: QuestService
     path: src/quest_service.gd
     order: 45
+save_sections:
+  - key: quests
+    serializer: src/quest_service.gd
 scenarios: [scenarios/kill.yaml]
 ai_skill: skills/quests.md
 docs: api.md

@@ -7,6 +7,7 @@
 - `start(dialogue_id: String) -> bool`
 - `advance() -> void`
 - `is_active() -> bool`
+- `get_current_line() -> Dictionary` — current line for late-bound UI.
 
 ## Events
 - `dialogue.line` with `{ speaker, text, index, total }`

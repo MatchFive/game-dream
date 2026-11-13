@@ -29,6 +29,10 @@ func _load_dir(folder: String, target: Dictionary, warn_missing: bool = true) ->
 			var raw := FileAccess.get_file_as_string(path + "/" + file)
 			var data = JSON.parse_string(raw)
 			if typeof(data) == TYPE_DICTIONARY and data.has("id"):
+				if folder == "quests" and not data.get("objective") is Dictionary:
+					push_warning("content: quest missing objective in %s/%s" % [path, file])
+				if folder == "dialogue" and not data.get("lines") is Array:
+					push_warning("content: dialogue missing lines in %s/%s" % [path, file])
 				target[data["id"]] = data
 			else:
 				push_warning("content: invalid JSON in %s/%s" % [path, file])
