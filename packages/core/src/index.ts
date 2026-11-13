@@ -1,6 +1,8 @@
 export { VERSION } from './version.js';
 export * from './errors.js';
 export * from './schemas/index.js';
+export * from './maps/tiled.js';
+export * from './maps/tile-sheet.js';
 export * from './registry/types.js';
 export * from './registry/local-registry.js';
 export * from './resolver/resolve-modules.js';

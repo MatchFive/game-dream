@@ -129,6 +129,17 @@ G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
 multi-frame review are deferred. `--vision fake` keeps the image local;
 `--vision openai` uploads it to the configured vision endpoint.
 
+## Tiled maps
+
+Internal maps use rows (`#` wall, `.` floor). Tiled JSON `.tmj` can be converted
+losslessly with gid `1` = floor, `2` = wall; colors and id round-trip through Tiled
+custom properties.
+
+- `dream map export --map game/content/maps/clearing.json --out clearing.tmj`
+  writes the `.tmj` and a generated `clearing.png` tileset sheet.
+- `dream map import --tmj clearing.tmj --out game/content/maps/clearing.json`
+  restores the internal map; `--id/--floor/--wall/--layer` override Tiled data.
+
 ## Generated project layout
 
 - `modules/` — managed by the composer; do not edit

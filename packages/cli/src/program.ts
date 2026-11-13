@@ -8,6 +8,7 @@ import {
   parseCreateMode,
   parseProviderKind,
 } from './commands/create.js';
+import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
 import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
@@ -161,6 +162,69 @@ export function createProgram(): Command {
       if (result.stderr) printLine(result.stderr);
       process.exitCode = result.exitCode;
     });
+
+  const mapCommand = program
+    .command('map')
+    .description('Import or export Tiled maps');
+
+  mapCommand
+    .command('export')
+    .requiredOption('--map <json>', 'internal map JSON')
+    .requiredOption('--out <tmj>', 'Tiled .tmj output')
+    .option('--json', 'print JSON')
+    .action((options: { map: string; out: string; json?: boolean }) => {
+      try {
+        const result = mapExportCommand({ mapPath: options.map, outPath: options.out });
+        if (options.json) {
+          printJson({ outPath: result.outPath, pngPath: result.pngPath });
+        } else {
+          printLine(`Tiled map: ${result.outPath}`);
+          printLine(`Tileset: ${result.pngPath}`);
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  mapCommand
+    .command('import')
+    .requiredOption('--tmj <file>', 'Tiled .tmj input')
+    .requiredOption('--out <json>', 'internal map JSON output')
+    .option('--id <id>', 'map id')
+    .option('--floor <hex>', 'floor color')
+    .option('--wall <hex>', 'wall color')
+    .option('--layer <name>', 'tile layer name', 'Ground')
+    .option('--json', 'print JSON')
+    .action(
+      (options: {
+        tmj: string;
+        out: string;
+        id?: string;
+        floor?: string;
+        wall?: string;
+        layer?: string;
+        json?: boolean;
+      }) => {
+        try {
+          const result = mapImportCommand({
+            tmjPath: options.tmj,
+            outPath: options.out,
+            id: options.id,
+            floor: options.floor,
+            wall: options.wall,
+            layer: options.layer,
+          });
+          if (options.json) printJson({ outPath: result.outPath, id: result.map.id });
+          else printLine(`Internal map: ${result.outPath}`);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
 
   program
     .command('screenshot')
