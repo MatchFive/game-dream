@@ -12,7 +12,12 @@ import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
 import { screenshotCommand } from './commands/screenshot.js';
-import { webComposeCommand, webVerifyCommand } from './commands/web.js';
+import {
+  webComposeCommand,
+  webScreenshotCommand,
+  webVerifyCommand,
+  webVerifyVisualCommand,
+} from './commands/web.js';
 import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
@@ -254,27 +259,113 @@ export function createProgram(): Command {
     .command('verify')
     .requiredOption('--path <dir>')
     .option('--frames <count>', 'simulation frame budget', '600')
+    .option('--visual', 'run a real browser screenshot gate')
+    .option('--screenshot-out <png>', 'visual screenshot path')
+    .option('--browser <path>', 'Chrome/Edge executable')
     .option('--json', 'print JSON')
-    .action((options: { path: string; frames: string; json?: boolean }) => {
-      const frames = Number(options.frames);
-      if (!Number.isFinite(frames) || frames <= 0) {
-        printLine('--frames must be a positive number');
-        process.exitCode = 1;
-        return;
-      }
-      const result = webVerifyCommand({
-        projectDir: options.path,
-        frames,
-      });
-      if (options.json) printJson(result);
-      else if (result.passed) printLine(result.stdout.trim());
-      else {
-        printLine(`Web verification failed: ${result.message ?? 'unknown error'}`);
-        if (result.stdout) printLine(result.stdout);
-        if (result.stderr) printLine(result.stderr);
-      }
-      process.exitCode = result.passed ? 0 : 1;
-    });
+    .action(
+      async (options: {
+        path: string;
+        frames: string;
+        visual?: boolean;
+        screenshotOut?: string;
+        browser?: string;
+        json?: boolean;
+      }) => {
+        const frames = Number(options.frames);
+        if (!Number.isFinite(frames) || frames <= 0) {
+          printLine('--frames must be a positive number');
+          process.exitCode = 1;
+          return;
+        }
+        const result = webVerifyCommand({
+          projectDir: options.path,
+          frames,
+        });
+        if (!result.passed) {
+          if (options.json) printJson(result);
+          else {
+            printLine(`Web verification failed: ${result.message ?? 'unknown error'}`);
+            if (result.stdout) printLine(result.stdout);
+            if (result.stderr) printLine(result.stderr);
+          }
+          process.exitCode = 1;
+          return;
+        }
+        if (!options.visual) {
+          if (options.json) printJson(result);
+          else printLine(result.stdout.trim());
+          process.exitCode = 0;
+          return;
+        }
+        const visual = await webVerifyVisualCommand({
+          projectDir: options.path,
+          outPath: options.screenshotOut,
+          browserBin: options.browser,
+        });
+        if (options.json) printJson({ ...result, visual });
+        else if (visual.passed) {
+          printLine(`Screenshot: ${visual.imagePath}`);
+          if (visual.metrics) {
+            printLine(
+              `Metrics: ${visual.metrics.width}x${visual.metrics.height}, ${visual.metrics.colors} colors`,
+            );
+          }
+        } else {
+          printLine(`Web visual verification failed: ${visual.message ?? 'unknown error'}`);
+          if (visual.imagePath) printLine(`Screenshot: ${visual.imagePath}`);
+          if (visual.stderr) printLine(visual.stderr);
+        }
+        process.exitCode = visual.passed ? 0 : visual.exitCode === 3 ? 3 : 2;
+      },
+    );
+
+  webCommand
+    .command('screenshot')
+    .requiredOption('--path <dir>')
+    .option('--out <png>', 'output PNG path')
+    .option('--width <px>', 'viewport width', '1280')
+    .option('--height <px>', 'viewport height', '720')
+    .option('--browser <path>', 'Chrome/Edge executable')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: {
+        path: string;
+        out?: string;
+        width: string;
+        height: string;
+        browser?: string;
+        json?: boolean;
+      }) => {
+        const width = Number(options.width);
+        const height = Number(options.height);
+        if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+          printLine('--width and --height must be positive numbers');
+          process.exitCode = 1;
+          return;
+        }
+        const result = await webScreenshotCommand({
+          projectDir: options.path,
+          outPath: options.out,
+          width,
+          height,
+          browserBin: options.browser,
+        });
+        if (options.json) printJson(result);
+        else if (result.passed) {
+          printLine(`Screenshot: ${result.imagePath}`);
+          if (result.metrics) {
+            printLine(
+              `Metrics: ${result.metrics.width}x${result.metrics.height}, ${result.metrics.colors} colors`,
+            );
+          }
+        } else {
+          printLine(`Web screenshot failed: ${result.message ?? 'unknown error'}`);
+          if (result.stderr) printLine(result.stderr);
+        }
+        process.exitCode = result.passed ? 0 : result.exitCode === 3 ? 3 : 1;
+      },
+    );
 
   const mapCommand = program
     .command('map')

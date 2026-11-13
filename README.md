@@ -154,6 +154,11 @@ swaps; the simulation contract stays.
   embeds the three levels, maps, quests, enemy stats, and player/enemy/boss SVG assets.
 - `dream web verify --path ./web-game` requires `WEB_MAP_OK`/`WEB_QUEST_COMPLETE`
   when the embedded config has levels/quests.
+- `dream web verify --path ./web-game --visual` captures a real browser screenshot
+  and checks non-black pixels/colors. Set `GAMEDREAM_BROWSER` if Chrome/Edge is
+  not auto-detected.
+- `dream web screenshot --path ./web-game [--out ./web.png]` captures the page
+  without running the marker gate.
 
 ## Prompt evaluation
 
