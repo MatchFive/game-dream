@@ -40,5 +40,12 @@
     "expected_genre": "puzzle",
     "expected_template": "puzzle-2d",
     "expected_playable": true
+  },
+  {
+    "id": "survivor",
+    "prompt": "做一个类吸血鬼幸存者的俯视角生存游戏，自动攻击、升级和怪潮",
+    "expected_genre": "survivor",
+    "expected_template": "survivor-topdown",
+    "expected_playable": true
   }
 ]
