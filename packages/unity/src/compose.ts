@@ -62,6 +62,21 @@ export interface UnityQuest {
   count: number;
 }
 
+export interface UnityItem {
+  id: string;
+  name: string;
+}
+
+export interface UnityLootDrop {
+  item_id: string;
+  chance: number;
+}
+
+export interface UnityLootTable {
+  id: string;
+  drops: UnityLootDrop[];
+}
+
 export interface UnityGameConfig {
   name: string;
   arena: { width: number; height: number };
@@ -69,6 +84,8 @@ export interface UnityGameConfig {
   enemy: { hp: number; damage: number; speed: number; attack_range: number };
   levels?: UnityLevel[];
   quests?: UnityQuest[];
+  items?: UnityItem[];
+  loot?: UnityLootTable[];
 }
 
 export interface ComposeUnityOptions {
@@ -130,6 +147,8 @@ function readUnityMap(path: string): UnityMap {
 export function readUnityContent(contentDir: string): {
   levels: UnityLevel[];
   quests: UnityQuest[];
+  items: UnityItem[];
+  loot: UnityLootTable[];
 } {
   const campaignPath = join(contentDir, 'levels/campaign.json');
   const campaign = readJson(campaignPath);
@@ -179,7 +198,37 @@ export function readUnityContent(contentDir: string): {
       });
     }
   }
-  return { levels, quests };
+  const items: UnityItem[] = [];
+  const itemIds = new Set<string>();
+  const itemDir = join(contentDir, 'items');
+  if (existsSync(itemDir)) {
+    for (const file of readdirSync(itemDir).filter((name) => name.endsWith('.json'))) {
+      const item = readJson(join(itemDir, file));
+      const id = String(item.id ?? file.replace(/\.json$/, ''));
+      items.push({ id, name: String(item.name ?? id) });
+      itemIds.add(id);
+    }
+  }
+
+  const loot: UnityLootTable[] = [];
+  const lootDir = join(contentDir, 'loot');
+  if (existsSync(lootDir)) {
+    for (const file of readdirSync(lootDir).filter((name) => name.endsWith('.json'))) {
+      const table = readJson(join(lootDir, file));
+      const id = String(table.id ?? file.replace(/\.json$/, ''));
+      const drops = Array.isArray(table.drops) ? table.drops : [];
+      const parsed = drops.map((drop) => {
+        const raw = drop as Record<string, unknown>;
+        const itemId = String(raw.item_id ?? '');
+        if (!itemIds.has(itemId)) {
+          throw new Error(`invalid Unity content: loot ${id} references unknown item ${itemId}`);
+        }
+        return { item_id: itemId, chance: finite(raw.chance, 'loot.chance', 0) };
+      });
+      loot.push({ id, drops: parsed });
+    }
+  }
+  return { levels, quests, items, loot };
 }
 
 export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityResult {
@@ -212,7 +261,14 @@ export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityR
   const config: UnityGameConfig = {
     ...DEFAULT_CONFIG,
     ...options.config,
-    ...(embedded ? { levels: embedded.levels, quests: embedded.quests } : {}),
+    ...(embedded
+      ? {
+          levels: embedded.levels,
+          quests: embedded.quests,
+          items: embedded.items,
+          loot: embedded.loot,
+        }
+      : {}),
     name: options.name ?? options.config?.name ?? DEFAULT_CONFIG.name,
     arena: { ...DEFAULT_CONFIG.arena, ...options.config?.arena },
     player: { ...DEFAULT_CONFIG.player, ...options.config?.player },

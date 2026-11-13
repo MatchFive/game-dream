@@ -96,6 +96,9 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'bool Won',
       'bool Lost',
       'PlayerAttackRange',
+      'Inventory',
+      'LootTableConfig',
+      'AddLoot',
     ],
   );
   if (simError) return { passed: false, message: simError };
@@ -129,6 +132,7 @@ function verifyInternal(projectDir: string): UnityVerifyResult {
       'UNITY_MAP_OK',
       'UNITY_QUEST_COMPLETE',
       'UNITY_BOSS_PHASE',
+      'UNITY_LOOT_OK',
       'EditorApplication.Exit',
     ],
   );

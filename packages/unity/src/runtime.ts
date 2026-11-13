@@ -83,7 +83,12 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
         levels?: unknown[];
       };
       if (Array.isArray(config.levels) && config.levels.length > 0) {
-        required.push('UNITY_MAP_OK', 'UNITY_QUEST_COMPLETE', 'UNITY_BOSS_PHASE');
+        required.push(
+          'UNITY_MAP_OK',
+          'UNITY_QUEST_COMPLETE',
+          'UNITY_BOSS_PHASE',
+          'UNITY_LOOT_OK',
+        );
       }
     }
   } catch {

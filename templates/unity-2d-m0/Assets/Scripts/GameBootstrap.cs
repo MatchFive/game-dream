@@ -11,6 +11,8 @@ public sealed class GameBootstrap : MonoBehaviour
     private int _lastLevel = -1;
     private bool _reportedWin;
     private bool _reportedLose;
+    private bool _showInventory;
+    private bool _showQuests;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -173,6 +175,14 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             BuildLevelVisuals();
         }
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            _showInventory = !_showInventory;
+        }
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            _showQuests = !_showQuests;
+        }
         if (_sim.Won || _sim.Lost)
         {
             if (Input.GetKey(KeyCode.R))
@@ -256,19 +266,55 @@ public sealed class GameBootstrap : MonoBehaviour
         );
         GUI.Label(
             new Rect(16f, 42f, 900f, 24f),
-            "WASD/Arrows move   J/Space attack   R restart"
+            "WASD/Arrows move   J/Space attack   I inventory   Q quests   R restart"
         );
+        string items = "";
+        foreach (var entry in _sim.Inventory)
+        {
+            items += (items.Length == 0 ? "" : " · ") + entry.Key + " x" + entry.Value;
+        }
+        if (items.Length > 0)
+        {
+            GUI.Label(new Rect(16f, 68f, 900f, 24f), "Items: " + items);
+        }
         if (_sim.BossPhase)
         {
-            GUI.Label(new Rect(16f, 68f, 900f, 24f), "Boss enraged");
+            GUI.Label(new Rect(16f, 94f, 900f, 24f), "Boss enraged");
+        }
+        if (_showInventory)
+        {
+            GUI.Box(new Rect(16f, 122f, 420f, 180f), "Inventory");
+            float y = 148f;
+            foreach (var entry in _sim.Inventory)
+            {
+                GUI.Label(new Rect(28f, y, 390f, 22f), entry.Key + " x" + entry.Value);
+                y += 22f;
+            }
+            if (_sim.Inventory.Count == 0)
+            {
+                GUI.Label(new Rect(28f, y, 390f, 22f), "Empty");
+            }
+        }
+        if (_showQuests)
+        {
+            GUI.Box(new Rect(452f, 122f, 450f, 180f), "Quests");
+            float y = 148f;
+            foreach (QuestState quest in _sim.Quests)
+            {
+                GUI.Label(
+                    new Rect(464f, y, 420f, 22f),
+                    quest.Title + "  " + quest.Progress + "/" + quest.Count
+                );
+                y += 22f;
+            }
         }
         if (_sim.Won)
         {
-            GUI.Label(new Rect(16f, 94f, 900f, 24f), "Victory! Press R to restart.");
+            GUI.Label(new Rect(16f, 320f, 900f, 24f), "Victory! Press R to restart.");
         }
         else if (_sim.Lost)
         {
-            GUI.Label(new Rect(16f, 94f, 900f, 24f), "Defeat. Press R to restart.");
+            GUI.Label(new Rect(16f, 320f, 900f, 24f), "Defeat. Press R to restart.");
         }
     }
 }

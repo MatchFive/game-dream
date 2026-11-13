@@ -38,15 +38,20 @@ namespace GameDream
         public string MapFloorColor { get; private set; } = "2f4f3f";
         public string MapWallColor { get; private set; } = "181c2f";
         public readonly List<QuestState> Quests = new List<QuestState>();
+        public readonly Dictionary<string, int> Inventory = new Dictionary<string, int>();
         public float PlayerAttackRange => _config.player.attack_range;
         public float PlayerSpeed => _config.player.speed;
 
         private readonly GameConfig _config;
+        private readonly Dictionary<string, string> _itemNames = new Dictionary<string, string>();
+        private readonly Dictionary<string, LootTableConfig> _loot =
+            new Dictionary<string, LootTableConfig>();
         private LevelConfig[] _levels;
         private MapConfig _map;
         private EnemyConfig _enemyConfig;
         private float _playerCooldown;
         private float _enemyCooldown;
+        private uint _lootRng = 42;
 
         public GameSim() : this(new GameConfig())
         {
@@ -56,7 +61,26 @@ namespace GameDream
         {
             _config = config ?? new GameConfig();
             BuildLevels();
+            BuildLoot();
             Reset();
+        }
+
+        private void BuildLoot()
+        {
+            if (_config.items != null)
+            {
+                foreach (ItemConfig item in _config.items)
+                {
+                    _itemNames[item.id] = string.IsNullOrEmpty(item.name) ? item.id : item.name;
+                }
+            }
+            if (_config.loot != null)
+            {
+                foreach (LootTableConfig table in _config.loot)
+                {
+                    _loot[table.id] = table;
+                }
+            }
         }
 
         private void BuildLevels()
@@ -108,6 +132,8 @@ namespace GameDream
                     );
                 }
             }
+            Inventory.Clear();
+            _lootRng = 42;
             Won = false;
             Lost = false;
             StartLevel(0);
@@ -247,6 +273,7 @@ namespace GameDream
             if (EnemyHp <= 0)
             {
                 EnemyHp = 0;
+                AddLoot(EnemyKind);
                 CompleteKillQuests(EnemyKind);
                 if (LevelIndex + 1 < _levels.Length)
                 {
@@ -262,6 +289,39 @@ namespace GameDream
                 PlayerHp = 0;
                 Lost = true;
             }
+        }
+
+        private void AddLoot(string kind)
+        {
+            LootTableConfig table;
+            if (!_loot.TryGetValue(kind, out table) || table.drops == null)
+            {
+                return;
+            }
+            foreach (LootDropConfig drop in table.drops)
+            {
+                if (string.IsNullOrEmpty(drop.item_id))
+                {
+                    continue;
+                }
+                float chance = Math.Max(0f, Math.Min(1f, drop.chance));
+                if (chance < 1f && NextLootRoll() > chance)
+                {
+                    continue;
+                }
+                string name;
+                if (!_itemNames.TryGetValue(drop.item_id, out name))
+                {
+                    name = drop.item_id;
+                }
+                Inventory[name] = (Inventory.ContainsKey(name) ? Inventory[name] : 0) + 1;
+            }
+        }
+
+        private float NextLootRoll()
+        {
+            _lootRng = _lootRng * 1664525u + 1013904223u;
+            return _lootRng / 4294967296f;
         }
 
         private void CompleteKillQuests(string kind)

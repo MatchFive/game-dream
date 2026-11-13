@@ -68,6 +68,27 @@ namespace GameDream
     }
 
     [Serializable]
+    public sealed class ItemConfig
+    {
+        public string id;
+        public string name;
+    }
+
+    [Serializable]
+    public sealed class LootDropConfig
+    {
+        public string item_id;
+        public float chance;
+    }
+
+    [Serializable]
+    public sealed class LootTableConfig
+    {
+        public string id;
+        public LootDropConfig[] drops;
+    }
+
+    [Serializable]
     public sealed class GameConfig
     {
         public string name = "unity-m0";
@@ -82,6 +103,8 @@ namespace GameDream
         };
         public LevelConfig[] levels;
         public QuestConfig[] quests;
+        public ItemConfig[] items;
+        public LootTableConfig[] loot;
     }
 
     public static class GameConfigLoader

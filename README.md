@@ -168,8 +168,8 @@ static/runtime marker failure, 3 Unity missing.
 Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
 `EditorVerifier` prints `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
 `UNITY_TIMEOUT`; M1 content additionally requires `UNITY_MAP_OK`,
-`UNITY_QUEST_COMPLETE`, and `UNITY_BOSS_PHASE`. It does not boot the scene, so a
-pass is not a screenshot.
+`UNITY_QUEST_COMPLETE`, `UNITY_BOSS_PHASE`, and `UNITY_LOOT_OK`. It does not boot
+the scene, so a pass is not a screenshot.
 Open the project in Unity and press Play to use the runtime bootstrap (no scene
 asset is required).
 

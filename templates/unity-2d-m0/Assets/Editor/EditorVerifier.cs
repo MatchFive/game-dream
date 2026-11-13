@@ -11,6 +11,7 @@ public static class EditorVerifier
         bool mapLogged = false;
         bool bossLogged = false;
         bool questsLogged = false;
+        bool lootLogged = false;
         for (int frame = 0; frame < 12000 && !sim.Won && !sim.Lost; frame += 1)
         {
             if (sim.HasMap && !mapLogged)
@@ -24,6 +25,11 @@ public static class EditorVerifier
             float y =
                 sim.PlayerY < sim.EnemyY - 20f ? 1f : sim.PlayerY > sim.EnemyY + 20f ? -1f : 0f;
             sim.Step(x, y, gap <= sim.PlayerAttackRange, 1f / 60f);
+            if (sim.Inventory.Count > 0 && !lootLogged)
+            {
+                lootLogged = true;
+                Debug.Log("UNITY_LOOT_OK");
+            }
             if (sim.BossPhase && !bossLogged)
             {
                 bossLogged = true;
