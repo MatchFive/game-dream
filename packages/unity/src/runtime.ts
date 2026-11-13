@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 export interface UnityRuntimeOptions {
   projectDir: string;
@@ -15,7 +16,7 @@ export interface UnityRuntimeResult {
   message?: string;
 }
 
-function hasMarker(stdout: string, marker: string): boolean {
+export function hasUnityMarker(stdout: string, marker: string): boolean {
   return stdout.split(/\r?\n/).some((line) => line.trim() === marker);
 }
 
@@ -27,6 +28,8 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
     [
       '-batchmode',
       '-quit',
+      '-accept-apiupdate',
+      '-silent-crashes',
       '-projectPath',
       projectDir,
       '-executeMethod',
@@ -34,12 +37,20 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
       '-logFile',
       '-',
     ],
-    { cwd: projectDir, encoding: 'utf8', timeout: options.timeoutMs ?? 180_000 },
+    {
+      cwd: projectDir,
+      encoding: 'utf8',
+      timeout: options.timeoutMs ?? 180_000,
+      maxBuffer: 64 * 1024 * 1024,
+    },
   );
   const stdout = result.stdout ?? '';
   const stderr = result.stderr ?? '';
   const errorCode = (result.error as NodeJS.ErrnoException | undefined)?.code;
   const exitCode = result.status ?? (errorCode === 'ETIMEDOUT' ? 124 : 1);
+  if (errorCode === 'ETIMEDOUT') {
+    rmSync(join(projectDir, 'Temp/UnityLockfile'), { force: true });
+  }
   if (result.error) {
     return {
       passed: false,
@@ -48,15 +59,24 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
       stderr,
       message:
         errorCode === 'ETIMEDOUT'
-          ? 'Unity runtime timed out'
-          : `Unity failed to start: ${result.error.message}`,
+          ? 'Unity runtime timed out; check for leftover Unity processes and remove Temp/UnityLockfile'
+          : errorCode === 'ENOBUFS'
+            ? 'Unity log exceeded the output buffer'
+            : `Unity failed to start: ${result.error.message}`,
     };
   }
   if (exitCode !== 0) {
-    return { passed: false, exitCode, stdout, stderr, message: `Unity exited ${exitCode}` };
+    return {
+      passed: false,
+      exitCode,
+      stdout,
+      stderr,
+      message: result.signal ? `Unity killed by ${result.signal}` : `Unity exited ${exitCode}`,
+    };
   }
+  const log = `${stdout}\n${stderr}`;
   for (const marker of ['UNITY_SIM_OK', 'UNITY_WIN']) {
-    if (!hasMarker(stdout, marker)) {
+    if (!hasUnityMarker(log, marker)) {
       return { passed: false, exitCode: 1, stdout, stderr, message: `missing ${marker}` };
     }
   }

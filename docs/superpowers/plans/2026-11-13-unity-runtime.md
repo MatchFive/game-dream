@@ -41,6 +41,14 @@
 
 - README/template docs, version regex, optional e2e, full test/typecheck/build.
 
+## Evidence
+
+- 2026-11-13, Unity `6000.6.9f1` (`D:\unity\6000.6.9f1\Editor\Unity.exe`), generated scaffold:
+  - `Unity -batchmode -quit -projectPath ... -executeMethod EditorVerifier.Run -logFile -`
+  - exit 0, log contained `UNITY_SIM_OK` then `UNITY_WIN`.
+- `dream unity verify --path ... --runtime --unity D:\unity\6000.6.9f1\Editor`: exit 0.
+- Optional `UNITY_BIN` integration test: passed in 17.5 s.
+
 ## Self-Review
 
 - Static vs runtime, exit codes, markers, timeout, paths, installed version, CI skip.

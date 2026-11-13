@@ -50,7 +50,7 @@ export function unityVerifyCommand(options: UnityVerifyOptions): UnityVerifyComm
   });
   return {
     passed: runtime.passed,
-    exitCode: runtime.passed ? 0 : runtime.exitCode === 3 ? 3 : 1,
+    exitCode: runtime.passed ? 0 : 1,
     message: runtime.message,
     runtime,
   };

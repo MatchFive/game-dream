@@ -16,6 +16,13 @@ describe('unity commands', () => {
       name: 'cli',
     });
     expect(unityVerifyCommand({ projectDir: outDir }).passed).toBe(true);
+    const missingUnity = unityVerifyCommand({
+      projectDir: outDir,
+      runtime: true,
+      unityBin: join(outDir, 'missing-unity.exe'),
+    });
+    expect(missingUnity.passed).toBe(false);
+    expect(missingUnity.exitCode).toBe(3);
     unlinkSync(join(outDir, 'Assets/Editor/EditorVerifier.cs'));
     const failed = unityVerifyCommand({ projectDir: outDir });
     expect(failed.passed).toBe(false);
