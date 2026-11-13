@@ -10,6 +10,10 @@ func _process(delta: float) -> void:
 	for skill_id in _cooldowns.keys():
 		_cooldowns[skill_id] = max(0.0, float(_cooldowns[skill_id]) - delta)
 
+func reset() -> void:
+	_cooldowns.clear()
+	cast_count = 0
+
 func cast(skill_id: String, caster: Node) -> bool:
 	if float(_cooldowns.get(skill_id, 0.0)) > 0.0:
 		return false

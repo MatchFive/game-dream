@@ -40,6 +40,10 @@ func total_count() -> int:
 func items() -> Dictionary:
 	return _items.duplicate(true)
 
+func reset() -> void:
+	_items.clear()
+	changed.emit()
+
 func serialize() -> Dictionary:
 	return {"items": _items.duplicate(true)}
 

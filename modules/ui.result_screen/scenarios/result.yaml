@@ -1,0 +1,7 @@
+id: result.show
+module: ui.result_screen
+when:
+  - emit: game.won
+    payload: { level: 3, hp: 10, max_hp: 120 }
+then:
+  - assert_node_visible: ResultScreen

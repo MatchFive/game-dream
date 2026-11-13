@@ -71,17 +71,21 @@ verification.
 
 ## Playable M0 slice
 
-Action-RPG prompts now select the `rpg-action-m1` template: a two-level forest
-campaign with tile maps, animated sprites, a player, health/combat, progression,
-loot, equipment, a skill, quests, and dialogue. Desktop controls: **WASD** move,
-**J / Space** attack, **K** cast Ember Bolt.
+Action-RPG prompts now select the `rpg-action-m1` template: a three-level forest
+campaign with a boss, tile maps, animated sprites, a player, health/combat,
+progression, loot, equipment, a skill, quests, and dialogue. Desktop controls:
+**WASD** move, **J / Space** attack, **K** cast Ember Bolt.
 Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
 `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
-`GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_QUEST_COMPLETE`, and
-`GAMEDREAM_WIN`. The intro dialogue, two-kill quest, level campaign, maps, and
-sprite configs come from `game/content/dialogue`, `game/content/quests`,
-`game/content/levels`, `game/content/maps`, and `game/content/sprites`; the quest
-tracker is always on.
+`GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_BOSS`,
+`GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and `GAMEDREAM_WIN`. The intro
+dialogue, slime/boss quests, three-level campaign, maps, and sprite configs come
+from `game/content/dialogue`, `game/content/quests`, `game/content/levels`,
+`game/content/maps`, and `game/content/sprites`; the quest tracker is always on.
+
+On desktop, winning or losing opens a result screen with **Restart** and **Quit**.
+Restart resets levels, health, inventory, progression, equipment, quests, and
+skills, then rebuilds level 1.
 
 UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
 The pause menu saves to `user://save.json`; the main menu offers New Game /
@@ -92,7 +96,7 @@ Content is data-driven under `game/content/`:
 - `items/*.json` — item id, slot, stat bonuses
 - `skills/*.json` — damage, range, cooldown
 - `loot/*.json` — enemy kind → drop table
-- `quests/*.json` — kill objectives and XP rewards
+- `quests/*.json` — slime and boss kill objectives with XP rewards
 - `dialogue/*.json` — speaker lines
 - `levels/*.json` — per-level map id, enemy stats, and positions
 - `maps/*.json` — tile rows (`#` wall, `.` floor), colors, and tile size

@@ -51,6 +51,7 @@ describe('m1 composition', () => {
     expect(main).toContain('ui.quest_tracker/scenes/quest_tracker.tscn');
     expect(main).toContain('ui.dialogue_box/scenes/dialogue_box.tscn');
     expect(main).toContain('ui.level_transition/scenes/level_transition.tscn');
+    expect(main).toContain('ui.result_screen/scenes/result_screen.tscn');
     expect(main).toContain('ui.inventory_screen/scenes/inventory_screen.tscn');
     expect(main).toContain('ui.equipment_screen/scenes/equipment_screen.tscn');
     expect(main).toContain('ui.skill_screen/scenes/skill_screen.tscn');
@@ -82,7 +83,9 @@ describe('m1 composition', () => {
       'GAMEDREAM_EQUIPPED',
       'GAMEDREAM_SKILL_CAST',
       'GAMEDREAM_LEVEL_2',
+      'GAMEDREAM_BOSS',
       'GAMEDREAM_QUEST_COMPLETE',
+      'GAMEDREAM_VICTORY',
       'GAMEDREAM_WIN',
     ]);
     expect(
@@ -102,6 +105,14 @@ describe('m1 composition', () => {
     expect(
       existsSync(join(outDir, 'game/content/sprites/player.json')),
     ).toBe(true);
+    expect(
+      existsSync(join(outDir, 'game/content/sprites/boss.json')),
+    ).toBe(true);
+    const campaign = JSON.parse(
+      readFileSync(join(outDir, 'game/content/levels/campaign.json'), 'utf8'),
+    );
+    expect(campaign.levels).toHaveLength(3);
+    expect(campaign.levels[2].enemy.kind).toBe('boss');
     expect(
       existsSync(join(outDir, 'modules/system.player/assets/player.svg')),
     ).toBe(true);

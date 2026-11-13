@@ -26,6 +26,20 @@
         "x": 600,
         "y": 240
       }
+    },
+    {
+      "id": "throne",
+      "name": "The Throne",
+      "map": "grove",
+      "enemy": {
+        "kind": "boss",
+        "max_hp": 120,
+        "attack_damage": 12,
+        "speed": 70,
+        "x": 700,
+        "y": 240,
+        "scale": 1.8
+      }
     }
   ]
 }

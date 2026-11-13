@@ -9,6 +9,7 @@ const ENEMY_SCENE := preload("res://modules/system.ai/scenes/enemy.tscn")
 var enemy = null
 var _finished := false
 var _level2_reported := false
+var _boss_reported := false
 var _map_reported := false
 var _sprite_reported := false
 
@@ -23,22 +24,56 @@ func _ready() -> void:
 func _on_event(event_name: String, payload: Variant) -> void:
 	if event_name == "game.started":
 		if payload is Dictionary and bool(payload.get("new_game", false)):
-			var levels = Game.get_service("levels")
-			if levels:
-				levels.reset()
-			_level2_reported = false
-			_map_reported = false
-			_apply_level()
-			call_deferred("_report_sprites")
+			_reset_run()
 		var dialogue = Game.get_service("dialogue")
 		if dialogue and not dialogue.is_active():
+			dialogue.start("intro")
+	elif event_name == "game.restart":
+		_reset_run()
+		var dialogue = Game.get_service("dialogue")
+		if dialogue:
 			dialogue.start("intro")
 	elif event_name == "level.started" and not _finished:
 		var levels = Game.get_service("levels")
 		if levels and levels.current_index == 1 and not _level2_reported:
 			_level2_reported = true
 			print("GAMEDREAM_LEVEL_2")
+		if levels and levels.current_index == 2 and not _boss_reported:
+			_boss_reported = true
+			print("GAMEDREAM_BOSS")
 		_apply_level()
+
+func _reset_run() -> void:
+	get_tree().paused = false
+	var inventory = Game.get_service("inventory")
+	if inventory and inventory.has_method("reset"):
+		inventory.reset()
+	var progression = Game.get_service("progression")
+	if progression and progression.has_method("reset"):
+		progression.reset()
+	var equipment = Game.get_service("equipment")
+	if equipment and equipment.has_method("reset"):
+		equipment.reset()
+	var quests = Game.get_service("quests")
+	if quests and quests.has_method("reset"):
+		quests.reset()
+	var skills = Game.get_service("skills")
+	if skills and skills.has_method("reset"):
+		skills.reset()
+	var levels = Game.get_service("levels")
+	if levels:
+		levels.reset()
+	_finished = false
+	_level2_reported = false
+	_boss_reported = false
+	_map_reported = false
+	player.global_position = Vector2(320, 240)
+	var health = player.get_node("Health")
+	health.hp = health.max_hp
+	health.health_changed.emit(health.hp, health.max_hp)
+	_apply_level()
+	Game.events.emit_event("run.reset", {})
+	call_deferred("_report_sprites")
 
 func _apply_level() -> void:
 	if is_instance_valid(enemy):
@@ -70,6 +105,7 @@ func _apply_level() -> void:
 	enemy.speed = maxf(0.0, float(data.get("speed", 80.0)))
 	enemy.attack_damage = maxi(0, int(data.get("attack_damage", 5)))
 	enemy.position = Vector2(float(data.get("x", 600)), float(data.get("y", 240)))
+	enemy.scale = Vector2.ONE * float(data.get("scale", 1.0))
 	if map_built and maps.is_wall(map_data, enemy.position):
 		push_warning("level: enemy spawn inside wall; snapping to floor")
 		enemy.position = maps.first_floor(map_data)
@@ -140,15 +176,42 @@ func _win() -> void:
 	var quests = Game.get_service("quests")
 	if quests and quests.completed_count > 0:
 		print("GAMEDREAM_QUEST_COMPLETE")
-	print("GAMEDREAM_WIN")
-	get_tree().quit(0)
+	print("GAMEDREAM_VICTORY")
+	if DisplayServer.get_name() == "headless":
+		print("GAMEDREAM_WIN")
+		get_tree().quit(0)
+		return
+	var levels = Game.get_service("levels")
+	var health = player.get_node("Health")
+	if get_tree().get_first_node_in_group("result_screen"):
+		get_tree().paused = true
+		Game.events.emit_event("game.won", {
+			"level": levels.current_index + 1 if levels else 1,
+			"hp": health.hp,
+			"max_hp": health.max_hp,
+		})
+	else:
+		get_tree().quit(0)
 
 func _lose() -> void:
 	if _finished:
 		return
 	_finished = true
 	print("GAMEDREAM_LOSE")
-	get_tree().quit(0)
+	if DisplayServer.get_name() == "headless":
+		get_tree().quit(0)
+		return
+	var levels = Game.get_service("levels")
+	var health = player.get_node("Health")
+	if get_tree().get_first_node_in_group("result_screen"):
+		get_tree().paused = true
+		Game.events.emit_event("game.lost", {
+			"level": levels.current_index + 1 if levels else 1,
+			"hp": health.hp,
+			"max_hp": health.max_hp,
+		})
+	else:
+		get_tree().quit(0)
 
 func _autoplay() -> void:
 	await get_tree().create_timer(0.2).timeout

@@ -1,0 +1,12 @@
+{
+  "id": "kill_boss",
+  "title": "Boss Slayer",
+  "objective": {
+    "type": "kill",
+    "target": "boss",
+    "count": 1
+  },
+  "reward": {
+    "xp": 20
+  }
+}

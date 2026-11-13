@@ -30,6 +30,18 @@ func add_xp(amount: int) -> void:
 			"xp_to_next": xp_to_next,
 		})
 
+func reset() -> void:
+	level = 1
+	xp = 0
+	xp_to_next = 10
+	changed.emit(level, xp)
+	if Game.events:
+		Game.events.emit_event("progression.changed", {
+			"level": level,
+			"xp": xp,
+			"xp_to_next": xp_to_next,
+		})
+
 func serialize() -> Dictionary:
 	return {"level": level, "xp": xp, "xp_to_next": xp_to_next}
 

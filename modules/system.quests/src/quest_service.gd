@@ -73,6 +73,14 @@ func get_active() -> Array:
 		})
 	return result
 
+func reset() -> void:
+	completed_count = 0
+	for quest_id in quests.keys():
+		quests[quest_id]["progress"] = 0
+		quests[quest_id]["completed"] = false
+	changed.emit()
+	Game.events.emit_event("quest.changed", {})
+
 func serialize() -> Dictionary:
 	var states := {}
 	for quest_id in quests.keys():

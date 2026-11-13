@@ -37,6 +37,7 @@ const sourceFiles: Record<string, string> = {
   'ui.main_menu': 'main_menu.gd',
   'ui.pause_menu': 'pause_menu.gd',
   'ui.quest_tracker': 'quest_tracker.gd',
+  'ui.result_screen': 'result_screen.gd',
   'ui.skill_screen': 'skill_screen.gd',
 };
 
@@ -73,6 +74,7 @@ describe('fixture content', () => {
       'ui.main_menu',
       'ui.pause_menu',
       'ui.quest_tracker',
+      'ui.result_screen',
       'ui.skill_screen',
     ]);
     for (const id of ids) {
@@ -101,7 +103,7 @@ describe('fixture content', () => {
       'core.stats': ['register_service', 'set_stat', 'get_stat'],
       'system.ai': ['move_and_slide', 'attack_damage', 'enemies', 'enemy.died', 'AnimatedSprite2D', 'sprites.apply'],
       'system.combat': ['take_damage', 'set_max_hp', 'heal_full', 'health_changed', 'died'],
-      'system.equipment': ['equip', 'get_bonus', 'loot.dropped'],
+      'system.equipment': ['equip', 'get_bonus', 'loot.dropped', 'reset'],
       'system.gameflow': [
         'GAMEDREAM_WIN',
         'GAMEDREAM_LOSE',
@@ -109,15 +111,19 @@ describe('fixture content', () => {
         'GAMEDREAM_EQUIPPED',
         'GAMEDREAM_SKILL_CAST',
         'GAMEDREAM_LEVEL_2',
+        'GAMEDREAM_BOSS',
+        'GAMEDREAM_VICTORY',
         'GAMEDREAM_MAP_OK',
         'EnemyRoot',
         'MapRoot',
         'level.started',
         'new_game',
+        'game.restart',
+        '_reset_run',
         '_steer',
         '_autoplay',
       ],
-      'system.inventory': ['register_service', 'add_item', 'remove_item', 'total_count'],
+      'system.inventory': ['register_service', 'add_item', 'remove_item', 'total_count', 'reset'],
       'system.levels': ['level.started', 'has_next', 'advance', 'current_map', 'reset', 'serialize'],
       'system.loot': ['enemy.died', 'loot.dropped', 'get_loot_table'],
       'system.map': ['TileMapLayer', 'set_cell', 'StaticBody2D', 'build', 'is_wall', 'first_floor'],
@@ -130,9 +136,9 @@ describe('fixture content', () => {
         'sprites.apply',
       ],
       'system.dialogue': ['dialogue.line', 'dialogue.finished', 'advance', 'get_current_line'],
-      'system.progression': ['add_xp', 'leveled_up', 'enemy.died'],
-      'system.quests': ['enemy.died', 'quest.completed', 'completed_count', 'serialize'],
-      'system.skills': ['cast', 'cooldown', 'skill.cast'],
+      'system.progression': ['add_xp', 'leveled_up', 'enemy.died', 'reset'],
+      'system.quests': ['enemy.died', 'quest.completed', 'completed_count', 'serialize', 'reset'],
+      'system.skills': ['cast', 'cooldown', 'skill.cast', 'reset'],
       'system.sprites': ['AnimatedSprite2D', 'SpriteFrames', 'AtlasTexture', 'apply', 'has_applied'],
       'ui.dialogue_box': ['dialogue.line', 'advance'],
       'ui.equipment_screen': ['toggle_equipment', 'get_bonus', 'get_equipped'],
@@ -148,6 +154,7 @@ describe('fixture content', () => {
       'ui.main_menu': ['NewGame', 'load_game', 'paused', 'game.started'],
       'ui.pause_menu': ['pause', 'save_game', 'paused'],
       'ui.quest_tracker': ['begins_with("quest.")', 'get_active'],
+      'ui.result_screen': ['game.won', 'game.lost', 'game.restart', 'PROCESS_MODE_ALWAYS'],
       'ui.skill_screen': ['toggle_skills', 'get_skill', 'cooldown'],
     };
     for (const [id, tokens] of Object.entries(expected)) {

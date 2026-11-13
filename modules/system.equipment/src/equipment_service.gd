@@ -52,6 +52,10 @@ func _auto_equip(item_id: String) -> void:
 	if slot != "" and not _equipped.has(slot):
 		equip(item_id)
 
+func reset() -> void:
+	_equipped.clear()
+	changed.emit()
+
 func serialize() -> Dictionary:
 	return {"equipped": _equipped.duplicate(true)}
 

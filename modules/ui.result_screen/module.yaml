@@ -1,0 +1,18 @@
+id: ui.result_screen
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: ui
+genres: [rpg, roguelike, action]
+depends:
+  core.events: "^1.0.0"
+provides:
+  services: []
+ui_mounts:
+  - slot: result
+    scene: scenes/result_screen.tscn
+    layer: 45
+scenarios: [scenarios/result.yaml]
+ai_skill: skills/result_screen.md
+docs: api.md
+license: Apache-2.0

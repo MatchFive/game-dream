@@ -39,6 +39,7 @@ describe('m0 composition', () => {
     expect(main).not.toContain('ui.quest_tracker');
     expect(main).not.toContain('ui.dialogue_box');
     expect(main).not.toContain('ui.level_transition');
+    expect(main).not.toContain('ui.result_screen');
 
     const mainScript = readFileSync(join(outDir, 'game/_generated/main.gd'), 'utf8');
     expect(mainScript).toContain('missing input action');
