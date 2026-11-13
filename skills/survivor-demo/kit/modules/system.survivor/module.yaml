@@ -1,0 +1,34 @@
+id: system.survivor
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [survivor]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  components: [Survivor]
+input_actions:
+  - name: move_left
+    keys: [A, LEFT]
+  - name: move_right
+    keys: [D, RIGHT]
+  - name: move_up
+    keys: [W, UP]
+  - name: move_down
+    keys: [S, DOWN]
+  - name: restart
+    keys: [R]
+  - name: upgrade_1
+    keys: ["1"]
+  - name: upgrade_2
+    keys: ["2"]
+  - name: upgrade_3
+    keys: ["3"]
+main_scene: scenes/arena.tscn
+scenarios: [scenarios/survivor.yaml]
+tests: []
+ai_skill: skills/survivor.md
+docs: api.md
+license: Apache-2.0

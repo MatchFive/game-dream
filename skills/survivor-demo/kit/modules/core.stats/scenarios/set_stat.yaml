@@ -1,0 +1,9 @@
+id: stats.set_stat
+module: core.stats
+when:
+  - call: stats.set_stat
+    args: [hp, 10]
+then:
+  - call: stats.get_stat
+    args: [hp]
+    expect: 10

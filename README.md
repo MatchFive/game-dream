@@ -310,6 +310,23 @@ demo with crawlers, brutes, XP gems, three auto-weapons (bolt/aura/nova),
 level-up upgrade choices, a boss at 40 seconds, and a half-HP boss phase. It
 also passes G1/G2/G3/G6, with headless time scaling for CI.
 
+## Development case
+
+`dream develop` is the project-as-developer workflow. It reads a short prompt
+and a skill, scaffolds a project, verifies it, and can patch files through tools
+before finishing.
+
+```bash
+dream develop \
+  --case cases/development/survivor-demo.json \
+  --out build/survivor-demo \
+  --provider fake
+```
+
+The fake provider is a deterministic offline developer. Set `OPENAI_API_KEY` and
+pass `--provider openai` to let a model choose the same tools. See
+`cases/development/README.md` and `skills/survivor-demo/SKILL.md`.
+
 ## Release artifacts
 
 Manual `workflow_dispatch` (or a `v*` tag) builds three engine artifacts from the

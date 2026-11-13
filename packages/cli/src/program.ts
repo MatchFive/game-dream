@@ -15,6 +15,7 @@ import {
   parseProviderKind,
 } from './commands/create.js';
 import { benchmarkExitCode, runBenchmark } from './commands/benchmark.js';
+import { developCommand, loadDevelopmentCase } from './commands/develop.js';
 import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
@@ -144,6 +145,70 @@ export function createProgram(): Command {
             }
           }
           process.exitCode = exitCode;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  program
+    .command('develop')
+    .description('Develop a playable demo from text using tools and a skill')
+    .argument('[prompt...]', 'game idea')
+    .requiredOption('--out <dir>')
+    .option('--case <file>', 'development case JSON')
+    .option('--skill <name>', 'development skill', 'survivor-demo')
+    .option('--skills <dir>', 'skills directory', 'skills')
+    .option('--provider <kind>', 'auto | fake | openai', 'fake')
+    .option('--max-steps <count>', 'maximum tool steps', '12')
+    .option('--visual', 'run G6 screenshot gate')
+    .option('--json', 'print JSON')
+    .action(
+      async (
+        promptParts: string[],
+        options: {
+          out: string;
+          case?: string;
+          skill: string;
+          skills: string;
+          provider: string;
+          maxSteps: string;
+          visual?: boolean;
+          json?: boolean;
+        },
+      ) => {
+        try {
+          const selected = options.case ? loadDevelopmentCase(options.case) : undefined;
+          const prompt = selected?.prompt ?? promptParts.join(' ');
+          if (!prompt) {
+            printLine('develop requires a prompt or --case <file>');
+            process.exitCode = 1;
+            return;
+          }
+          const report = await developCommand({
+            prompt,
+            outDir: options.out,
+            skillsDir: options.skills,
+            skill: selected?.skill ?? options.skill,
+            providerKind: parseProviderKind(options.provider),
+            maxSteps: Number(options.maxSteps),
+            visual: options.visual,
+          });
+          if (options.json) printJson(report);
+          else {
+            const passed = report.verify.gates.G1.status === 'pass' &&
+              report.verify.gates.G2.status === 'pass' &&
+              report.verify.gates.G3.status === 'pass';
+            for (const [gate, result] of Object.entries(report.verify.gates)) {
+              printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+            }
+            printLine(
+              `${passed ? 'Demo ready' : 'Demo incomplete'}: ${report.outDir} · ${report.steps} steps · ${report.actions.join(' -> ')}`,
+            );
+          }
+          process.exitCode = exitCodeFor(report.verify);
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

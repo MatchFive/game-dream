@@ -1,0 +1,14 @@
+{
+  "id": "survivor-demo",
+  "prompt": "做一个类吸血鬼幸存者 demo，有自动攻击、武器升级选择、精英怪、Boss 和 60 秒生存",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_WIN"
+  ]
+}

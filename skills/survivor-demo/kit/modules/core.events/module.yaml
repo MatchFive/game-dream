@@ -1,0 +1,18 @@
+id: core.events
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: core
+genres: [any]
+depends: {}
+provides:
+  services: [events]
+autoloads:
+  - name: EventBus
+    path: src/event_bus.gd
+    order: 10
+scenarios: [scenarios/emit.yaml]
+tests: [tests/test_event_bus.gd]
+ai_skill: skills/events.md
+docs: api.md
+license: Apache-2.0

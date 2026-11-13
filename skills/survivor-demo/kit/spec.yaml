@@ -1,0 +1,20 @@
+version: 1
+project:
+  name: survivor-demo
+  engine: godot
+  godot_version: "4.4"
+  dimension: 2d
+  view: top-down
+  target: [windows]
+genre:
+  primary: survivor
+  template: survivor-demo
+scope:
+  levels: 1
+  enemies: 20
+systems:
+  inventory: false
+content:
+  language: zh-CN
+acceptance:
+  - "自动攻击、怪潮、武器升级、Boss 和 60 秒生存"
