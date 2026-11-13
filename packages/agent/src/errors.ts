@@ -6,7 +6,8 @@ export type AgentErrorCode =
   | 'MISSING_API_KEY'
   | 'PROVIDER_HTTP_ERROR'
   | 'PROVIDER_EMPTY_RESPONSE'
-  | 'INVALID_VISION_REVIEW';
+  | 'INVALID_VISION_REVIEW'
+  | 'VISION_IMAGE_UNREADABLE';
 
 export class AgentError extends Error {
   constructor(

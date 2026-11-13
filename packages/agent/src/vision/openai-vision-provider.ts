@@ -22,7 +22,15 @@ export class OpenAIVisionProvider implements VisionProvider {
 
   async review(request: VisionRequest): Promise<VisualReview> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
-    const image = readFileSync(request.imagePath).toString('base64');
+    let image: string;
+    try {
+      image = readFileSync(request.imagePath).toString('base64');
+    } catch (error) {
+      throw new AgentError(
+        'VISION_IMAGE_UNREADABLE',
+        `cannot read screenshot for vision review: ${(error as Error).message}`,
+      );
+    }
     let response: Response;
     try {
       response = await this.fetchImpl(

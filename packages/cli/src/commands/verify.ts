@@ -200,11 +200,17 @@ function visualFailure(shot: ScreenshotResult): string | null {
 }
 
 function visionFailure(review: VisualReview): string | null {
-  if (!review.readable) return 'vision: not readable';
-  if (!review.hud_visible) return 'vision: HUD not visible';
-  if (!review.player_visible) return 'vision: player not visible';
-  if (!review.enemy_visible) return 'vision: enemy not visible';
-  if (!review.dialogue_readable) return 'vision: dialogue not readable';
+  const detail = review.issues
+    .slice(0, 3)
+    .map((issue) => issue.replace(/\s+/g, ' ').trim().slice(0, 120))
+    .filter(Boolean)
+    .join('; ');
+  const suffix = detail ? ` (${detail})` : '';
+  if (!review.readable) return `vision: not readable${suffix}`;
+  if (!review.hud_visible) return `vision: HUD not visible${suffix}`;
+  if (!review.player_visible) return `vision: player not visible${suffix}`;
+  if (!review.enemy_visible) return `vision: enemy not visible${suffix}`;
+  if (!review.dialogue_readable) return `vision: dialogue not readable${suffix}`;
   return null;
 }
 

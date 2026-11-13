@@ -92,6 +92,60 @@ describe('vision providers', () => {
     ).rejects.toMatchObject({ code: 'INVALID_VISION_REVIEW' });
   });
 
+  it('maps HTTP and empty response errors', async () => {
+    const httpProvider = new OpenAIVisionProvider({
+      apiKey: 'secret',
+      baseUrl: 'https://example.test/v1',
+      model: 'vision-model',
+      fetchImpl: (async () =>
+        new Response('upstream down', { status: 502 })) as typeof fetch,
+    });
+    await expect(
+      httpProvider.review({ imagePath: imagePath(), system: 's', user: 'u' }),
+    ).rejects.toMatchObject({ code: 'PROVIDER_HTTP_ERROR' });
+
+    const emptyProvider = new OpenAIVisionProvider({
+      apiKey: 'secret',
+      baseUrl: 'https://example.test/v1',
+      model: 'vision-model',
+      fetchImpl: (async () =>
+        new Response(JSON.stringify({ choices: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })) as typeof fetch,
+    });
+    await expect(
+      emptyProvider.review({ imagePath: imagePath(), system: 's', user: 'u' }),
+    ).rejects.toMatchObject({ code: 'PROVIDER_EMPTY_RESPONSE' });
+  });
+
+  it('maps transport and unreadable-image errors', async () => {
+    const transportProvider = new OpenAIVisionProvider({
+      apiKey: 'secret',
+      baseUrl: 'https://example.test/v1',
+      model: 'vision-model',
+      fetchImpl: (async () => {
+        throw new TypeError('fetch failed');
+      }) as typeof fetch,
+    });
+    await expect(
+      transportProvider.review({ imagePath: imagePath(), system: 's', user: 'u' }),
+    ).rejects.toMatchObject({ code: 'PROVIDER_HTTP_ERROR' });
+
+    const provider = new OpenAIVisionProvider({
+      apiKey: 'secret',
+      baseUrl: 'https://example.test/v1',
+      model: 'vision-model',
+    });
+    await expect(
+      provider.review({
+        imagePath: join(makeTempDir('gamedream vision missing '), 'missing.png'),
+        system: 's',
+        user: 'u',
+      }),
+    ).rejects.toMatchObject({ code: 'VISION_IMAGE_UNREADABLE' });
+  });
+
   it('requires a key for openai', () => {
     expect(() => createVisionProvider({ kind: 'openai', env: {} })).toThrow(AgentError);
   });

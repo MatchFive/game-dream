@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import type { CommandRunner } from '@gamedream/godot';
-import { FakeVisionProvider } from '@gamedream/agent';
+import {
+  AgentError,
+  FakeVisionProvider,
+  type VisionProvider,
+} from '@gamedream/agent';
 import { composeCommand } from '../src/commands/compose.js';
 import { exitCodeFor, verifyCommand } from '../src/commands/verify.js';
 
@@ -26,7 +30,13 @@ function runnerFor(outDir: string, metrics: string): CommandRunner {
     readFileSync(join(outDir, 'game/game.manifest.json'), 'utf8'),
   ).acceptance.markers as string[];
   const source = join(outDir, 'capture.png');
-  writeFileSync(source, 'x'.repeat(2000), 'utf8');
+  writeFileSync(
+    source,
+    Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(2000),
+    ]),
+  );
   return {
     async run(_command, args) {
       if (args[0] === '--version') {
@@ -88,6 +98,66 @@ describe('visual gate', () => {
     });
     expect(report.gates.G6?.status).toBe('pass');
     expect(report.gates.G6?.message).toContain('vision:fake');
+  });
+
+  it('passes the copied PNG path to the provider', async () => {
+    const outDir = await composeM1('gamedream vision path ');
+    const provider: VisionProvider = {
+      name: 'assert',
+      async review(request) {
+        expect(existsSync(request.imagePath)).toBe(true);
+        expect(readFileSync(request.imagePath).subarray(0, 8)).toEqual(
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        );
+        return new FakeVisionProvider().review(request);
+      },
+    };
+    const report = await verifyCommand({
+      projectDir: outDir,
+      runner: runnerFor(
+        outDir,
+        '{"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
+      ),
+      vision: 'fake',
+      visionProvider: provider,
+      visualOut: join(outDir, 'shot.png'),
+    });
+    expect(report.gates.G6?.status).toBe('pass');
+  });
+
+  it('fails G6 on missing OpenAI keys and provider errors', async () => {
+    const outDir = await composeM1('gamedream vision errors ');
+    const missingKey = await verifyCommand({
+      projectDir: outDir,
+      runner: runnerFor(
+        outDir,
+        '{"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
+      ),
+      vision: 'openai',
+      env: {},
+      visualOut: join(outDir, 'shot.png'),
+    });
+    expect(missingKey.gates.G6?.status).toBe('fail');
+    expect(missingKey.gates.G6?.message).toContain('OPENAI_API_KEY');
+    expect(exitCodeFor(missingKey)).toBe(2);
+
+    const failing = await verifyCommand({
+      projectDir: outDir,
+      runner: runnerFor(
+        outDir,
+        '{"width":1280,"height":720,"samples":100,"non_black":80,"colors":12,"center_colors":6}',
+      ),
+      vision: 'fake',
+      visionProvider: {
+        name: 'bad',
+        async review() {
+          throw new AgentError('INVALID_VISION_REVIEW', 'bad review');
+        },
+      },
+      visualOut: join(outDir, 'shot.png'),
+    });
+    expect(failing.gates.G6?.status).toBe('fail');
+    expect(failing.gates.G6?.message).toContain('bad review');
   });
 
   it('fails G6 when the vision review is not readable', async () => {

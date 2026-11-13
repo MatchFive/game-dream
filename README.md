@@ -125,8 +125,9 @@ with `--screenshot`, starts a new game, waits 60 frames, captures the viewport t
   `OPENAI_API_KEY` and the OpenAI-compatible vision API (`GAMEDREAM_VISION_MODEL`
   defaults to `gpt-4o-mini`). `--vision` implies `--visual`.
 
-G6 is opt-in so headless CI keeps running G1–G3. Golden images and a VLM
-readability rubric are deferred.
+G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
+multi-frame review are deferred. `--vision fake` keeps the image local;
+`--vision openai` uploads it to the configured vision endpoint.
 
 ## Generated project layout
 
