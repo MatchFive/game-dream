@@ -169,4 +169,75 @@ describe('resolveModules', () => {
       expect((error as ResolutionError).code).toBe('ENGINE_MISMATCH');
     }
   });
+
+  it('rejects a module whose engine_version excludes the target Godot version', () => {
+    const registry = makeRegistry({
+      ...baseModules,
+      'core.events': { ...baseModules['core.events'], engine_version: '>=4.5 <5' },
+    });
+    try {
+      resolveModules({
+        spec,
+        template,
+        registry,
+        engine: 'godot',
+        engineVersion: '4.4',
+      });
+      throw new Error('expected failure');
+    } catch (error) {
+      expect((error as ResolutionError).code).toBe('ENGINE_VERSION_MISMATCH');
+    }
+  });
+
+  it('includes optional modules enabled by spec.systems', () => {
+    const registry = makeRegistry(baseModules);
+    const optionalTemplate: TemplateManifest = {
+      ...template,
+      modules: { required: ['core.events'], optional: ['core.stats'] },
+    };
+    const enabled = resolveModules({
+      spec: { ...spec, systems: { stats: true } },
+      template: optionalTemplate,
+      registry,
+      engine: 'godot',
+    });
+    expect(enabled.order).toContain('core.stats');
+
+    const disabled = resolveModules({
+      spec: { ...spec, systems: { stats: false } },
+      template: optionalTemplate,
+      registry,
+      engine: 'godot',
+    });
+    expect(disabled.order).not.toContain('core.stats');
+  });
+
+  it('rejects conflicting modules', () => {
+    const registry = makeRegistry({
+      ...baseModules,
+      'core.events': { ...baseModules['core.events'], conflicts: ['core.stats'] },
+    });
+    try {
+      resolveModules({ spec, template, registry, engine: 'godot' });
+      throw new Error('expected failure');
+    } catch (error) {
+      expect((error as ResolutionError).code).toBe('CONFLICT');
+    }
+  });
+
+  it('rejects a dependency version mismatch', () => {
+    const registry = makeRegistry({
+      ...baseModules,
+      'core.stats': {
+        ...baseModules['core.stats'],
+        depends: { 'core.events': '^2.0.0' },
+      },
+    });
+    try {
+      resolveModules({ spec, template, registry, engine: 'godot' });
+      throw new Error('expected failure');
+    } catch (error) {
+      expect((error as ResolutionError).code).toBe('VERSION_MISMATCH');
+    }
+  });
 });

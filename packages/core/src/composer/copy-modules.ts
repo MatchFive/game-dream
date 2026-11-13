@@ -1,17 +1,24 @@
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModuleRecord } from '../registry/types.js';
 
 export function copyModules(outDir: string, modules: ModuleRecord[]): string[] {
   const targetRoot = join(outDir, 'modules');
   mkdirSync(targetRoot, { recursive: true });
+  const ids = new Set(modules.map((module) => module.manifest.id));
+
+  for (const entry of readdirSync(targetRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && !ids.has(entry.name)) {
+      rmSync(join(targetRoot, entry.name), { recursive: true, force: true });
+    }
+  }
+
   const copied: string[] = [];
   for (const module of modules) {
     const target = join(targetRoot, module.manifest.id);
-    if (!existsSync(target)) {
-      cpSync(module.dir, target, { recursive: true });
-      copied.push(target);
-    }
+    rmSync(target, { recursive: true, force: true });
+    cpSync(module.dir, target, { recursive: true });
+    copied.push(target);
   }
   return copied;
 }

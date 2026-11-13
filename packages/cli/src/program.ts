@@ -3,7 +3,8 @@ import { detectGodot } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { composeCommand } from './commands/compose.js';
 import { runCommand as runProject } from './commands/run.js';
-import { verifyCommand } from './commands/verify.js';
+import { exitCodeFor, verifyCommand } from './commands/verify.js';
+import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
 
 export function createProgram(): Command {
@@ -22,7 +23,9 @@ export function createProgram(): Command {
         printLine(
           `Godot: ${report.godot ? `${report.godot.version} (${report.godot.bin})` : 'not found'}`,
         );
+        for (const problem of report.problems) printLine(problem);
       }
+      if (!report.ok) process.exitCode = 3;
     });
 
   program
@@ -40,14 +43,20 @@ export function createProgram(): Command {
         templates: string;
         json?: boolean;
       }) => {
-        const result = await composeCommand({
-          specPath: options.spec,
-          outDir: options.out,
-          modulesDir: options.modules,
-          templatesDir: options.templates,
-        });
-        if (options.json) printJson({ outDir: result.outDir, order: result.order });
-        else printLine(`Composed ${result.order.length} modules into ${result.outDir}`);
+        try {
+          const result = await composeCommand({
+            specPath: options.spec,
+            outDir: options.out,
+            modulesDir: options.modules,
+            templatesDir: options.templates,
+          });
+          if (options.json) printJson({ outDir: result.outDir, order: result.order });
+          else printLine(`Composed ${result.order.length} modules into ${result.outDir}`);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
       },
     );
 
@@ -84,8 +93,7 @@ export function createProgram(): Command {
           printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
         }
       }
-      const failed = Object.values(report.gates).some((gate) => gate.status === 'fail');
-      process.exitCode = failed ? 2 : 0;
+      process.exitCode = exitCodeFor(report);
     });
 
   return program;

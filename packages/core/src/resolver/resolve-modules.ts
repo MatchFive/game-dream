@@ -15,10 +15,11 @@ export interface ResolveInput {
   template: TemplateManifest;
   registry: ModuleRegistry;
   engine: GameSpec['project']['engine'];
+  engineVersion?: string;
 }
 
 export function resolveModules(input: ResolveInput): Resolution {
-  const { template, registry, engine } = input;
+  const { template, registry, engine, engineVersion } = input;
   const byId = new Map<string, ModuleRecord>();
   const edges = new Map<string, string[]>();
 
@@ -45,6 +46,16 @@ export function resolveModules(input: ResolveInput): Resolution {
         { module: id, engine },
       );
     }
+    if (
+      engineVersion &&
+      !satisfies(`${engineVersion}.0`, existing.manifest.engine_version)
+    ) {
+      throw new ResolutionError(
+        'ENGINE_VERSION_MISMATCH',
+        `module ${id} requires engine ${existing.manifest.engine_version}, target is ${engineVersion}`,
+        { module: id, engineVersion },
+      );
+    }
     if (byId.has(id)) return;
     byId.set(id, existing);
     edges.set(id, []);
@@ -54,7 +65,13 @@ export function resolveModules(input: ResolveInput): Resolution {
     }
   }
 
-  for (const id of template.modules.required) add(id, undefined, undefined);
+  const optional = template.modules.optional.filter((id) => {
+    const shortId = id.split('.').pop() ?? id;
+    return input.spec.systems[shortId] === true || input.spec.systems[id] === true;
+  });
+  for (const id of [...template.modules.required, ...optional]) {
+    add(id, undefined, undefined);
+  }
 
   for (const record of byId.values()) {
     for (const conflict of record.manifest.conflicts) {
@@ -72,7 +89,9 @@ export function resolveModules(input: ResolveInput): Resolution {
   try {
     order = topologicalSort([...byId.keys()], edges);
   } catch (error) {
-    throw new ResolutionError('CYCLE', (error as Error).message);
+    throw new ResolutionError('CYCLE', (error as Error).message, {
+      cycle: (error as Error).message,
+    });
   }
 
   return { modules: order.map((id) => byId.get(id)!), order };

@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { composeProject } from '../src/index.js';
-import { makeTempDir } from '@gamedream/testing';
+import {
+  composeProject,
+  hashDirectory,
+  parseModuleManifest,
+} from '../src/index.js';
+import { copyModules } from '../src/composer/copy-modules.js';
+import { makeTempDir, writeFile } from '@gamedream/testing';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -72,5 +77,79 @@ describe('generated Godot project', () => {
     expect(manifest.managed).toContain('game/_generated/**');
     expect(manifest.user).toContain('game/content/**');
     expect(manifest.hashes['game/_generated/main.tscn']).toMatch(/^sha256:/);
+  });
+
+  it('preserves user edits to project.godot on recompose', async () => {
+    const opts = options();
+    await composeProject(opts);
+    const projectPath = join(opts.outDir, 'project.godot');
+    const first = readFileSync(projectPath, 'utf8');
+    const edited =
+      first.replace(
+        'window/size/viewport_width=1280',
+        'window/size/viewport_width=1920',
+      ) + '\n[input]\nuser_action={ "deadzone": 0.5 }\n';
+    writeFileSync(projectPath, edited, 'utf8');
+
+    await composeProject(opts);
+
+    const second = readFileSync(projectPath, 'utf8');
+    expect(second).toContain('window/size/viewport_width=1920');
+    expect(second).toContain('[input]');
+    expect(second).toContain('user_action');
+    expect(existsSync(`${projectPath}.bak`)).toBe(true);
+  });
+
+  it('hashes the copied module tree in the lockfile', async () => {
+    const opts = options();
+    await composeProject(opts);
+    const lockfile = JSON.parse(readFileSync(join(opts.outDir, 'modules.lock.json'), 'utf8'));
+    const entry = lockfile.modules.find((module: { id: string }) => module.id === 'core.events');
+    expect(entry.hash).toBe(hashDirectory(join(opts.outDir, 'modules/core.events')));
+  });
+
+  it('writes UTF-8/LF files into a non-ASCII project directory', async () => {
+    const opts = {
+      ...options(),
+      outDir: join(makeTempDir('gamedream compose '), '我的 游戏 Ünïcode'),
+    };
+    await composeProject(opts);
+    for (const relative of [
+      'project.godot',
+      'game/_generated/main.gd',
+      'game/_generated/main.tscn',
+      'game/game.manifest.json',
+      'modules.lock.json',
+    ]) {
+      const bytes = readFileSync(join(opts.outDir, relative));
+      expect(bytes.includes(0x0d)).toBe(false);
+      expect(bytes[0]).not.toBe(0xef);
+    }
+  });
+});
+
+describe('copyModules', () => {
+  it('refreshes an existing module directory from the source', () => {
+    const sourceRoot = makeTempDir('gamedream module source ');
+    const source = join(sourceRoot, 'core.events');
+    writeFile(source, 'module.yaml', 'id: core.events\n');
+    writeFile(source, 'src/file.txt', 'v1');
+
+    const manifest = parseModuleManifest({
+      id: 'core.events',
+      version: '1.0.0',
+      engine: 'godot',
+      engine_version: '>=4.4 <5',
+      kind: 'core',
+    });
+    const record = { manifest, dir: source };
+    const outDir = makeTempDir('gamedream module out ');
+
+    copyModules(outDir, [record]);
+    expect(readFileSync(join(outDir, 'modules/core.events/src/file.txt'), 'utf8')).toBe('v1');
+
+    writeFile(source, 'src/file.txt', 'v2');
+    copyModules(outDir, [record]);
+    expect(readFileSync(join(outDir, 'modules/core.events/src/file.txt'), 'utf8')).toBe('v2');
   });
 });

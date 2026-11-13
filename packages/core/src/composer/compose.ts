@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LocalRegistry } from '../registry/local-registry.js';
 import { resolveModules } from '../resolver/resolve-modules.js';
@@ -12,6 +12,7 @@ import { writeLockfile } from './write-lockfile.js';
 import { generateGameScript } from './generate-game-script.js';
 import { generateProjectGodot } from './generate-project-godot.js';
 import { generateMainScene } from './generate-main-scene.js';
+import { mergeProjectGodot } from './merge-project-godot.js';
 import { writeGameManifest } from './write-game-manifest.js';
 
 export async function composeProject(options: ComposeOptions): Promise<ComposeResult> {
@@ -24,6 +25,7 @@ export async function composeProject(options: ComposeOptions): Promise<ComposeRe
     template,
     registry,
     engine: spec.project.engine,
+    engineVersion: spec.project.godot_version,
   });
 
   copyModules(options.outDir, resolution.modules);
@@ -34,7 +36,7 @@ export async function composeProject(options: ComposeOptions): Promise<ComposeRe
       id: module.manifest.id,
       version: module.manifest.version,
       source: 'local',
-      hash: hashDirectory(module.dir),
+      hash: hashDirectory(join(options.outDir, 'modules', module.manifest.id)),
     })),
   };
   const lockfilePath = writeLockfile(options.outDir, lockfile);
@@ -67,14 +69,20 @@ func _ready() -> void:
   );
   writeFileSync(gameScript, generateGameScript(), 'utf8');
   writeFileSync(mainScene, generateMainScene(resolution.modules), 'utf8');
-  writeFileSync(
-    projectGodot,
+  const existingProject = existsSync(projectGodot)
+    ? readFileSync(projectGodot, 'utf8')
+    : null;
+  const mergedProject = mergeProjectGodot(
+    existingProject,
     generateProjectGodot({
       projectName: spec.project.name,
       modules: resolution.modules,
     }),
-    'utf8',
   );
+  if (existingProject !== null) {
+    writeFileSync(`${projectGodot}.bak`, existingProject, 'utf8');
+  }
+  writeFileSync(projectGodot, mergedProject, 'utf8');
 
   const manifestPath = writeGameManifest(options.outDir, [
     'game/_generated/game.gd',

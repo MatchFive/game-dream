@@ -1,7 +1,9 @@
 import type { CommandResult } from './types.js';
 
 export function hasMarker(result: CommandResult, marker: string): boolean {
-  return result.stdout.includes(marker) || result.stderr.includes(marker);
+  const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^${escaped}$`, 'm');
+  return pattern.test(result.stdout) || pattern.test(result.stderr);
 }
 
 export function findScriptErrors(result: CommandResult): string[] {

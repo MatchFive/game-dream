@@ -34,4 +34,9 @@ describe('Godot commands', () => {
     const result = { exitCode: 0, stdout: 'SCRIPT ERROR: Parse Error\n', stderr: '' };
     expect(findScriptErrors(result)).toEqual(['SCRIPT ERROR: Parse Error']);
   });
+
+  it('does not treat a longer marker as a match', () => {
+    const result = { exitCode: 0, stdout: 'INVENTORY_COUNT=12\n', stderr: '' };
+    expect(hasMarker(result, 'INVENTORY_COUNT=1')).toBe(false);
+  });
 });

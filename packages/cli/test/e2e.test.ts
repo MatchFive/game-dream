@@ -20,5 +20,5 @@ describe.runIf(Boolean(process.env.GODOT_BIN))('end-to-end', () => {
     expect(report.gates.G1).toEqual({ status: 'pass' });
     expect(report.gates.G2).toEqual({ status: 'pass' });
     expect(report.gates.G3).toEqual({ status: 'pass' });
-  });
+  }, 120_000);
 });

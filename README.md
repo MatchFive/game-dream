@@ -45,8 +45,9 @@ false pass.
 ## Generated project layout
 
 - `modules/` — managed by the composer; do not edit
-- `game/_generated/` — composer-owned generated files (`project.godot` main scene,
-  service locator, UI mounts)
+- `project.godot` — composer-managed merge: only autoloads and the main scene are
+  rewritten; other sections are preserved and a `.bak` is written on recompose
+- `game/_generated/` — composer-owned main scene, service locator, and UI mounts
 - `game/content/`, `game/config/`, `game/scripts/`, `game/ui/`, `game/tests/` —
   user-owned; the composer never overwrites these
 - `game/game.manifest.json` — managed/user ownership and hashes

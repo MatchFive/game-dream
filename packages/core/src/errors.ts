@@ -4,6 +4,7 @@ export type ResolutionErrorCode =
   | 'CYCLE'
   | 'CONFLICT'
   | 'ENGINE_MISMATCH'
+  | 'ENGINE_VERSION_MISMATCH'
   | 'VERSION_MISMATCH';
 
 export class ResolutionError extends Error {
