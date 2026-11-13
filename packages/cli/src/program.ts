@@ -171,10 +171,15 @@ export function createProgram(): Command {
     .command('export')
     .requiredOption('--map <json>', 'internal map JSON')
     .requiredOption('--out <tmj>', 'Tiled .tmj output')
+    .option('--force', 'overwrite existing files')
     .option('--json', 'print JSON')
-    .action((options: { map: string; out: string; json?: boolean }) => {
+    .action((options: { map: string; out: string; force?: boolean; json?: boolean }) => {
       try {
-        const result = mapExportCommand({ mapPath: options.map, outPath: options.out });
+        const result = mapExportCommand({
+          mapPath: options.map,
+          outPath: options.out,
+          force: options.force,
+        });
         if (options.json) {
           printJson({ outPath: result.outPath, pngPath: result.pngPath });
         } else {
@@ -195,7 +200,8 @@ export function createProgram(): Command {
     .option('--id <id>', 'map id')
     .option('--floor <hex>', 'floor color')
     .option('--wall <hex>', 'wall color')
-    .option('--layer <name>', 'tile layer name', 'Ground')
+    .option('--layer <name>', 'tile layer name (default: Ground, else first tile layer)')
+    .option('--force', 'overwrite existing files')
     .option('--json', 'print JSON')
     .action(
       (options: {
@@ -205,6 +211,7 @@ export function createProgram(): Command {
         floor?: string;
         wall?: string;
         layer?: string;
+        force?: boolean;
         json?: boolean;
       }) => {
         try {
@@ -215,6 +222,7 @@ export function createProgram(): Command {
             floor: options.floor,
             wall: options.wall,
             layer: options.layer,
+            force: options.force,
           });
           if (options.json) printJson({ outPath: result.outPath, id: result.map.id });
           else printLine(`Internal map: ${result.outPath}`);

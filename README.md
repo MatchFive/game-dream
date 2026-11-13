@@ -131,14 +131,17 @@ multi-frame review are deferred. `--vision fake` keeps the image local;
 
 ## Tiled maps
 
-Internal maps use rows (`#` wall, `.` floor). Tiled JSON `.tmj` can be converted
-losslessly with gid `1` = floor, `2` = wall; colors and id round-trip through Tiled
-custom properties.
+Internal maps use rows (`#` wall, `.` floor). Tiled JSON `.tmj` uses gid `1` =
+floor and `2` = wall; colors and id round-trip through Tiled custom properties.
+Import expects the 2-tile GameDream sheet with `firstgid: 1` and CSV/uncompressed
+layers; infinite and base64/compressed maps are rejected.
 
 - `dream map export --map game/content/maps/clearing.json --out clearing.tmj`
-  writes the `.tmj` and a generated `clearing.png` tileset sheet.
+  writes the `.tmj` and a generated `clearing.png` tileset sheet. Use `--force` to
+  overwrite existing files.
 - `dream map import --tmj clearing.tmj --out game/content/maps/clearing.json`
-  restores the internal map; `--id/--floor/--wall/--layer` override Tiled data.
+  restores the internal map; `--id/--floor/--wall/--layer/--force` override Tiled
+  data. Colors are canonicalized to lowercase 6-digit hex.
 
 ## Generated project layout
 

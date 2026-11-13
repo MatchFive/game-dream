@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
+const hexColor = z
+  .string()
+  .regex(/^#?[0-9a-fA-F]{6}$/, 'expected a 6-digit hex color (no alpha)');
+
 export const gameMapSchema = z.object({
   id: z.string().min(1),
   tile_size: z.number().int().positive().default(32),
   tileset: z.object({
-    floor: z.string().min(1),
-    wall: z.string().min(1),
+    floor: hexColor,
+    wall: hexColor,
   }),
   rows: z.array(z.string().min(1)).min(1),
 });

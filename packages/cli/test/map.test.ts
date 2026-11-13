@@ -38,6 +38,60 @@ describe('map CLI', () => {
     expect(imported.map).toEqual(exported.map);
   });
 
+  it('refuses to overwrite unless forced', () => {
+    const dir = makeTempDir('gamedream tiled overwrite ');
+    const mapPath = join(dir, 'map.json');
+    const tmjPath = join(dir, 'map.tmj');
+    writeFileSync(
+      mapPath,
+      JSON.stringify({
+        id: 'map',
+        tile_size: 16,
+        tileset: { floor: '111111', wall: '222222' },
+        rows: ['..', '..'],
+      }),
+      'utf8',
+    );
+    mapExportCommand({ mapPath, outPath: tmjPath });
+    expect(() => mapExportCommand({ mapPath, outPath: tmjPath })).toThrow(
+      /pass --force/,
+    );
+    expect(() =>
+      mapExportCommand({ mapPath, outPath: tmjPath, force: true }),
+    ).not.toThrow();
+  });
+
+  it('rejects invalid imported ids and colors', () => {
+    const dir = makeTempDir('gamedream tiled invalid ');
+    const mapPath = join(dir, 'map.json');
+    const tmjPath = join(dir, 'map.tmj');
+    writeFileSync(
+      mapPath,
+      JSON.stringify({
+        id: 'map',
+        tile_size: 16,
+        tileset: { floor: '111111', wall: '222222' },
+        rows: ['..', '..'],
+      }),
+      'utf8',
+    );
+    mapExportCommand({ mapPath, outPath: tmjPath });
+    expect(() =>
+      mapImportCommand({
+        tmjPath,
+        outPath: join(dir, 'bad.json'),
+        id: '',
+      }),
+    ).toThrow();
+    expect(() =>
+      mapImportCommand({
+        tmjPath,
+        outPath: join(dir, 'bad.json'),
+        floor: 'red',
+      }),
+    ).toThrow(/hex color/);
+  });
+
   it('applies import overrides', () => {
     const dir = makeTempDir('gamedream tiled overrides ');
     const mapPath = join(dir, 'map.json');

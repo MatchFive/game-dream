@@ -60,7 +60,7 @@ export interface ImportOptions {
 function normalizeColor(value: string): string {
   const hex = value.replace(/^#/, '');
   if (!/^[0-9a-f]{6}$/i.test(hex)) {
-    throw new Error(`invalid color: ${value}`);
+    throw new Error(`invalid color: ${value} (expected 6-digit hex color)`);
   }
   return hex.toLowerCase();
 }
@@ -168,14 +168,39 @@ export function fromTiledMap(input: unknown, options: ImportOptions = {}): GameM
   if (!Number.isInteger(tileWidth) || tileWidth <= 0 || tileWidth !== tileHeight) {
     throw new Error('map has invalid tile size');
   }
+  const tilesets = Array.isArray(map.tilesets) ? map.tilesets : [];
+  const tileset = tilesets[0];
+  if (
+    !tileset ||
+    Number(tileset.firstgid) !== 1 ||
+    Number(tileset.tilecount) < 2
+  ) {
+    throw new Error(
+      'unsupported tileset: expected the 2-tile GameDream sheet with firstgid 1',
+    );
+  }
   const layerName = options.layer ?? 'Ground';
   const layers = Array.isArray(map.layers) ? map.layers : [];
-  const layer =
-    layers.find((candidate) => candidate.type === 'tilelayer' && candidate.name === layerName) ??
-    layers.find((candidate) => candidate.type === 'tilelayer');
-  if (!layer || layer.type !== 'tilelayer') throw new Error('no tile layer found');
+  const tileLayers = layers.filter((candidate) => candidate.type === 'tilelayer');
+  const exact = tileLayers.find((candidate) => candidate.name === layerName);
+  const layer = options.layer ? exact : exact ?? tileLayers[0];
+  if (!layer) {
+    throw new Error(
+      `no tile layer named "${layerName}" (found: ${tileLayers.map((candidate) => candidate.name).join(', ') || 'none'})`,
+    );
+  }
   if (layer.width !== width || layer.height !== height) {
     throw new Error('layer dimensions do not match the map');
+  }
+  const encoded = layer as { encoding?: unknown; compression?: unknown };
+  if (
+    typeof layer.data === 'string' ||
+    (encoded.encoding !== undefined && encoded.encoding !== 'csv') ||
+    encoded.compression !== undefined
+  ) {
+    throw new Error(
+      'unsupported tile layer encoding: re-save the .tmj with CSV (uncompressed) tile layers',
+    );
   }
   if (!Array.isArray(layer.data) || layer.data.length !== width * height) {
     throw new Error('tile layer data length does not match width*height');

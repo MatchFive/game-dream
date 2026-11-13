@@ -58,7 +58,7 @@ export function encodePng(width: number, height: number, rgba: Buffer): Buffer {
 function parseRgb(value: string): [number, number, number] {
   const hex = value.replace(/^#/, '');
   if (!/^[0-9a-f]{6}$/i.test(hex)) {
-    throw new Error(`invalid color: ${value}`);
+    throw new Error(`invalid color: ${value} (expected 6-digit hex color)`);
   }
   return [
     parseInt(hex.slice(0, 2), 16),
