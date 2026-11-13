@@ -62,26 +62,26 @@
   {
     "prompt": "做一个 roguelike，随机地牢和永久死亡",
     "expected_genre": "roguelike",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:roguelike-topdown->fixture-minimal"
+    "expected_template": "roguelike-topdown",
+    "expected_reason": "rule:roguelike-topdown"
   },
   {
     "prompt": "做一个随机生成的 roguelike 地牢",
     "expected_genre": "roguelike",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:roguelike-topdown->fixture-minimal"
+    "expected_template": "roguelike-topdown",
+    "expected_reason": "rule:roguelike-topdown"
   },
   {
     "prompt": "做一个 rogue 风格冒险",
     "expected_genre": "roguelike",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:roguelike-topdown->fixture-minimal"
+    "expected_template": "roguelike-topdown",
+    "expected_reason": "rule:roguelike-topdown"
   },
   {
     "prompt": "做一个带永久死亡的随机地牢游戏",
     "expected_genre": "roguelike",
-    "expected_template": "fixture-minimal",
-    "expected_reason": "fallback:roguelike-topdown->fixture-minimal"
+    "expected_template": "roguelike-topdown",
+    "expected_reason": "rule:roguelike-topdown"
   },
   {
     "prompt": "做一个 2D 平台跳跃游戏",

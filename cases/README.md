@@ -26,6 +26,7 @@ With the deterministic fake provider and real Godot:
 
 Result: `1 playable / 5 fallback / 0 failed` before the platformer slice. After
 adding `platformer-2d`: `2 playable / 4 fallback / 0 failed`. After adding
-`shooter-topdown`: `3 playable / 3 fallback / 0 failed` (action RPG, platformer,
-shooter playable; roguelike/tower-defense/puzzle still fallback). This is the
-baseline to improve, not a release-quality score.
+`shooter-topdown`: `3 playable / 3 fallback / 0 failed`. After adding
+`roguelike-topdown`: `4 playable / 2 fallback / 0 failed` (action RPG,
+platformer, shooter, roguelike playable; tower-defense/puzzle still fallback).
+This is the baseline to improve, not a release-quality score.

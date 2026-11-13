@@ -1,0 +1,23 @@
+id: roguelike-topdown
+genre: roguelike
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.roguelike
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 2
+  bosses: 0
+  skills: 0
+  items: 0
+  quests: 0
+acceptance:
+  - "随机地牢可移动、战斗并探索"
+  - "永久死亡，死亡后不会复活"
+  - "到达出口完成地牢"
+acceptance_markers:
+  [GAMEDREAM_BOOT_OK, GAMEDREAM_DUNGEON, GAMEDREAM_KILL, GAMEDREAM_WIN]

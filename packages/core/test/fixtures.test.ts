@@ -69,6 +69,7 @@ describe('fixture content', () => {
       'system.player',
       'system.progression',
       'system.quests',
+      'system.roguelike',
       'system.settings',
       'system.shooter',
       'system.skills',

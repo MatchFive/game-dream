@@ -1,0 +1,6 @@
+id: roguelike.descend
+module: system.roguelike
+when:
+  - input: move_right
+then:
+  - assert_signal: dungeon.generated

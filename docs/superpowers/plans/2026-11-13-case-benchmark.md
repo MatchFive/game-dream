@@ -18,11 +18,14 @@
 - After adding `platformer-2d`: `action-rpg` and `platformer` playable;
   shooter/roguelike/tower-defense still fallback to `fixture-minimal`; puzzle
   still falls back to `rpg-action-m1`.
-- After adding `shooter-topdown`: 3 playable / 3 fallback / 0 failed; exit 1
+- After adding `shooter-topdown`: 3 playable / 3 fallback / 0 failed.
+- After adding `roguelike-topdown`: 4 playable / 2 fallback / 0 failed; exit 1
   remains until all cases are playable.
 - Platformer verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
 - Platformer slice: gravity/jump, coins, goal, background, HUD, headless autoplay.
 - Shooter verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 22 colors.
 - Shooter slice: movement, shooting, chase AI, HP, background, HUD, auto-fire.
+- Roguelike verify G1/G2/G3 and G6 pass; screenshot 1280×720 with 26 colors.
+- Roguelike slice: seeded maze, turn-based combat, chasing enemies, permadeath.
 - Unit tests cover playable-vs-fallback and duplicate case rejection.
 - No UE changes.

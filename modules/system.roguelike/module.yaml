@@ -1,0 +1,28 @@
+id: system.roguelike
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [roguelike]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+provides:
+  components: [RoguelikeDungeon]
+input_actions:
+  - name: move_left
+    keys: [A, LEFT]
+  - name: move_right
+    keys: [D, RIGHT]
+  - name: move_up
+    keys: [W, UP]
+  - name: move_down
+    keys: [S, DOWN]
+  - name: restart
+    keys: [R]
+main_scene: scenes/dungeon.tscn
+scenarios: [scenarios/roguelike.yaml]
+tests: []
+ai_skill: skills/roguelike.md
+docs: api.md
+license: Apache-2.0
