@@ -7,6 +7,7 @@ const ENEMY_SCENE := preload("res://modules/system.ai/scenes/enemy.tscn")
 
 var enemy = null
 var _finished := false
+var _level2_reported := false
 
 func _ready() -> void:
 	player.get_node("Health").died.connect(_lose)
@@ -15,14 +16,21 @@ func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
 		_headless_start()
 
-func _on_event(event_name: String, _payload: Variant) -> void:
+func _on_event(event_name: String, payload: Variant) -> void:
 	if event_name == "game.started":
+		if payload is Dictionary and bool(payload.get("new_game", false)):
+			var levels = Game.get_service("levels")
+			if levels:
+				levels.reset()
+			_level2_reported = false
+			_apply_level()
 		var dialogue = Game.get_service("dialogue")
 		if dialogue and not dialogue.is_active():
 			dialogue.start("intro")
 	elif event_name == "level.started" and not _finished:
 		var levels = Game.get_service("levels")
-		if levels and levels.current_index == 1:
+		if levels and levels.current_index == 1 and not _level2_reported:
+			_level2_reported = true
 			print("GAMEDREAM_LEVEL_2")
 		_apply_level()
 
@@ -36,12 +44,14 @@ func _apply_level() -> void:
 		level = levels.current_level()
 	var data_value = level.get("enemy", {})
 	var data: Dictionary = data_value if data_value is Dictionary else {}
+	if not level.is_empty() and data.is_empty():
+		push_warning("level: missing enemy data; using defaults")
 	enemy = ENEMY_SCENE.instantiate()
 	enemy.enemy_kind = str(data.get("kind", "slime"))
-	enemy.speed = float(data.get("speed", 80.0))
-	enemy.attack_damage = int(data.get("attack_damage", 5))
+	enemy.speed = maxf(0.0, float(data.get("speed", 80.0)))
+	enemy.attack_damage = maxi(0, int(data.get("attack_damage", 5)))
 	enemy.position = Vector2(float(data.get("x", 600)), float(data.get("y", 240)))
-	enemy.get_node("Health").max_hp = int(data.get("max_hp", 30))
+	enemy.get_node("Health").max_hp = maxi(1, int(data.get("max_hp", 30)))
 	enemy_root.add_child(enemy)
 	enemy.get_node("Health").died.connect(_on_enemy_died)
 	var health = player.get_node("Health")
@@ -123,16 +133,39 @@ func _autoplay() -> void:
 			get_tree().quit(1)
 			return
 	var frames := 0
-	while not _finished and frames < 1200:
-		if is_instance_valid(enemy) and player.global_position.distance_to(enemy.global_position) > 50.0:
-			Input.action_press("move_right")
-			Input.action_release("attack")
+	while not _finished and frames < 900:
+		if is_instance_valid(enemy):
+			var offset: Vector2 = enemy.global_position - player.global_position
+			if offset.length() <= 50.0:
+				_stop_move()
+				Input.action_press("attack")
+			else:
+				Input.action_release("attack")
+				_steer(offset)
 		else:
-			Input.action_release("move_right")
-			Input.action_press("attack")
+			Input.action_release("attack")
 		await get_tree().physics_frame
 		frames += 1
 	Input.action_release("attack")
-	Input.action_release("move_right")
+	_stop_move()
 	if not _finished:
 		_lose()
+
+func _steer(offset: Vector2) -> void:
+	_steer_axis(offset.x, "move_right", "move_left")
+	_steer_axis(offset.y, "move_down", "move_up")
+
+func _steer_axis(value: float, positive: String, negative: String) -> void:
+	if value > 5.0:
+		Input.action_press(positive)
+		Input.action_release(negative)
+	elif value < -5.0:
+		Input.action_press(negative)
+		Input.action_release(positive)
+	else:
+		Input.action_release(positive)
+		Input.action_release(negative)
+
+func _stop_move() -> void:
+	for action in ["move_left", "move_right", "move_up", "move_down"]:
+		Input.action_release(action)

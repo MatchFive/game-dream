@@ -107,10 +107,12 @@ describe('fixture content', () => {
         'GAMEDREAM_LEVEL_2',
         'EnemyRoot',
         'level.started',
+        'new_game',
+        '_steer',
         '_autoplay',
       ],
       'system.inventory': ['register_service', 'add_item', 'remove_item', 'total_count'],
-      'system.levels': ['level.started', 'has_next', 'advance', 'serialize'],
+      'system.levels': ['level.started', 'has_next', 'advance', 'reset', 'serialize'],
       'system.loot': ['enemy.died', 'loot.dropped', 'get_loot_table'],
       'system.player': [
         'Input.get_vector',
