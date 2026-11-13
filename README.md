@@ -142,6 +142,26 @@ G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
 multi-frame review are deferred. `--vision fake` keeps the image local;
 `--vision openai` uploads it to the configured vision endpoint.
 
+## Unity 2D M0
+
+```bash
+dream unity compose --out ./unity-game
+dream unity verify --path ./unity-game
+```
+
+`unity compose` generates a Unity 6 (6000.0.x) source project with a pure C#
+`GameSim`, runtime bootstrap, and `EditorVerifier`. No Unity binary is bundled.
+`unity verify` is a static file/marker check; real runtime verification requires
+Unity 6:
+
+```text
+Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -
+```
+
+The generated project prints `UNITY_BOOT_OK`, `UNITY_WIN`, or `UNITY_LOSE`.
+Open the project in Unity and press Play to use the runtime bootstrap (no scene
+asset is required).
+
 ## Web M0 (Phaser)
 
 The second engine track is a Web M0 prototype: a pure ESM simulation plus a

@@ -48,6 +48,9 @@ importers:
       '@gamedream/godot':
         specifier: workspace:*
         version: link:../godot
+      '@gamedream/unity':
+        specifier: workspace:*
+        version: link:../unity
       '@gamedream/web':
         specifier: workspace:*
         version: link:../web
@@ -96,6 +99,12 @@ importers:
       yaml:
         specifier: ^2.6.1
         version: 2.9.1
+
+  packages/unity:
+    devDependencies:
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
 
   packages/web:
     dependencies:

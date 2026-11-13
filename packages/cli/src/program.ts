@@ -27,6 +27,7 @@ import {
   webVerifyVisualCommand,
 } from './commands/web.js';
 import { exitCodeFor, parseVisionKind, verifyCommand } from './commands/verify.js';
+import { unityComposeCommand, unityVerifyCommand } from './commands/unity.js';
 import { formatCliError } from './errors.js';
 import { printJson, printLine } from './output.js';
 
@@ -572,6 +573,60 @@ export function createProgram(): Command {
         process.exitCode = result.passed ? 0 : result.exitCode === 3 ? 3 : 1;
       },
     );
+
+  const unityCommand = program
+    .command('unity')
+    .description('Compose and statically verify the Unity 2D M0 project');
+
+  unityCommand
+    .command('compose')
+    .requiredOption('--out <dir>')
+    .option('--templates <dir>', 'Unity template directory', 'templates/unity-2d-m0')
+    .option('--name <name>', 'game name', 'unity-m0')
+    .option('--force', 'overwrite existing project')
+    .option('--json', 'print JSON')
+    .action(
+      (options: {
+        out: string;
+        templates: string;
+        name: string;
+        force?: boolean;
+        json?: boolean;
+      }) => {
+        try {
+          const result = unityComposeCommand({
+            outDir: options.out,
+            templatesDir: options.templates,
+            name: options.name,
+            force: options.force,
+          });
+          if (options.json) printJson(result);
+          else printLine(`Unity project: ${result.outDir}`);
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  unityCommand
+    .command('verify')
+    .requiredOption('--path <dir>')
+    .option('--json', 'print JSON')
+    .action((options: { path: string; json?: boolean }) => {
+      const result = unityVerifyCommand({ projectDir: options.path });
+      if (options.json) printJson(result);
+      else if (result.passed) {
+        printLine('Unity static project verification passed');
+        printLine(
+          'Runtime verification requires Unity 6: Unity -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run -logFile -',
+        );
+      } else {
+        printLine(`Unity verification failed: ${result.message ?? 'unknown error'}`);
+      }
+      process.exitCode = result.passed ? 0 : 1;
+    });
 
   const mapCommand = program
     .command('map')
