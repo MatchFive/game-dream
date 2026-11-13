@@ -299,7 +299,14 @@ pnpm release:accept \
 
 The script writes `dist/release-acceptance/<timestamp>/acceptance.json` with each
 engine's verify/package/runtime commands, exit codes, artifacts, and skipped-runtime
-reasons. `--skip-runtime` performs static/package checks only.
+reasons. `--skip-runtime` performs static/package checks only. CI downloads the
+three release artifacts, runs the same acceptance with `--skip-runtime`, uploads
+`gamedream-acceptance`, and includes it in the SHA-256 release manifest.
+
+Rollback: keep the previous release artifacts; to revert, redeploy the prior Web
+package, restore the prior Godot/Unity source artifact, and re-run
+`release:accept` against those paths. The acceptance manifest identifies the
+exact artifact set that passed.
 
 ## Docs
 

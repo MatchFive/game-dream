@@ -111,8 +111,40 @@ jobs:
           path: dist/unity
           if-no-files-found: error
 
-  release-manifest:
+  release-acceptance:
     needs: [web-release, godot-release, unity-release]
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/artifacts
+      - name: Accept downloaded Web/Godot/Unity artifacts
+        run: |
+          node scripts/release-acceptance.mjs \
+            --web dist/artifacts/gamedream-web-release \
+            --godot dist/artifacts/gamedream-godot-release \
+            --unity-dir dist/artifacts/gamedream-unity-release \
+            --skip-runtime \
+            --out-dir dist/acceptance
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-acceptance
+          path: dist/acceptance/acceptance.json
+          if-no-files-found: error
+
+  release-manifest:
+    needs: [web-release, godot-release, unity-release, release-acceptance]
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
