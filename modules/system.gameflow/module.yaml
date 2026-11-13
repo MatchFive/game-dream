@@ -1,0 +1,19 @@
+id: system.gameflow
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, action-adventure]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+  system.combat: "^1.0.0"
+  system.player: "^1.0.0"
+  system.ai: "^1.0.0"
+provides:
+  services: [gameflow]
+main_scene: scenes/game.tscn
+tests: [tests/test_gameflow.gd]
+ai_skill: skills/gameflow.md
+docs: api.md
+license: Apache-2.0

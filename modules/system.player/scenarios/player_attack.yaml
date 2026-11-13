@@ -1,0 +1,6 @@
+id: player.attack
+module: system.player
+when:
+  - input: attack
+then:
+  - assert_signal: enemy.health_changed

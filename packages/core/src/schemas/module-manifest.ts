@@ -41,7 +41,15 @@ export const moduleManifestSchema = z
         }),
       )
       .default([]),
-    input_actions: z.array(z.string()).default([]),
+    input_actions: z
+      .array(
+        z.object({
+          name: z.string().min(1),
+          keys: z.array(z.string().min(1)).min(1),
+        }),
+      )
+      .default([]),
+    main_scene: z.string().optional(),
     save_sections: z
       .array(z.object({ key: z.string().min(1), serializer: z.string().min(1) }))
       .default([]),

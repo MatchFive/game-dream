@@ -8,12 +8,14 @@ import { copyModules } from './copy-modules.js';
 import { writeLockfile } from './write-lockfile.js';
 import { generateGameScript } from './generate-game-script.js';
 import { generateProjectGodot } from './generate-project-godot.js';
+import { generateInputMap } from './generate-input-map.js';
 import { generateMainScene } from './generate-main-scene.js';
+import { generateMainScript } from './generate-main-script.js';
 import { mergeProjectGodot } from './merge-project-godot.js';
 import { writeGameManifest } from './write-game-manifest.js';
 
 export async function composeProject(options: ComposeOptions): Promise<ComposeResult> {
-  const { spec, resolution } = planProject(options);
+  const { spec, resolution, template } = planProject(options);
   mkdirSync(options.outDir, { recursive: true });
 
   copyModules(options.outDir, resolution.modules);
@@ -33,29 +35,13 @@ export async function composeProject(options: ComposeOptions): Promise<ComposeRe
   mkdirSync(generatedDir, { recursive: true });
   const mainScript = join(generatedDir, 'main.gd');
   const gameScript = join(generatedDir, 'game.gd');
+  const inputMapScript = join(generatedDir, 'input_map.gd');
   const mainScene = join(generatedDir, 'main.tscn');
   const projectGodot = join(options.outDir, 'project.godot');
 
-  writeFileSync(
-    mainScript,
-    `extends Node
-
-func _ready() -> void:
-	print("GAMEDREAM_BOOT_OK")
-	await get_tree().create_timer(0.2).timeout
-	var inventory := Game.get_service("inventory")
-	if inventory == null:
-		push_error("inventory service missing")
-		get_tree().quit(1)
-		return
-	inventory.add_item("potion", 1)
-	print("INVENTORY_COUNT=%d" % inventory.count("potion"))
-	await get_tree().create_timer(0.2).timeout
-	get_tree().quit(0)
-`,
-    'utf8',
-  );
+  writeFileSync(mainScript, generateMainScript(resolution.modules), 'utf8');
   writeFileSync(gameScript, generateGameScript(), 'utf8');
+  writeFileSync(inputMapScript, generateInputMap(resolution.modules), 'utf8');
   writeFileSync(mainScene, generateMainScene(resolution.modules), 'utf8');
   const existingProject = existsSync(projectGodot)
     ? readFileSync(projectGodot, 'utf8')
@@ -72,17 +58,30 @@ func _ready() -> void:
   }
   writeFileSync(projectGodot, mergedProject, 'utf8');
 
-  const manifestPath = writeGameManifest(options.outDir, [
-    'game/_generated/game.gd',
-    'game/_generated/main.gd',
-    'game/_generated/main.tscn',
-  ]);
+  const manifestPath = writeGameManifest(
+    options.outDir,
+    [
+      'game/_generated/game.gd',
+      'game/_generated/input_map.gd',
+      'game/_generated/main.gd',
+      'game/_generated/main.tscn',
+    ],
+    template.acceptance_markers,
+  );
 
   return {
     outDir: options.outDir,
     order: resolution.order,
     modules: resolution.modules,
     lockfile,
-    files: [lockfilePath, projectGodot, mainScript, gameScript, mainScene, manifestPath],
+    files: [
+      lockfilePath,
+      projectGodot,
+      mainScript,
+      gameScript,
+      inputMapScript,
+      mainScene,
+      manifestPath,
+    ],
   };
 }

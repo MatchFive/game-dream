@@ -29,6 +29,16 @@ describe('selectTemplate', () => {
     expect(selection.templateId).toBe('fixture-minimal');
   });
 
+  it('prefers the playable M0 template when it exists', () => {
+    const templatesDir = makeTemplates(['fixture-minimal', 'rpg-action-m0']);
+    const selection = selectTemplate({
+      prompt: '做一个俯视角动作 RPG，有背包和 1 个敌人',
+      genre: 'action-rpg',
+      templatesDir,
+    });
+    expect(selection.templateId).toBe('rpg-action-m0');
+  });
+
   it('prefers a roguelike template when it exists', () => {
     const templatesDir = makeTemplates(['fixture-minimal', 'roguelike-topdown']);
     const selection = selectTemplate({

@@ -1,0 +1,26 @@
+id: rpg-action-m0
+genre: action-rpg
+dimension: 2d
+view: top-down
+modules:
+  required:
+    - core.events
+    - core.stats
+    - system.combat
+    - system.player
+    - system.ai
+    - system.gameflow
+    - system.inventory
+    - ui.hud
+  optional: []
+minimum_complete:
+  levels: 1
+  enemies: 1
+  bosses: 0
+  skills: 0
+  items: 1
+  quests: 0
+acceptance:
+  - "玩家可移动/攻击"
+  - "敌人被击败后打印 GAMEDREAM_WIN"
+acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_WIN]

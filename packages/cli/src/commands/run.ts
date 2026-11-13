@@ -11,7 +11,7 @@ export async function runCommand(options: {
   runner?: CommandRunner;
 }) {
   return runHeadless(options.projectDir, options.godot, {
-    quitAfter: options.quitAfter ?? 300,
+    quitAfter: options.quitAfter ?? 1200,
     runner: options.runner,
   });
 }

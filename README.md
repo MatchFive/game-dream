@@ -69,6 +69,14 @@ otherwise the deterministic fake provider. Real-model runs also read `OPENAI_BAS
 and `GAMEDREAM_MODEL`. `--mode dry-run` writes nothing; `--no-verify` skips Godot
 verification.
 
+## Playable M0 slice
+
+Action-RPG prompts now select the `rpg-action-m0` template: a single arena with a
+player, one enemy, health/combat, and win/lose. Desktop controls: **WASD** to move,
+**J / Space** to attack. Headless runs autoplay and print `GAMEDREAM_WIN` when the
+enemy dies, or `GAMEDREAM_LOSE` otherwise. The fixture template keeps its original
+inventory-only behavior.
+
 ## Generated project layout
 
 - `modules/` — managed by the composer; do not edit

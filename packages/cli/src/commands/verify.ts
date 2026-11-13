@@ -29,6 +29,7 @@ export async function verifyCommand(options: {
   runner?: CommandRunner;
 }): Promise<VerifyReport> {
   let engine: VerifyReport['engine'] = 'missing';
+  let markers = ['GAMEDREAM_BOOT_OK'];
   const gates: VerifyReport['gates'] = {
     G1: { status: 'fail' },
     G2: { status: 'skip', message: GODOT_MISSING_MESSAGE },
@@ -39,11 +40,12 @@ export async function verifyCommand(options: {
     parseLockfile(
       JSON.parse(readFileSync(join(options.projectDir, 'modules.lock.json'), 'utf8')),
     );
-    parseGameManifest(
+    const manifest = parseGameManifest(
       JSON.parse(
         readFileSync(join(options.projectDir, 'game/game.manifest.json'), 'utf8'),
       ),
     );
+    markers = manifest.acceptance.markers;
     gates.G1 = { status: 'pass' };
   } catch (error) {
     gates.G1 = { status: 'fail', message: (error as Error).message };
@@ -75,7 +77,7 @@ export async function verifyCommand(options: {
   gates.G2 = { status: 'pass' };
 
   const run = await runHeadless(options.projectDir, godot, {
-    quitAfter: 300,
+    quitAfter: 1200,
     runner: options.runner,
   });
   const errors = findScriptErrors(run);
@@ -83,12 +85,11 @@ export async function verifyCommand(options: {
     gates.G3 = { status: 'fail', message: `exit ${run.exitCode}` };
   } else if (errors.length > 0) {
     gates.G3 = { status: 'fail', message: errors.join('\n') };
-  } else if (!hasMarker(run, 'GAMEDREAM_BOOT_OK')) {
-    gates.G3 = { status: 'fail', message: 'missing GAMEDREAM_BOOT_OK' };
-  } else if (!hasMarker(run, 'INVENTORY_COUNT=1')) {
-    gates.G3 = { status: 'fail', message: 'missing INVENTORY_COUNT=1' };
   } else {
-    gates.G3 = { status: 'pass' };
+    const missing = markers.find((marker) => !hasMarker(run, marker));
+    gates.G3 = missing
+      ? { status: 'fail', message: `missing ${missing}` }
+      : { status: 'pass' };
   }
   return { gates, engine };
 }

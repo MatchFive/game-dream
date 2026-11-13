@@ -19,7 +19,11 @@ const fakeGodot: CommandRunner = {
     if (args[0] === '--version') {
       return { exitCode: 0, stdout: '4.4.1.stable.official\n', stderr: '' };
     }
-    return { exitCode: 0, stdout: 'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\n', stderr: '' };
+    return {
+      exitCode: 0,
+      stdout: 'GAMEDREAM_BOOT_OK\nINVENTORY_COUNT=1\nGAMEDREAM_WIN\n',
+      stderr: '',
+    };
   },
 };
 
@@ -40,10 +44,10 @@ describe('createCommand', () => {
   it('creates a project and verifies it', async () => {
     const opts = options();
     const { result, verify } = await createCommand(opts);
-    expect(result.templateId).toBe('fixture-minimal');
+    expect(result.templateId).toBe('rpg-action-m0');
     expect(existsSync(join(opts.outDir, 'gamedream.yaml'))).toBe(true);
     expect(readFileSync(join(opts.outDir, 'gamedream.yaml'), 'utf8')).toContain(
-      'template: fixture-minimal',
+      'template: rpg-action-m0',
     );
     expect(verify?.gates.G3.status).toBe('pass');
   });

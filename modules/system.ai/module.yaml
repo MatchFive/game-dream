@@ -1,0 +1,15 @@
+id: system.ai
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, action-adventure, roguelike]
+depends:
+  core.events: "^1.0.0"
+  system.combat: "^1.0.0"
+provides:
+  components: [Enemy]
+tests: [tests/test_enemy.gd]
+ai_skill: skills/ai.md
+docs: api.md
+license: Apache-2.0

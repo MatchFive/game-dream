@@ -12,6 +12,7 @@ export const templateSchema = z
     }),
     minimum_complete: z.record(z.number().int().nonnegative()).default({}),
     acceptance: z.array(z.string()).default([]),
+    acceptance_markers: z.array(z.string().min(1)).default(['GAMEDREAM_BOOT_OK']),
     content: z.string().optional(),
     tuning: z.string().optional(),
   })

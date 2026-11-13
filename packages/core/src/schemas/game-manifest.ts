@@ -5,6 +5,11 @@ export const gameManifestSchema = z.object({
   managed: z.array(z.string().min(1)).min(1),
   user: z.array(z.string().min(1)),
   hashes: z.record(z.string()),
+  acceptance: z
+    .object({
+      markers: z.array(z.string().min(1)).min(1),
+    })
+    .default({ markers: ['GAMEDREAM_BOOT_OK'] }),
 });
 
 export type GameManifest = z.infer<typeof gameManifestSchema>;

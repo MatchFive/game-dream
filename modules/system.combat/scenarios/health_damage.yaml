@@ -1,0 +1,8 @@
+id: combat.health_damage
+module: system.combat
+when:
+  - call: health.take_damage
+    args: [4]
+then:
+  - call: health.hp
+    expect: 6

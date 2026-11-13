@@ -1,0 +1,27 @@
+id: system.player
+version: 1.0.0
+engine: godot
+engine_version: ">=4.4 <5"
+kind: system
+genres: [rpg, action-adventure]
+depends:
+  core.events: "^1.0.0"
+  core.stats: "^1.0.0"
+  system.combat: "^1.0.0"
+provides:
+  components: [Player]
+input_actions:
+  - name: move_left
+    keys: [A, LEFT]
+  - name: move_right
+    keys: [D, RIGHT]
+  - name: move_up
+    keys: [W, UP]
+  - name: move_down
+    keys: [S, DOWN]
+  - name: attack
+    keys: [J, SPACE]
+tests: [tests/test_player.gd]
+ai_skill: skills/player.md
+docs: api.md
+license: Apache-2.0

@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export function writeGameManifest(outDir: string, managedFiles: string[]): string {
+export function writeGameManifest(
+  outDir: string,
+  managedFiles: string[],
+  markers: string[] = ['GAMEDREAM_BOOT_OK'],
+): string {
   const hashes: Record<string, string> = {};
   for (const relativePath of managedFiles) {
     const absolute = join(outDir, relativePath);
@@ -27,6 +31,7 @@ export function writeGameManifest(outDir: string, managedFiles: string[]): strin
       'game/tests/**',
     ],
     hashes,
+    acceptance: { markers },
   };
   const path = join(outDir, 'game/game.manifest.json');
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

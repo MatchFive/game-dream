@@ -23,13 +23,13 @@ describe('createProject', () => {
   it('writes gamedream.yaml and composes the fixture project', async () => {
     const opts = options();
     const result = await createProject(opts);
-    expect(result.templateId).toBe('fixture-minimal');
+    expect(result.templateId).toBe('rpg-action-m0');
     expect(result.provider).toBe('fake');
     expect(existsSync(join(opts.outDir, 'gamedream.yaml'))).toBe(true);
     expect(existsSync(join(opts.outDir, 'project.godot'))).toBe(true);
     expect(existsSync(join(opts.outDir, 'modules.lock.json'))).toBe(true);
     const spec = readFileSync(join(opts.outDir, 'gamedream.yaml'), 'utf8');
-    expect(spec).toContain('template: fixture-minimal');
+    expect(spec).toContain('template: rpg-action-m0');
   });
 
   it('writes nothing in dry-run mode', async () => {

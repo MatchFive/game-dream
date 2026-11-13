@@ -13,6 +13,10 @@ export function generateProjectGodot(input: {
     )
     .sort((a, b) => a.order - b.order || a.moduleId.localeCompare(b.moduleId));
 
+  const hasInputActions = input.modules.some(
+    (module) => module.manifest.input_actions.length > 0,
+  );
+
   const lines = [
     '; Engine configuration file.',
     'config_version=5',
@@ -24,6 +28,9 @@ export function generateProjectGodot(input: {
     '',
     '[autoload]',
     'Game="*res://game/_generated/game.gd"',
+    ...(hasInputActions
+      ? ['InputMapSetup="*res://game/_generated/input_map.gd"']
+      : []),
     ...autoloads.map(
       (autoload) =>
         `${autoload.name}="*res://modules/${autoload.moduleId}/${autoload.path}"`,

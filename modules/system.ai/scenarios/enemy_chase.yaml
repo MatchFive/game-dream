@@ -1,0 +1,7 @@
+id: ai.enemy_chase
+module: system.ai
+when:
+  - spawn: player
+  - wait: 1.0
+then:
+  - assert_distance: { from: enemy, to: player, op: "<", value: 100 }

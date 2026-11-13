@@ -143,7 +143,7 @@ export function createProgram(): Command {
   program
     .command('run')
     .requiredOption('--path <dir>')
-    .option('--quit-after <frames>', 'quit guard', '300')
+    .option('--quit-after <frames>', 'quit guard', '1200')
     .action(async (options: { path: string; quitAfter: string }) => {
       const godot = await detectGodot();
       if (!godot) {

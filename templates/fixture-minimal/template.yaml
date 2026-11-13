@@ -19,3 +19,4 @@ minimum_complete:
 acceptance:
   - "项目可启动"
   - "HUD 显示 Inventory: 1"
+acceptance_markers: [GAMEDREAM_BOOT_OK, INVENTORY_COUNT=1]

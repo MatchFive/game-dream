@@ -11,6 +11,7 @@ export const PLANNED_FILES = [
   'project.godot',
   'modules.lock.json',
   'game/_generated/game.gd',
+  'game/_generated/input_map.gd',
   'game/_generated/main.gd',
   'game/_generated/main.tscn',
   'game/game.manifest.json',

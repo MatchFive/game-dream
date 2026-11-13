@@ -1,0 +1,6 @@
+id: gameflow.win
+module: system.gameflow
+when:
+  - kill: enemy
+then:
+  - assert_marker: GAMEDREAM_WIN

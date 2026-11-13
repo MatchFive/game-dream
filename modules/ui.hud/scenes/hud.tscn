@@ -9,5 +9,10 @@ script = ExtResource("1")
 offset_left = 16.0
 offset_top = 16.0
 
-[node name="Label" type="Label" parent="Panel"]
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+
+[node name="Inventory" type="Label" parent="Panel/VBox"]
 text = "Inventory: 0"
+
+[node name="HP" type="Label" parent="Panel/VBox"]
+text = "HP: 100/100"
