@@ -196,6 +196,7 @@ export class AgentLoop<TContext> {
             );
           }
           session.compact(options.compactChars);
+          session.checkpoint(`step ${steps}`);
           save();
           if (finishRequested) {
             if (!decision.ok) {
@@ -250,6 +251,7 @@ export class AgentLoop<TContext> {
           );
         }
         session.compact(options.compactChars);
+        session.checkpoint(`step ${steps}`);
         save();
 
         if (action.tool === 'finish') {

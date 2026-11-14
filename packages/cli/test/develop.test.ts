@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import type { CommandRunner } from '@gamedream/godot';
 import {
+  developCandidates,
   developCommand,
   loadDevelopmentCase,
 } from '../src/commands/develop.js';
@@ -48,5 +49,27 @@ describe('development case', () => {
     expect(report.verify.gates.G3.status).toBe('pass');
     expect(existsSync(join(outDir, 'game/_generated/main.tscn'))).toBe(true);
     expect(existsSync(join(outDir, 'gamedream.yaml'))).toBe(true);
+  }, 30_000);
+
+  it('generates and selects among candidates', async () => {
+    const developmentCase = loadDevelopmentCase(
+      join(root, 'cases/development/survivor-demo.json'),
+    );
+    const outDir = join(makeTempDir('gamedream candidates '), 'run');
+    const report = await developCandidates({
+      prompt: developmentCase.prompt,
+      outDir,
+      skillsDir: join(root, 'skills'),
+      skill: developmentCase.skill,
+      providerKind: 'fake',
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      maxSteps: 4,
+      candidates: 2,
+    });
+    expect(report.candidates).toHaveLength(2);
+    expect(report.selected.score).toBeGreaterThanOrEqual(report.candidates[1].score);
+    expect(report.selected.report.finished).toBe(true);
+    expect(existsSync(report.selected.report.sessionPath)).toBe(true);
   }, 30_000);
 });

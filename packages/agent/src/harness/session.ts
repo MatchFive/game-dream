@@ -12,6 +12,47 @@ export type SessionEvent =
   | { type: 'turn/end'; finished: boolean; steps: number }
   | { type: 'session/compact'; messages: ChatMessage[] };
 
+export interface SessionCheckpoint {
+  id: string;
+  label: string;
+  eventIndex: number;
+  messageIndex: number;
+  createdAt: string;
+}
+
+function projectMessages(events: SessionEvent[]): ChatMessage[] {
+  const messages: ChatMessage[] = [];
+  for (const event of events) {
+    if (event.type === 'user/message') messages.push({ role: 'user', content: event.content });
+    else if (event.type === 'assistant/message') {
+      messages.push({ role: 'assistant', content: event.content });
+    } else if (event.type === 'assistant/tool_calls') {
+      messages.push({
+        role: 'assistant',
+        content: event.content,
+        toolCalls: event.calls,
+      });
+    } else if (event.type === 'tool/result') {
+      messages.push(
+        event.callId
+          ? {
+              role: 'tool',
+              content: event.content,
+              toolCallId: event.callId,
+              name: event.tool,
+            }
+          : {
+              role: 'user',
+              content: `Tool ${event.tool} result (${event.ok ? 'ok' : 'error'}):\n${event.content}`,
+            },
+      );
+    } else if (event.type === 'session/compact') {
+      messages.splice(0, messages.length, ...event.messages);
+    }
+  }
+  return messages;
+}
+
 /**
  * Append-only session log with a model-message projection.
  *
@@ -22,6 +63,7 @@ export type SessionEvent =
 export class AgentSession {
   readonly system: string;
   events: SessionEvent[] = [];
+  checkpoints: SessionCheckpoint[] = [];
   private readonly initialUser: ChatMessage;
 
   constructor(system: string, user: string) {
@@ -31,36 +73,7 @@ export class AgentSession {
   }
 
   get messages(): ChatMessage[] {
-    const messages: ChatMessage[] = [];
-    for (const event of this.events) {
-      if (event.type === 'user/message') messages.push({ role: 'user', content: event.content });
-      else if (event.type === 'assistant/message') {
-        messages.push({ role: 'assistant', content: event.content });
-      } else if (event.type === 'assistant/tool_calls') {
-        messages.push({
-          role: 'assistant',
-          content: event.content,
-          toolCalls: event.calls,
-        });
-      } else if (event.type === 'tool/result') {
-        messages.push(
-          event.callId
-            ? {
-                role: 'tool',
-                content: event.content,
-                toolCallId: event.callId,
-                name: event.tool,
-              }
-            : {
-                role: 'user',
-                content: `Tool ${event.tool} result (${event.ok ? 'ok' : 'error'}):\n${event.content}`,
-              },
-        );
-      } else if (event.type === 'session/compact') {
-        messages.splice(0, messages.length, ...event.messages);
-      }
-    }
-    return messages;
+    return projectMessages(this.events);
   }
 
   appendAssistant(content: string): void {
@@ -128,22 +141,96 @@ export class AgentSession {
     return true;
   }
 
-  fork(): AgentSession {
-    return AgentSession.restore(this.system, this.messages);
+  fork(checkpointId?: string): AgentSession {
+    if (checkpointId === undefined) {
+      return AgentSession.restore(this.system, this.messages);
+    }
+    const checkpoint = this.checkpointFor(checkpointId);
+    return AgentSession.restore(
+      this.system,
+      this.messages.slice(0, checkpoint.messageIndex),
+    );
   }
 
-  static restore(system: string, messages: ChatMessage[]): AgentSession {
+  checkpoint(label = ''): SessionCheckpoint {
+    const checkpoint: SessionCheckpoint = {
+      id: `cp-${this.checkpoints.length + 1}`,
+      label,
+      eventIndex: this.events.length,
+      messageIndex: this.messages.length,
+      createdAt: new Date().toISOString(),
+    };
+    this.checkpoints.push(checkpoint);
+    return checkpoint;
+  }
+
+  rewind(checkpointId: string): SessionCheckpoint {
+    const checkpoint = this.checkpointFor(checkpointId);
+    const eventIndex = Math.min(checkpoint.eventIndex, this.events.length);
+    this.events = this.events.slice(0, eventIndex);
+    this.checkpoints = this.checkpoints.slice(
+      0,
+      this.checkpoints.findIndex((entry) => entry.id === checkpointId) + 1,
+    );
+    return checkpoint;
+  }
+
+  private checkpointFor(checkpointId: string): SessionCheckpoint {
+    const checkpoint = this.checkpoints.find((entry) => entry.id === checkpointId);
+    if (!checkpoint) throw new Error(`unknown checkpoint: ${checkpointId}`);
+    return checkpoint;
+  }
+
+  static restore(
+    system: string,
+    messages: ChatMessage[],
+    checkpoints: SessionCheckpoint[] = [],
+  ): AgentSession {
     const firstUser = messages.find((message) => message.role === 'user');
     const session = new AgentSession(system, firstUser?.content ?? '');
     session.events = messages.map((message) => {
       if (message.role === 'assistant') {
-        return { type: 'assistant/message', content: message.content };
+        return message.toolCalls?.length
+          ? {
+              type: 'assistant/tool_calls',
+              content: message.content,
+              calls: message.toolCalls,
+            }
+          : { type: 'assistant/message', content: message.content };
       }
       if (message.role === 'user') {
         return { type: 'user/message', content: message.content };
       }
-      return { type: 'tool/result', tool: 'restored', ok: true, content: message.content };
+      return {
+        type: 'tool/result',
+        tool: message.name ?? 'restored',
+        ok: true,
+        content: message.content,
+        callId: message.toolCallId,
+      };
     });
+    session.checkpoints = checkpoints.map((checkpoint) => ({ ...checkpoint }));
+    return session;
+  }
+
+  static fromJSON(
+    system: string,
+    data: {
+      events?: SessionEvent[];
+      messages?: ChatMessage[];
+      checkpoints?: SessionCheckpoint[];
+    },
+  ): AgentSession {
+    if (!Array.isArray(data.events)) {
+      return AgentSession.restore(system, data.messages ?? [], data.checkpoints ?? []);
+    }
+    const firstUser = data.events.find((event) => event.type === 'user/message');
+    const session = new AgentSession(
+      system,
+      firstUser?.type === 'user/message' ? firstUser.content : '',
+    );
+    session.events = data.events;
+    session.checkpoints = (data.checkpoints ?? []).map((checkpoint) => ({ ...checkpoint }));
     return session;
   }
 
@@ -153,6 +240,7 @@ export class AgentSession {
     prefixHash: string;
     events: SessionEvent[];
     messages: ChatMessage[];
+    checkpoints: SessionCheckpoint[];
   } {
     return {
       version: 2,
@@ -160,6 +248,7 @@ export class AgentSession {
       prefixHash: this.prefixHash(),
       events: this.events.map((event) => ({ ...event })),
       messages: this.messages.map((message) => ({ ...message })),
+      checkpoints: this.checkpoints.map((checkpoint) => ({ ...checkpoint })),
     };
   }
 

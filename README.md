@@ -323,6 +323,11 @@ demo with crawlers, brutes, XP gems, three auto-weapons (bolt/aura/nova),
 level-up upgrade choices, a boss at 40 seconds, and a half-HP boss phase. It
 also passes G1/G2/G3/G6, with headless time scaling for CI.
 
+Cross-engine survivor slices are available as `templates/web-survivor`
+(Canvas/ESM, `WEB_BOOT_OK`/`WEB_WIN`) and `templates/unity-survivor`
+(Unity 6, `UNITY_SIM_OK`/`UNITY_WIN`). Both compose and verify without the
+Godot toolchain.
+
 ## Development case
 
 `dream develop` is the project-as-developer workflow. It reads a short prompt
@@ -349,9 +354,10 @@ system/skill/tool prefix stays stable across steps, tool results are separate
 messages, and old context is compacted only after the character budget is
 exceeded. The session is saved to `.gamedream/session.json`; pass `--resume` to
 continue it. Native tool calls, SSE streaming, cancellation signals, and usage
-accounting are used when the provider supports them. Add `--candidates N` to
-generate N independent projects and automatically select the best
-finish/gates/marker/G6 score.
+accounting are used when the provider supports them. Every completed step writes
+a durable checkpoint; use `--resume --fork <checkpoint-id>` to branch from one.
+Add `--candidates N` to generate N independent projects and automatically select
+the best finish/gates/marker/G6 score.
 
 For editor/scene/UI operations, point the developer at a Godot MCP server:
 

@@ -171,6 +171,7 @@ export function createProgram(): Command {
     .option('--mcp-config <file>', 'MCP server config for Godot tools')
     .option('--mcp-server <name>', 'MCP server name', 'godot')
     .option('--resume', 'resume the saved session in --out')
+    .option('--fork <checkpoint>', 'fork the resumed session at a checkpoint id')
     .option('--read-only', 'deny mutating tools (scaffold/compose/write/mcp)')
     .option('--visual', 'run G6 screenshot gate')
     .option('--json', 'print JSON')
@@ -188,6 +189,7 @@ export function createProgram(): Command {
           mcpConfig?: string;
           mcpServer: string;
           resume?: boolean;
+          fork?: string;
           readOnly?: boolean;
           visual?: boolean;
           json?: boolean;
@@ -214,6 +216,7 @@ export function createProgram(): Command {
             mcpConfig: options.mcpConfig,
             mcpServer: options.mcpServer,
             resume: options.resume,
+            fork: options.fork,
             readOnly: options.readOnly,
           };
           const candidates = candidateCount > 1
@@ -259,7 +262,7 @@ export function createProgram(): Command {
             if (!report.finished) {
               printLine('Demo incomplete: the developer did not call finish (step budget exhausted).');
             }
-            printLine(`Session: ${report.sessionPath}${report.resumed ? ' (resumed)' : ''}`);
+            printLine(`Session: ${report.sessionPath}${report.resumed ? ' (resumed)' : ''}${report.forked ? ` (forked ${report.forked})` : ''}`);
             if (report.usage.calls > 0) {
               const cacheRate = report.usage.promptTokens
                 ? ((report.usage.cachedTokens / report.usage.promptTokens) * 100).toFixed(1)

@@ -62,5 +62,15 @@ describe('AgentLoop native tools', () => {
     expect(toolLog).toEqual(['echo:ok', 'finish']);
     expect(result.usage.promptTokens).toBe(22);
     expect(result.session.messages.some((message) => message.role === 'tool')).toBe(true);
+    expect(result.session.checkpoints.map((checkpoint) => checkpoint.label)).toEqual([
+      'step 1',
+      'step 2',
+    ]);
+    expect(result.session.fork('cp-1').messages.map((message) => message.role)).toEqual([
+      'user',
+      'assistant',
+      'tool',
+      'user',
+    ]);
   });
 });

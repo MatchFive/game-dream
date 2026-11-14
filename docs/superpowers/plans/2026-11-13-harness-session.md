@@ -60,6 +60,7 @@ Real provider evidence after the extraction:
 
 ## Next
 
-- Add session generation/JSONL persistence and forks/checkpoints.
+- Session generation/JSONL persistence and forks/checkpoints are implemented;
+  checkpoints are durable in `session.json` and `--fork` branches a resumed run.
 - Add provider-independent plugin/tool registry packaging.
 - Add explicit cache boundary controls where the provider supports them.

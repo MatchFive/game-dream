@@ -49,6 +49,7 @@ export interface DevelopOptions {
   mcpConfig?: string;
   mcpServer?: string;
   resume?: boolean;
+  fork?: string;
   readOnly?: boolean;
   candidates?: number;
 }
@@ -83,6 +84,7 @@ export interface DevelopReport {
   mcpTools: string[];
   sessionPath: string;
   resumed: boolean;
+  forked?: string;
   usage: UsageTotals;
   verify: VerifyReport;
 }
@@ -581,18 +583,33 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   const system = systemPrompt(skillText, sortedMcpTools, nativeTools);
   const sessionPath = join(options.outDir, '.gamedream', 'session.json');
   let resumed = false;
+  let forked: string | undefined;
   let session: AgentSession;
+  if (options.fork && (!options.resume || !existsSync(sessionPath))) {
+    throw new Error('--fork requires --resume with a saved session');
+  }
   if (options.resume && existsSync(sessionPath)) {
     const saved = JSON.parse(readFileSync(sessionPath, 'utf8')) as {
+      events?: unknown;
       messages?: unknown;
+      checkpoints?: unknown;
     };
-    session = AgentSession.restore(
-      system,
-      Array.isArray(saved.messages)
+    session = AgentSession.fromJSON(system, {
+      events: Array.isArray(saved.events)
+        ? (saved.events as Parameters<typeof AgentSession.fromJSON>[1]['events'])
+        : undefined,
+      messages: Array.isArray(saved.messages)
         ? (saved.messages as Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }>)
         : [],
-    );
+      checkpoints: Array.isArray(saved.checkpoints)
+        ? (saved.checkpoints as Parameters<typeof AgentSession.fromJSON>[1]['checkpoints'])
+        : [],
+    });
     resumed = true;
+    if (options.fork) {
+      session = session.fork(options.fork);
+      forked = options.fork;
+    }
   } else {
     session = new AgentSession(
       system,
@@ -687,6 +704,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     mcpTools,
     sessionPath,
     resumed,
+    forked,
     usage,
     verify,
   };

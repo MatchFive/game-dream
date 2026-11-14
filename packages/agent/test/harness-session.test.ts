@@ -51,6 +51,44 @@ describe('AgentSession', () => {
     expect(session.messages.length).toBe(2);
   });
 
+  it('creates durable checkpoints, forks from them, and rewinds', () => {
+    const session = new AgentSession('system', 'build');
+    session.appendAssistant('first');
+    const checkpoint = session.checkpoint('after first');
+    session.appendAssistant('second');
+    session.appendUser('later');
+    const fork = session.fork(checkpoint.id);
+    expect(fork.messages.map((message) => message.content)).toEqual(['build', 'first']);
+    expect(session.messages.map((message) => message.content)).toEqual([
+      'build',
+      'first',
+      'second',
+      'later',
+    ]);
+    session.rewind(checkpoint.id);
+    expect(session.messages.map((message) => message.content)).toEqual(['build', 'first']);
+    expect(session.checkpoints).toHaveLength(1);
+  });
+
+  it('round-trips checkpoints through JSON and fromJSON', () => {
+    const session = new AgentSession('system', 'build');
+    session.appendAssistant('first');
+    const checkpoint = session.checkpoint('saved');
+    session.appendAssistant('second');
+    const restored = AgentSession.fromJSON('system', session.toJSON());
+    expect(restored.checkpoints).toEqual([checkpoint]);
+    expect(restored.fork(checkpoint.id).messages.map((message) => message.content)).toEqual([
+      'build',
+      'first',
+    ]);
+  });
+
+  it('rejects unknown checkpoints', () => {
+    const session = new AgentSession('system', 'build');
+    expect(() => session.fork('missing')).toThrow('unknown checkpoint: missing');
+    expect(() => session.rewind('missing')).toThrow('unknown checkpoint: missing');
+  });
+
   it('projects an event log into model messages and ignores lifecycle events', () => {
     const session = new AgentSession('system', 'build');
     session.record('turn/start', 0);
