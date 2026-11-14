@@ -1,0 +1,14 @@
+{
+  "id": "mcp-survivor-demo",
+  "prompt": "使用 Godot MCP 检查当前项目，并开发一个可玩的类吸血鬼幸存者 demo：角色移动、自动攻击、武器升级、精英怪、Boss、60 秒生存。至少调用一次 MCP 的 get_project_info；保留全部 survivor 验收 marker。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_WIN"
+  ]
+}

@@ -22,6 +22,14 @@ model choose tools and edit the generated project. A minimal input is
 `cases/development/simple-survivor.json`; observed issues from real runs live in
 `ISSUES.md`.
 
+MCP-assisted example:
+
+```powershell
+dream develop --case cases/development/mcp-survivor-demo.json `
+  --out build/mcp-survivor --provider openai `
+  --mcp-config "$env:USERPROFILE\.commandcode\mcp.json" --visual
+```
+
 Tools available to the developer:
 
 - `scaffold` — copy the selected skill kit and compose the initial project

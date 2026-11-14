@@ -22,6 +22,7 @@ CLI loads `.env` automatically; explicit environment variables take precedence.
 - `OPENAI_BASE_URL` — defaults to `https://api.openai.com/v1`
 - `GAMEDREAM_MODEL` — defaults to `gpt-4o-mini`
 - `GAMEDREAM_VISION_MODEL` — defaults to `gpt-4o-mini`
+- `GAMEDREAM_TIMEOUT_MS` — provider request timeout, defaults to `120000`
 - `GODOT_BIN` — console Godot 4.4+ executable
 - `UNITY_BIN` — optional Unity editor path
 

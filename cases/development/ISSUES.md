@@ -71,6 +71,42 @@ The guard prevents an early `finish` after failed verification. This run passed
 on the first verification attempt, but the model still chose only
 `scaffold -> verify -> finish`; `write_file` was not exercised.
 
+## 2026-11-13 — MCP-assisted survivor demo (OpenAI)
+
+`mcp-survivor-demo.json` was run with `--mcp-config` against the Godot MCP
+server.
+
+### Observed problems
+
+1. **The 120-second provider timeout was too short for the configured model.**
+   - The first attempt failed before any tool action with
+     `PROVIDER_HTTP_ERROR: provider timed out after 120000ms`.
+   - Added `GAMEDREAM_TIMEOUT_MS` (default still 120000); the local test used
+     300000.
+
+2. **MCP was actually used.**
+   - Action sequence included `scaffold -> mcp -> verify ... mcp ... write_file
+     -> compose -> check_script`.
+   - The model produced a much richer HUD/game-feel implementation (146 colors
+     in G6 vs 35 before), but introduced a literal `\t` in a GDScript line.
+
+3. **Literal `\t` from JSON bypassed syntax checks until G2.**
+   - Added write-time `check_script` for `.gd` writes and documented the
+     backslash rule in the GDScript skill.
+
+4. **The model exhausted the 20-step budget without calling `finish`.**
+   - The CLI now treats an unfinished tool loop as `Demo incomplete` and exits 2
+     even if gates happen to pass.
+   - A separate `finish-mcp-survivor.json` run verified and finished the same
+     project successfully.
+
+### Final result
+
+```text
+finish-mcp-survivor: 3 steps scaffold -> verify -> finish
+G1/G2/G3/G6 pass; 1280x720, 146 colors
+```
+
 ## 2026-11-13 — dash-survivor (OpenAI, actual modification)
 
 Prompt asked for Shift dash with cooldown, HUD, and `GAMEDREAM_DASH`.

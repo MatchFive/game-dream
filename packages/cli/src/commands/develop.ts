@@ -114,6 +114,32 @@ function inside(root: string, relative: string): string {
   return target;
 }
 
+async function checkGdScript(
+  context: DevelopContext,
+  relative: string,
+): Promise<{ ok: boolean; output: string }> {
+  const godot = await detectGodot({ env: context.env, runner: context.runner });
+  if (!godot) return { ok: false, output: 'Godot 4.4+ not found' };
+  const runner = context.runner ?? runCommand;
+  const result = await runner.run(
+    godot.bin,
+    [
+      '--headless',
+      '--path',
+      context.outDir,
+      '--check-only',
+      '--script',
+      `res://${relative}`,
+    ],
+    { timeoutMs: 60_000 },
+  );
+  const output = `${result.stdout}\n${result.stderr}`.trim();
+  const failed =
+    result.exitCode !== 0 ||
+    /parse error|script error|failed to load script/i.test(output);
+  return { ok: !failed, output: output || `exit ${result.exitCode}` };
+}
+
 function missingExpectedMarkers(projectDir: string, expected: string[] | undefined): string[] {
   if (!expected || expected.length === 0) return [];
   try {
@@ -282,6 +308,18 @@ const TOOLS: Tool[] = [
         const content = String(args.content ?? '');
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, content, 'utf8');
+        if (path.endsWith('.gd')) {
+          const relative = path
+            .slice(context.outDir.length + 1)
+            .replaceAll('\\', '/');
+          const checked = await checkGdScript(context, relative);
+          if (!checked.ok) {
+            return {
+              ok: false,
+              output: `Wrote ${content.length} bytes to ${args.path}, but GDScript check failed:\n${checked.output}`,
+            };
+          }
+        }
         return { ok: true, output: `Wrote ${content.length} bytes to ${args.path}` };
       } catch (error) {
         return { ok: false, output: (error as Error).message };
@@ -313,17 +351,7 @@ const TOOLS: Tool[] = [
       try {
         const path = inside(context.outDir, relative);
         if (!existsSync(path)) return { ok: false, output: `script not found: ${relative}` };
-        const godot = await detectGodot({ env: context.env, runner: context.runner });
-        if (!godot) return { ok: false, output: 'Godot 4.4+ not found' };
-        const runner = context.runner ?? runCommand;
-        const result = await runner.run(
-          godot.bin,
-          ['--headless', '--path', context.outDir, '--check-only', '--script', `res://${relative}`],
-          { timeoutMs: 60_000 },
-        );
-        const output = `${result.stdout}\n${result.stderr}`.trim();
-        const failed = result.exitCode !== 0 || /parse error|script error|failed to load script/i.test(output);
-        return { ok: !failed, output: output || `exit ${result.exitCode}` };
+        return await checkGdScript(context, relative);
       } catch (error) {
         return { ok: false, output: (error as Error).message };
       }

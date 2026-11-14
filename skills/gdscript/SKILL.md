@@ -10,6 +10,9 @@ formatting) and the official `--check-only --script` workflow.
 - Use LF line endings, UTF-8 without BOM, and one final newline.
 - Every `match` pattern needs an indented block, even if it contains one call.
 - Every `if`, `for`, `while`, `func`, and `match` body must be indented.
+- When writing file content through JSON, never put literal `\\t` or `\\n` at
+  the start of a GDScript line. Use real tab/newline characters in the content
+  field; a literal backslash before code causes `Expected new line after "\"`.
 - Keep the project's existing warning-as-error style: annotate Variant values
   explicitly (`var target: Variant = ...`), and use `absi`/`maxf`/`minf` where
   types are ambiguous.

@@ -28,6 +28,10 @@ G1/G2/G3 and expose these markers:
 Do not edit generated `modules/` or `game/_generated/` directly; those are
 composer output. The kit under `.gamedream/` is the source of truth.
 
+If MCP tools are available, call `mcp` with `get_project_info` after scaffold,
+then use MCP scene/UI tools when they help. MCP operations are part of the
+development, not optional decoration.
+
 ## Demo requirements
 
 - WASD movement in a top-down arena.

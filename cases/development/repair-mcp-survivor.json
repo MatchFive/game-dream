@@ -1,0 +1,14 @@
+{
+  "id": "repair-mcp-survivor",
+  "prompt": "继续修复当前 survivor demo：survivor.gd 中存在字面反斜杠 \\t 导致的 GDScript parse error（Expected new line after \"\\\"）。检查 .gamedream 源码，把代码行首的字面 \\t 改成真实 tab，调用 compose、check_script、verify；保留所有 survivor marker 和 MCP 加入的 UI/game-feel 改动。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_WIN"
+  ]
+}

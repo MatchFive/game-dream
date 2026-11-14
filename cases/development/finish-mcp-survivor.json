@@ -1,0 +1,14 @@
+{
+  "id": "finish-mcp-survivor",
+  "prompt": "当前 survivor demo 已经通过验证。不要改代码；先 verify 一次，确认 G1/G2/G3 通过后调用 finish。保留现有 MCP/UI/game-feel 改动。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_WIN"
+  ]
+}

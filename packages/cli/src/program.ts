@@ -205,7 +205,8 @@ export function createProgram(): Command {
           });
           if (options.json) printJson(report);
           else {
-            const passed = report.verify.gates.G1.status === 'pass' &&
+            const passed = report.finished &&
+              report.verify.gates.G1.status === 'pass' &&
               report.verify.gates.G2.status === 'pass' &&
               report.verify.gates.G3.status === 'pass' &&
               report.missingMarkers.length === 0;
@@ -215,12 +216,17 @@ export function createProgram(): Command {
             if (report.missingMarkers.length > 0) {
               printLine(`Missing case markers: ${report.missingMarkers.join(', ')}`);
             }
+            if (!report.finished) {
+              printLine('Demo incomplete: the developer did not call finish (step budget exhausted).');
+            }
             printLine(
               `${passed ? 'Demo ready' : 'Demo incomplete'}: ${report.outDir} · ${report.steps} steps · ${report.actions.join(' -> ')}`,
             );
           }
           process.exitCode =
-            report.missingMarkers.length === 0 ? exitCodeFor(report.verify) : 2;
+            report.finished && report.missingMarkers.length === 0
+              ? exitCodeFor(report.verify)
+              : 2;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

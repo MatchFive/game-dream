@@ -105,7 +105,13 @@ export class McpClient {
       pending.reject(new Error('MCP client closed'));
     }
     this.pending.clear();
-    this.child.kill();
+    if (process.platform === 'win32' && this.child.pid) {
+      spawn('taskkill', ['/pid', String(this.child.pid), '/t', '/f'], {
+        windowsHide: true,
+      });
+    } else {
+      this.child.kill();
+    }
   }
 
   private notify(method: string, params: Record<string, unknown>): void {

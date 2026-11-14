@@ -19,10 +19,12 @@ export function createProvider(options: {
       'OPENAI_API_KEY is required for --provider openai',
     );
   }
+  const timeout = Number(env.GAMEDREAM_TIMEOUT_MS ?? 120_000);
   return new OpenAICompatibleProvider({
     apiKey: env.OPENAI_API_KEY,
     baseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
     model: env.GAMEDREAM_MODEL ?? 'gpt-4o-mini',
+    timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : 120_000,
     fetchImpl: options.fetchImpl,
   });
 }
