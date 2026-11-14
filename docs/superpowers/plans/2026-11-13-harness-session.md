@@ -22,9 +22,13 @@ reduces context cost.
 
 ## Evidence
 
-- `AgentSession` unit tests cover stable prefix, message shape, and compaction.
+- `AgentSession` unit tests cover stable prefix, message shape, compaction, and
+  serialization.
 - Real provider finish case:
-  `3 steps scaffold -> verify -> finish`, G1/G2/G3/G6 pass, 146 colors.
+  `2 steps verify -> finish`, G1/G2/G3/G6 pass, 146 colors.
+- Usage: `2 calls · prompt 5839 · cached 5632 (96.5%) · completion 403`.
+- Resume case: `--resume` replayed the saved session and finished with
+  `prompt 9440 · cached 8960 (94.9%)`.
 - Existing lower-level tests remain green.
 
 ## Next

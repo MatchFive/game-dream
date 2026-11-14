@@ -17,6 +17,17 @@ export interface ChatRequest {
   temperature?: number;
 }
 
+export interface ChatUsage {
+  promptTokens: number;
+  completionTokens: number;
+  cachedTokens: number;
+}
+
+export interface ChatResult {
+  content: string;
+  usage?: ChatUsage;
+}
+
 export interface ModelProvider {
   readonly name: string;
   complete(request: ModelRequest): Promise<string>;
@@ -25,4 +36,5 @@ export interface ModelProvider {
    * message prefix should implement this for better prompt/KV-cache reuse.
    */
   completeChat?(request: ChatRequest): Promise<string>;
+  completeChatWithUsage?(request: ChatRequest): Promise<ChatResult>;
 }

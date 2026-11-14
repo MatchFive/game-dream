@@ -329,6 +329,10 @@ also passes G1/G2/G3/G6, with headless time scaling for CI.
 and a skill, scaffolds a project, verifies it, and can patch files through tools
 before finishing.
 
+```text
+Usage: 2 calls · prompt 5839 · cached 5632 (96.5%) · completion 403
+```
+
 ```bash
 dream develop \
   --case cases/development/survivor-demo.json \
@@ -343,7 +347,8 @@ pass `--provider openai` to let a model choose the same tools. See
 For real providers, development uses an append-only structured session: the
 system/skill/tool prefix stays stable across steps, tool results are separate
 messages, and old context is compacted only after the character budget is
-exceeded. This is the first step toward DSH-style prompt-cache stability.
+exceeded. The session is saved to `.gamedream/session.json`; pass `--resume` to
+continue it. Provider usage is reported, including cached prompt tokens:
 
 For editor/scene/UI operations, point the developer at a Godot MCP server:
 

@@ -165,6 +165,7 @@ export function createProgram(): Command {
     .option('--max-steps <count>', 'maximum tool steps', '12')
     .option('--mcp-config <file>', 'MCP server config for Godot tools')
     .option('--mcp-server <name>', 'MCP server name', 'godot')
+    .option('--resume', 'resume the saved session in --out')
     .option('--visual', 'run G6 screenshot gate')
     .option('--json', 'print JSON')
     .action(
@@ -179,6 +180,7 @@ export function createProgram(): Command {
           maxSteps: string;
           mcpConfig?: string;
           mcpServer: string;
+          resume?: boolean;
           visual?: boolean;
           json?: boolean;
         },
@@ -202,6 +204,7 @@ export function createProgram(): Command {
             expectedMarkers: selected?.expected_markers,
             mcpConfig: options.mcpConfig,
             mcpServer: options.mcpServer,
+            resume: options.resume,
           });
           if (options.json) printJson(report);
           else {
@@ -218,6 +221,15 @@ export function createProgram(): Command {
             }
             if (!report.finished) {
               printLine('Demo incomplete: the developer did not call finish (step budget exhausted).');
+            }
+            printLine(`Session: ${report.sessionPath}${report.resumed ? ' (resumed)' : ''}`);
+            if (report.usage.calls > 0) {
+              const cacheRate = report.usage.promptTokens
+                ? ((report.usage.cachedTokens / report.usage.promptTokens) * 100).toFixed(1)
+                : '0.0';
+              printLine(
+                `Usage: ${report.usage.calls} calls · prompt ${report.usage.promptTokens} · cached ${report.usage.cachedTokens} (${cacheRate}%) · completion ${report.usage.completionTokens}`,
+              );
             }
             printLine(
               `${passed ? 'Demo ready' : 'Demo incomplete'}: ${report.outDir} · ${report.steps} steps · ${report.actions.join(' -> ')}`,

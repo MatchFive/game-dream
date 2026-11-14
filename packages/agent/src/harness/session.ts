@@ -72,4 +72,25 @@ export class AgentSession {
     ];
     return true;
   }
+
+  static restore(system: string, messages: ChatMessage[]): AgentSession {
+    const firstUser = messages.find((message) => message.role === 'user');
+    const session = new AgentSession(system, firstUser?.content ?? '');
+    session.messages = messages.map((message) => ({ ...message }));
+    return session;
+  }
+
+  toJSON(): {
+    version: 1;
+    system: string;
+    prefixHash: string;
+    messages: ChatMessage[];
+  } {
+    return {
+      version: 1,
+      system: this.system,
+      prefixHash: this.prefixHash(),
+      messages: this.messages.map((message) => ({ ...message })),
+    };
+  }
 }

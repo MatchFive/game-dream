@@ -1,6 +1,8 @@
 import type {
   ChatMessage,
   ChatRequest,
+  ChatResult,
+  ChatUsage,
   ModelProvider,
   ModelRequest,
 } from '../types.js';
@@ -23,23 +25,29 @@ export class OpenAICompatibleProvider implements ModelProvider {
   }
 
   async complete(request: ModelRequest): Promise<string> {
-    return this.completeMessages(
-      [
-        { role: 'system', content: request.system },
-        { role: 'user', content: request.user },
-      ],
-      request.temperature,
-    );
+    return (
+      await this.completeMessages(
+        [
+          { role: 'system', content: request.system },
+          { role: 'user', content: request.user },
+        ],
+        request.temperature,
+      )
+    ).content;
   }
 
   async completeChat(request: ChatRequest): Promise<string> {
+    return (await this.completeMessages(request.messages, request.temperature)).content;
+  }
+
+  async completeChatWithUsage(request: ChatRequest): Promise<ChatResult> {
     return this.completeMessages(request.messages, request.temperature);
   }
 
   private async completeMessages(
     messages: ChatMessage[],
     temperature?: number,
-  ): Promise<string> {
+  ): Promise<ChatResult> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
     let response: Response;
 
@@ -83,7 +91,15 @@ export class OpenAICompatibleProvider implements ModelProvider {
       );
     }
 
-    let data: { choices?: Array<{ message?: { content?: string } }> };
+    let data: {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        prompt_tokens_details?: { cached_tokens?: number };
+        prompt_cache_hit_tokens?: number;
+      };
+    };
     try {
       data = (await response.json()) as typeof data;
     } catch {
@@ -94,6 +110,14 @@ export class OpenAICompatibleProvider implements ModelProvider {
     if (!content) {
       throw new AgentError('PROVIDER_EMPTY_RESPONSE', 'provider returned no content');
     }
-    return content;
+    const usage: ChatUsage = {
+      promptTokens: data.usage?.prompt_tokens ?? 0,
+      completionTokens: data.usage?.completion_tokens ?? 0,
+      cachedTokens:
+        data.usage?.prompt_tokens_details?.cached_tokens ??
+        data.usage?.prompt_cache_hit_tokens ??
+        0,
+    };
+    return { content, usage };
   }
 }

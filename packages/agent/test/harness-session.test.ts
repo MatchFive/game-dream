@@ -22,6 +22,14 @@ describe('AgentSession', () => {
     ]);
   });
 
+  it('round-trips a session for resume', () => {
+    const session = new AgentSession('system', 'build');
+    session.appendAssistant('next');
+    const restored = AgentSession.restore('system', session.toJSON().messages);
+    expect(restored.requestMessages()).toEqual(session.requestMessages());
+    expect(restored.prefixHash()).toBe(session.prefixHash());
+  });
+
   it('compacts old history only after the budget is exceeded', () => {
     const session = new AgentSession('system', 'build');
     expect(session.compact(10)).toBe(false);

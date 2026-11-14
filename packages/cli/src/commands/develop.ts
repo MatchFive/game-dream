@@ -45,6 +45,14 @@ export interface DevelopOptions {
   expectedMarkers?: string[];
   mcpConfig?: string;
   mcpServer?: string;
+  resume?: boolean;
+}
+
+export interface UsageTotals {
+  calls: number;
+  promptTokens: number;
+  completionTokens: number;
+  cachedTokens: number;
 }
 
 export interface DevelopAction {
@@ -67,6 +75,9 @@ export interface DevelopReport {
   finished: boolean;
   missingMarkers: string[];
   mcpTools: string[];
+  sessionPath: string;
+  resumed: boolean;
+  usage: UsageTotals;
   verify: VerifyReport;
 }
 
@@ -497,10 +508,36 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   );
   const mcpTools = sortedMcpTools.map((tool) => tool.name);
   const system = systemPrompt(skillText, sortedMcpTools);
-  const session = new AgentSession(
-    system,
-    `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`,
-  );
+  const sessionPath = join(options.outDir, '.gamedream', 'session.json');
+  let resumed = false;
+  let session: AgentSession;
+  if (options.resume && existsSync(sessionPath)) {
+    const saved = JSON.parse(readFileSync(sessionPath, 'utf8')) as {
+      messages?: unknown;
+    };
+    session = AgentSession.restore(
+      system,
+      Array.isArray(saved.messages)
+        ? (saved.messages as Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }>)
+        : [],
+    );
+    resumed = true;
+  } else {
+    session = new AgentSession(
+      system,
+      `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`,
+    );
+  }
+  mkdirSync(dirname(sessionPath), { recursive: true });
+  const saveSession = () =>
+    writeFileSync(sessionPath, `${JSON.stringify(session.toJSON(), null, 2)}\n`, 'utf8');
+  saveSession();
+  const usage: UsageTotals = {
+    calls: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+    cachedTokens: 0,
+  };
   const actions: string[] = [];
   let finished = false;
   let steps = 0;
@@ -508,21 +545,32 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   let lastMissingMarkers: string[] = [];
   const maxSteps = options.maxSteps ?? 12;
 
-  mkdirSync(options.outDir, { recursive: true });
-
   try {
     while (steps < maxSteps) {
       steps += 1;
-      const raw = provider.completeChat
-        ? await provider.completeChat({
-            messages: session.requestMessages(),
-            temperature: 0.1,
-          })
-        : await provider.complete({
-            system,
-            user: session.transcript(),
-            temperature: 0.1,
-          });
+      usage.calls += 1;
+      let raw: string;
+      if (provider.completeChatWithUsage) {
+        const response = await provider.completeChatWithUsage({
+          messages: session.requestMessages(),
+          temperature: 0.1,
+        });
+        raw = response.content;
+        usage.promptTokens += response.usage?.promptTokens ?? 0;
+        usage.completionTokens += response.usage?.completionTokens ?? 0;
+        usage.cachedTokens += response.usage?.cachedTokens ?? 0;
+      } else if (provider.completeChat) {
+        raw = await provider.completeChat({
+          messages: session.requestMessages(),
+          temperature: 0.1,
+        });
+      } else {
+        raw = await provider.complete({
+          system,
+          user: session.transcript(),
+          temperature: 0.1,
+        });
+      }
       let action: DevelopAction;
       try {
         action = parseAction(raw);
@@ -530,6 +578,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         session.appendUser(
           `Previous response was invalid: ${(error as Error).message}. Return one JSON action.`,
         );
+        saveSession();
         continue;
       }
       actions.push(action.tool);
@@ -538,6 +587,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         session.appendUser(
           `Unknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`,
         );
+        saveSession();
         continue;
       }
       const result = await tool.run(action.args ?? {}, context);
@@ -566,6 +616,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         );
       }
       session.compact();
+      saveSession();
       if (action.tool === 'finish') {
         const gates = lastVerify?.gates;
         const passed =
@@ -577,6 +628,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
           session.appendUser(
             'Cannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.',
           );
+          saveSession();
           continue;
         }
         finished = true;
@@ -584,6 +636,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       }
     }
   } finally {
+    saveSession();
     mcp?.close();
   }
 
@@ -602,6 +655,9 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     finished,
     missingMarkers: missingExpectedMarkers(options.outDir, options.expectedMarkers),
     mcpTools,
+    sessionPath,
+    resumed,
+    usage,
     verify,
   };
 }
