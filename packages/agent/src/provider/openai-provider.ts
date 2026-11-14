@@ -2,6 +2,7 @@ import type {
   ChatMessage,
   ChatRequest,
   ChatResult,
+  ChatToolCall,
   ChatUsage,
   ModelProvider,
   ModelRequest,
@@ -37,16 +38,27 @@ export class OpenAICompatibleProvider implements ModelProvider {
   }
 
   async completeChat(request: ChatRequest): Promise<string> {
-    return (await this.completeMessages(request.messages, request.temperature)).content;
+    return (
+      await this.completeMessages(
+        request.messages,
+        request.temperature,
+        request.tools,
+      )
+    ).content;
   }
 
   async completeChatWithUsage(request: ChatRequest): Promise<ChatResult> {
-    return this.completeMessages(request.messages, request.temperature);
+    return this.completeMessages(
+      request.messages,
+      request.temperature,
+      request.tools,
+    );
   }
 
   private async completeMessages(
     messages: ChatMessage[],
     temperature?: number,
+    tools?: ChatRequest['tools'],
   ): Promise<ChatResult> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
     let response: Response;
@@ -62,9 +74,26 @@ export class OpenAICompatibleProvider implements ModelProvider {
           },
           body: JSON.stringify({
             model: this.options.model,
-            messages,
+            messages: messages.map((message) => {
+              const base: Record<string, unknown> = {
+                role: message.role,
+                content: message.content,
+              };
+              if (message.toolCalls) {
+                base.tool_calls = message.toolCalls.map((call) => ({
+                  id: call.id,
+                  type: 'function',
+                  function: { name: call.name, arguments: call.arguments },
+                }));
+              }
+              if (message.toolCallId) base.tool_call_id = message.toolCallId;
+              if (message.name) base.name = message.name;
+              return base;
+            }),
             temperature: temperature ?? 0.2,
-            response_format: { type: 'json_object' },
+            ...(tools && tools.length > 0
+              ? { tools, tool_choice: 'auto' }
+              : { response_format: { type: 'json_object' } }),
             stream: false,
           }),
           signal: AbortSignal.timeout(timeoutMs),
@@ -92,7 +121,15 @@ export class OpenAICompatibleProvider implements ModelProvider {
     }
 
     let data: {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{
+        message?: {
+          content?: string | null;
+          tool_calls?: Array<{
+            id?: string;
+            function?: { name?: string; arguments?: string };
+          }>;
+        };
+      }>;
       usage?: {
         prompt_tokens?: number;
         completion_tokens?: number;
@@ -106,8 +143,16 @@ export class OpenAICompatibleProvider implements ModelProvider {
       throw new AgentError('PROVIDER_HTTP_ERROR', 'provider returned invalid JSON');
     }
 
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
+    const message = data.choices?.[0]?.message;
+    const toolCalls: ChatToolCall[] = (message?.tool_calls ?? [])
+      .filter((call) => call.function?.name)
+      .map((call, index) => ({
+        id: call.id ?? `call_${index}`,
+        name: call.function?.name ?? '',
+        arguments: call.function?.arguments ?? '{}',
+      }));
+    const content = message?.content ?? '';
+    if (!content && toolCalls.length === 0) {
       throw new AgentError('PROVIDER_EMPTY_RESPONSE', 'provider returned no content');
     }
     const usage: ChatUsage = {
@@ -118,6 +163,6 @@ export class OpenAICompatibleProvider implements ModelProvider {
         data.usage?.prompt_cache_hit_tokens ??
         0,
     };
-    return { content, usage };
+    return { content, toolCalls, usage };
   }
 }

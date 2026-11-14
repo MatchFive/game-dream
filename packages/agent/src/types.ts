@@ -7,14 +7,33 @@ export interface ModelRequest {
 
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export interface ChatToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+}
+
+export interface ChatToolSchema {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
+  toolCalls?: ChatToolCall[];
+  toolCallId?: string;
+  name?: string;
 }
 
 export interface ChatRequest {
   messages: ChatMessage[];
   temperature?: number;
+  tools?: ChatToolSchema[];
 }
 
 export interface ChatUsage {
@@ -25,6 +44,7 @@ export interface ChatUsage {
 
 export interface ChatResult {
   content: string;
+  toolCalls?: ChatToolCall[];
   usage?: ChatUsage;
 }
 

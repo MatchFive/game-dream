@@ -1,6 +1,11 @@
 import { AgentSession } from './session.js';
 import { extractJson } from '../intake/extract-json.js';
-import type { ChatUsage, ModelProvider } from '../types.js';
+import type {
+  ChatToolCall,
+  ChatToolSchema,
+  ChatUsage,
+  ModelProvider,
+} from '../types.js';
 
 export interface HarnessToolResult {
   ok: boolean;
@@ -11,6 +16,7 @@ export interface HarnessToolResult {
 export interface HarnessTool<TContext> {
   name: string;
   description: string;
+  inputSchema?: Record<string, unknown>;
   execute(
     args: Record<string, unknown>,
     context: TContext,
@@ -29,6 +35,7 @@ export interface HarnessLoopOptions<TContext> {
   context: TContext;
   maxSteps: number;
   compactChars?: number;
+  nativeTools?: boolean;
   session?: AgentSession;
   canFinish: () => { ok: boolean; reason?: string };
   onSession?: (session: AgentSession) => void;
@@ -84,6 +91,21 @@ export class AgentLoop<TContext> {
     const actions: string[] = [];
     let finished = false;
     let steps = 0;
+    const toolSchemas: ChatToolSchema[] | undefined = options.nativeTools
+      ? options.tools.map((tool) => ({
+          type: 'function',
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters:
+              tool.inputSchema ?? {
+                type: 'object',
+                properties: {},
+                additionalProperties: true,
+              },
+          },
+        }))
+      : undefined;
     const save = () => options.onSession?.(session);
 
     session.record('turn/start', 0);
@@ -94,12 +116,15 @@ export class AgentLoop<TContext> {
         session.record('step/start', steps);
         usage.calls += 1;
         let raw: string;
+        let nativeCalls: ChatToolCall[] = [];
         if (options.provider.completeChatWithUsage) {
           const response = await options.provider.completeChatWithUsage({
             messages: session.requestMessages(),
             temperature: 0.1,
+            tools: toolSchemas,
           });
           raw = response.content;
+          nativeCalls = response.toolCalls ?? [];
           usage.promptTokens += response.usage?.promptTokens ?? 0;
           usage.completionTokens += response.usage?.completionTokens ?? 0;
           usage.cachedTokens += response.usage?.cachedTokens ?? 0;
@@ -114,6 +139,57 @@ export class AgentLoop<TContext> {
             user: session.transcript(),
             temperature: 0.1,
           });
+        }
+
+        if (nativeCalls.length > 0) {
+          session.appendAssistantToolCalls(raw, nativeCalls);
+          let finishRequested = false;
+          for (const call of nativeCalls) {
+            actions.push(call.name);
+            const tool = options.tools.find((entry) => entry.name === call.name);
+            let result: HarnessToolResult;
+            if (!tool) {
+              result = { ok: false, output: `Unknown tool ${call.name}` };
+            } else {
+              let args: Record<string, unknown> = {};
+              let parseError: string | undefined;
+              try {
+                const parsed = JSON.parse(call.arguments || '{}') as unknown;
+                if (typeof parsed === 'object' && parsed !== null) {
+                  args = parsed as Record<string, unknown>;
+                }
+              } catch (error) {
+                parseError = `Invalid arguments for ${call.name}: ${(error as Error).message}`;
+              }
+              result = parseError
+                ? { ok: false, output: parseError }
+                : await tool.execute(args, options.context);
+            }
+            session.appendTool(result.output.slice(0, 24_000), call.name, result.ok, call.id);
+            options.onToolResult?.(call.name, result, session);
+            if (call.name === 'finish') finishRequested = true;
+          }
+          session.record('step/end', steps);
+          const decision = options.canFinish();
+          if (decision.ok) {
+            session.appendUser(
+              'Verification is clean. Call finish now unless a requested feature is still missing.',
+            );
+          }
+          session.compact(options.compactChars);
+          save();
+          if (finishRequested) {
+            if (!decision.ok) {
+              session.appendUser(
+                `Cannot finish: ${decision.reason ?? 'verification has not passed'}. Fix the project and call verify again.`,
+              );
+              save();
+              continue;
+            }
+            finished = true;
+            break;
+          }
+          continue;
         }
 
         let action: { tool: string; args: Record<string, unknown> };

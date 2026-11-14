@@ -41,8 +41,17 @@ tool execution; the CLI only supplies tools, finish policy, and persistence.
 Real provider evidence after the extraction:
 `2 calls · prompt 5839 · cached 5632 (96.5%)`, G1/G2/G3/G6 pass.
 
+## Native tool calls
+
+- OpenAI-compatible provider now sends stable `tools` schemas when native
+  development is enabled and parses `tool_calls`.
+- `AgentLoop` executes assistant tool calls, appends tool results with call ids,
+  and keeps JSON action parsing as a fallback.
+- Session events preserve assistant tool-call batches and tool results.
+- Real provider finish case: `2 calls`, G1/G2/G3/G6 pass, 146 colors.
+- `AgentLoop` native-path unit test covers echo + finish and usage aggregation.
+
 ## Next
 
-- Move from JSON text actions to native tool calls with stable tool schemas.
 - Add streaming responses and explicit cache boundaries.
 - Add session generation/JSONL persistence and forks/checkpoints.

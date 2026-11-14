@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
-import type { ChatMessage } from '../types.js';
+import type { ChatMessage, ChatToolCall } from '../types.js';
 
 export type SessionEvent =
   | { type: 'user/message'; content: string }
   | { type: 'assistant/message'; content: string }
-  | { type: 'tool/result'; tool: string; ok: boolean; content: string }
+  | { type: 'assistant/tool_calls'; content: string; calls: ChatToolCall[] }
+  | { type: 'tool/result'; tool: string; ok: boolean; content: string; callId?: string }
   | { type: 'turn/start'; step: number }
   | { type: 'step/start'; step: number }
   | { type: 'step/end'; step: number }
@@ -35,11 +36,26 @@ export class AgentSession {
       if (event.type === 'user/message') messages.push({ role: 'user', content: event.content });
       else if (event.type === 'assistant/message') {
         messages.push({ role: 'assistant', content: event.content });
-      } else if (event.type === 'tool/result') {
+      } else if (event.type === 'assistant/tool_calls') {
         messages.push({
-          role: 'user',
-          content: `Tool ${event.tool} result (${event.ok ? 'ok' : 'error'}):\n${event.content}`,
+          role: 'assistant',
+          content: event.content,
+          toolCalls: event.calls,
         });
+      } else if (event.type === 'tool/result') {
+        messages.push(
+          event.callId
+            ? {
+                role: 'tool',
+                content: event.content,
+                toolCallId: event.callId,
+                name: event.tool,
+              }
+            : {
+                role: 'user',
+                content: `Tool ${event.tool} result (${event.ok ? 'ok' : 'error'}):\n${event.content}`,
+              },
+        );
       } else if (event.type === 'session/compact') {
         messages.splice(0, messages.length, ...event.messages);
       }
@@ -51,8 +67,12 @@ export class AgentSession {
     this.events.push({ type: 'assistant/message', content });
   }
 
-  appendTool(content: string, tool = 'tool', ok = true): void {
-    this.events.push({ type: 'tool/result', tool, ok, content });
+  appendAssistantToolCalls(content: string, calls: ChatToolCall[]): void {
+    this.events.push({ type: 'assistant/tool_calls', content, calls });
+  }
+
+  appendTool(content: string, tool = 'tool', ok = true, callId?: string): void {
+    this.events.push({ type: 'tool/result', tool, ok, content, callId });
   }
 
   appendUser(content: string): void {

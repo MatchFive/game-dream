@@ -416,7 +416,11 @@ function scriptedProvider(): ModelProvider {
   return new FakeProvider({ responses: [...SCRIPTED_ACTIONS] });
 }
 
-function systemPrompt(skillText: string, mcpTools: McpTool[] = []): string {
+function systemPrompt(
+  skillText: string,
+  mcpTools: McpTool[] = [],
+  nativeTools = false,
+): string {
   const mcpLines = mcpTools.length
     ? [
         '',
@@ -427,7 +431,9 @@ function systemPrompt(skillText: string, mcpTools: McpTool[] = []): string {
   return [
     'You are GameDream, an autonomous game developer.',
     'You build a playable Godot demo from the user prompt using tools.',
-    'Respond with exactly one JSON object per turn: {"tool":"<name>","args":{...}}.',
+    nativeTools
+      ? 'Use the native tool calls supplied by the API. Do not wrap tool calls in a JSON action.'
+      : 'Respond with exactly one JSON object per turn: {"tool":"<name>","args":{...}}.',
     'Available tools:',
     ...TOOLS.map((tool) => `- ${tool.name}: ${tool.description}`),
     ...mcpLines,
@@ -483,7 +489,8 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     a.name.localeCompare(b.name),
   );
   const mcpTools = sortedMcpTools.map((tool) => tool.name);
-  const system = systemPrompt(skillText, sortedMcpTools);
+  const nativeTools = Boolean(provider.completeChatWithUsage);
+  const system = systemPrompt(skillText, sortedMcpTools, nativeTools);
   const sessionPath = join(options.outDir, '.gamedream', 'session.json');
   let resumed = false;
   let session: AgentSession;
@@ -532,6 +539,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     context,
     maxSteps: options.maxSteps ?? 12,
     compactChars: 80_000,
+    nativeTools,
     session,
     canFinish: () => {
       const gates = lastVerify?.gates;
