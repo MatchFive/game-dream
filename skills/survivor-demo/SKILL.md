@@ -21,7 +21,8 @@ G1/G2/G3 and expose these markers:
 2. Call `verify` to establish a baseline.
 3. Edit gameplay source under `.gamedream/modules/` (or template markers under
    `.gamedream/templates/`), then call `compose` to regenerate the project.
-4. Call `verify`; inspect failures, patch, and repeat.
+4. Call `check_script` on each modified generated `.gd` file, then `verify`;
+   inspect failures, patch, and repeat.
 5. Call `finish` only after verification passes.
 
 Do not edit generated `modules/` or `game/_generated/` directly; those are

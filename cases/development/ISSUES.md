@@ -118,6 +118,19 @@ G3: pass
 G6: pass (1280x720, 35 colors)
 ```
 
+### GDScript guard added
+
+The failure pointed to a missing language-level guard. Added:
+
+- `skills/gdscript/SKILL.md`, loaded automatically for every development run,
+  with tab indentation, `match` block, typing, and marker requirements.
+- `check_script` tool using Godot `--headless --check-only --script` so a model
+  can catch parse errors after `compose` without waiting for G2.
+- The survivor skill now requires `check_script` before `verify`.
+
+This should catch the exact `match` indentation failure from the dash run. It
+still needs a fresh model run to confirm the model follows the skill.
+
 ### Follow-up needed
 
 - Add a bounded retry for Godot import crashes; the dash repair only passed after

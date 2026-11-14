@@ -17,7 +17,7 @@ import {
   type ProviderKind,
 } from '@gamedream/agent';
 import { composeProject } from '@gamedream/core';
-import type { CommandRunner } from '@gamedream/godot';
+import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
 
 export interface DevelopmentCase {
@@ -278,6 +278,34 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'check_script',
+    description:
+      'Parse one generated GDScript file with Godot --check-only before verify. Use after compose returns.',
+    async run(args, context) {
+      const relative = String(args.path ?? '').replaceAll('\\', '/');
+      if (!relative.endsWith('.gd')) {
+        return { ok: false, output: 'check_script requires a .gd path' };
+      }
+      try {
+        const path = inside(context.outDir, relative);
+        if (!existsSync(path)) return { ok: false, output: `script not found: ${relative}` };
+        const godot = await detectGodot({ env: context.env, runner: context.runner });
+        if (!godot) return { ok: false, output: 'Godot 4.4+ not found' };
+        const runner = context.runner ?? runCommand;
+        const result = await runner.run(
+          godot.bin,
+          ['--headless', '--path', context.outDir, '--check-only', '--script', `res://${relative}`],
+          { timeoutMs: 60_000 },
+        );
+        const output = `${result.stdout}\n${result.stderr}`.trim();
+        const failed = result.exitCode !== 0 || /parse error|script error|failed to load script/i.test(output);
+        return { ok: !failed, output: output || `exit ${result.exitCode}` };
+      } catch (error) {
+        return { ok: false, output: (error as Error).message };
+      }
+    },
+  },
+  {
     name: 'verify',
     description:
       'Run G1/G2/G3 (and optional G6) against the generated project. Fix failures with write_file, then verify again.',
@@ -346,10 +374,14 @@ function systemPrompt(skillText: string): string {
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
   const env = options.env ?? process.env;
+  const baseSkillPath = join(options.skillsDir, 'gdscript', 'SKILL.md');
   const skillTextPath = join(options.skillsDir, options.skill, 'SKILL.md');
-  const skillText = existsSync(skillTextPath)
-    ? readFileSync(skillTextPath, 'utf8')
-    : '(no skill instructions found)';
+  const skillText = [
+    existsSync(baseSkillPath) ? readFileSync(baseSkillPath, 'utf8') : '',
+    existsSync(skillTextPath) ? readFileSync(skillTextPath, 'utf8') : '(no skill instructions found)',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
   const provider =
     options.provider ??
     (options.providerKind === 'fake' ||
