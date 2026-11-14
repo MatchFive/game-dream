@@ -38,6 +38,37 @@ export interface PluginNode<TContext> {
  * Depth-first plugin tree. A child can replace a parent's tool by name without
  * changing AgentLoop; hooks run in tree order.
  */
+export interface ReadBudgetOptions {
+  maxReads?: number;
+  message?: string;
+}
+
+/**
+ * Stop a model from burning its step budget on reconnaissance. After a bounded
+ * number of read-only calls it appends one instruction to switch to writing,
+ * composing, checking, and verifying.
+ */
+export function readBudgetPlugin<TContext>(
+  options: ReadBudgetOptions = {},
+): HarnessPlugin<TContext> {
+  const maxReads = options.maxReads ?? 5;
+  const message =
+    options.message ??
+    'You have read enough context. Stop reading files. Make one small, safe improvement with write_file under .gamedream, run compose/check_script/verify, then call finish.';
+  let reads = 0;
+  let nudged = false;
+  return {
+    name: 'read-budget',
+    async onToolResult({ tool, session }) {
+      if (!['read_file', 'read_skill', 'list_files'].includes(tool)) return;
+      reads += 1;
+      if (reads < maxReads || nudged) return;
+      nudged = true;
+      session.appendUser(message);
+    },
+  };
+}
+
 export class AgentPluginTree<TContext> {
   private readonly nodes: PluginNode<TContext>[];
 

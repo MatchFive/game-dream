@@ -1,0 +1,16 @@
+node : (node:22104) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to se
+curity vulnerabilities, as the arguments are not escaped, only concatenated.
+所在位置 行:2 字符: 112
++ ... rce $out }; node packages/cli/dist/index.js develop --case cases/deve ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:22104) [D...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)
+G1: pass
+G2: pass
+G3: pass
+Demo incomplete: the developer did not call finish (step budget exhausted).
+Session: D:\project\game_dream\build\p2-neon-survivor\.gamedream\session.json · generation 1
+Usage: 12 calls · prompt 99799 · cached 88064 (88.2%) · completion 1324
+Demo incomplete: D:\project\game_dream\build\p2-neon-survivor · 12 steps · scaffold -> list_files -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> read_file -> verify -> read_file -> read_file

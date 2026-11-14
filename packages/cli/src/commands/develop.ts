@@ -12,9 +12,11 @@ import {
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import {
   AgentLoop,
+  AgentPluginTree,
   AgentSession,
   FakeProvider,
   createProvider,
+  readBudgetPlugin,
   type HarnessTool,
   type HarnessToolResult,
   type ModelProvider,
@@ -656,6 +658,9 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     initialUser: `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`,
     provider,
     tools: harnessTools,
+    pluginTree: new AgentPluginTree<DevelopContext>([
+      { name: 'develop', plugins: [readBudgetPlugin()] },
+    ]),
     context,
     maxSteps: options.maxSteps ?? 12,
     compactChars: 80_000,

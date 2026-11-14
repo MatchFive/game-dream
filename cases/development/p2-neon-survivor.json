@@ -1,0 +1,13 @@
+{
+  "id": "p2-neon-survivor",
+  "prompt": "做一个霓虹赛博风格的俯视角生存 demo：WASD 移动，角色自动攻击最近的敌人；敌人分波次出现，击杀掉落经验并升级；40 秒出现 Boss，Boss 半血进入二阶段；坚持 60 秒胜利。要有清晰的 HUD（时间、等级、HP、击杀）、受击反馈和按 R 重开。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_WIN"
+  ]
+}

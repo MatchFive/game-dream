@@ -1,0 +1,10 @@
+node : (node:9300) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to sec
+urity vulnerabilities, as the arguments are not escaped, only concatenated.
+所在位置 行:2 字符: 255
++ ... rce $out }; node packages/cli/dist/index.js develop --case cases/deve ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:9300) [DE...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)
+PROVIDER_HTTP_ERROR: provider returned 402: {"type":"error","error":{"type":"insufficient_balance_error","message":"insufficient balance (1008)","http_code":"402"},"request_id":"0747139ee2c8740da7f913689b7745dd"} 
