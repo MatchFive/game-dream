@@ -76,6 +76,15 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
   }
   const log = `${stdout}\n${stderr}`;
   const required = ['UNITY_SIM_OK', 'UNITY_WIN'];
+  const survivor = existsSync(join(projectDir, 'Assets/Scripts/SurvivorSim.cs'));
+  if (survivor) {
+    required.push(
+      'UNITY_SURVIVOR_SPAWN',
+      'UNITY_SURVIVOR_LEVEL',
+      'UNITY_BOSS',
+      'UNITY_BOSS_PHASE',
+    );
+  }
   try {
     const configPath = join(projectDir, 'Assets/Resources/GameConfig.json');
     if (existsSync(configPath)) {
@@ -98,5 +107,13 @@ export function runUnityVerifier(options: UnityRuntimeOptions): UnityRuntimeResu
       return { passed: false, exitCode: 1, stdout, stderr, message: `missing ${marker}` };
     }
   }
-  return { passed: true, exitCode: 0, stdout, stderr };
+  return {
+    passed: true,
+    exitCode: 0,
+    stdout,
+    stderr,
+    message: survivor
+      ? 'UNITY_SIM_OK, UNITY_WIN, UNITY_SURVIVOR_SPAWN, UNITY_SURVIVOR_LEVEL, UNITY_BOSS, UNITY_BOSS_PHASE'
+      : undefined,
+  };
 }

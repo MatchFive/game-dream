@@ -19,6 +19,8 @@ P1 = fork/checkpoint + multi-candidate generation/selection + cross-engine.
 - Each candidate has its own session and verification.
 - Selection score: finished + required markers + G1/G2/G3 + G6 color count.
 - Unit test composes two fake-provider candidates and selects the top score.
+- Actual CLI evidence: `--candidates 2` reported scores `1400/1400`, selected
+  `candidate-1`, with G1/G2/G3 pass and exit 0.
 
 ## Cross-engine
 
@@ -26,7 +28,7 @@ P1 = fork/checkpoint + multi-candidate generation/selection + cross-engine.
 |---|---|---|---|---|
 | Godot 4.4.1 | yes | G1/G2/G3 (+G6) | yes | survivor G1/G2/G3/G6 |
 | Web | yes | `WEB_BOOT_OK`, `WEB_WIN` | yes | Web survivor screenshot 81 colors |
-| Unity 6 | yes | static + runtime | yes | `UNITY_SIM_OK`, `UNITY_WIN` on 6000.6.9f1 |
+| Unity 6 | yes | static + runtime | yes | `UNITY_SIM_OK, UNITY_WIN, UNITY_SURVIVOR_SPAWN, UNITY_SURVIVOR_LEVEL, UNITY_BOSS, UNITY_BOSS_PHASE` on 6000.6.9f1 |
 
 Cross-engine parity currently covers the shared action-RPG M1 campaign and the
 survivor slice; the remaining genre templates are still Godot-first. The P1

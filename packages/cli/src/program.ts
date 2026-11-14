@@ -848,7 +848,7 @@ export function createProgram(): Command {
           else if (result.passed) {
             printLine('Unity static project verification passed');
             if (result.runtime?.passed) {
-              printLine('Unity runtime verification passed (UNITY_SIM_OK, UNITY_WIN)');
+              printLine(`Unity runtime verification passed (${result.runtime.message ?? 'UNITY_SIM_OK, UNITY_WIN'})`);
             } else {
               printLine(
                 'Runtime verification not run; add --runtime to launch Unity EditorVerifier.',
