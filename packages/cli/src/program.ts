@@ -195,20 +195,26 @@ export function createProgram(): Command {
             providerKind: parseProviderKind(options.provider),
             maxSteps: Number(options.maxSteps),
             visual: options.visual,
+            expectedMarkers: selected?.expected_markers,
           });
           if (options.json) printJson(report);
           else {
             const passed = report.verify.gates.G1.status === 'pass' &&
               report.verify.gates.G2.status === 'pass' &&
-              report.verify.gates.G3.status === 'pass';
+              report.verify.gates.G3.status === 'pass' &&
+              report.missingMarkers.length === 0;
             for (const [gate, result] of Object.entries(report.verify.gates)) {
               printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+            }
+            if (report.missingMarkers.length > 0) {
+              printLine(`Missing case markers: ${report.missingMarkers.join(', ')}`);
             }
             printLine(
               `${passed ? 'Demo ready' : 'Demo incomplete'}: ${report.outDir} · ${report.steps} steps · ${report.actions.join(' -> ')}`,
             );
           }
-          process.exitCode = exitCodeFor(report.verify);
+          process.exitCode =
+            report.missingMarkers.length === 0 ? exitCodeFor(report.verify) : 2;
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

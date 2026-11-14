@@ -1,0 +1,15 @@
+{
+  "id": "repair-dash",
+  "prompt": "继续修复当前 survivor demo：survivor.gd 中有 GDScript 解析错误（match 分支缩进损坏）。检查 .gamedream 源码，修复错误，调用 compose 重新生成，再 verify；保留 Shift 冲刺和所有 marker。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_DASH",
+    "GAMEDREAM_WIN"
+  ]
+}

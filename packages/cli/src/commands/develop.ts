@@ -40,6 +40,7 @@ export interface DevelopOptions {
   runner?: CommandRunner;
   maxSteps?: number;
   visual?: boolean;
+  expectedMarkers?: string[];
 }
 
 export interface DevelopAction {
@@ -60,6 +61,7 @@ export interface DevelopReport {
   steps: number;
   actions: string[];
   finished: boolean;
+  missingMarkers: string[];
   verify: VerifyReport;
 }
 
@@ -107,6 +109,21 @@ function inside(root: string, relative: string): string {
   return target;
 }
 
+function missingExpectedMarkers(projectDir: string, expected: string[] | undefined): string[] {
+  if (!expected || expected.length === 0) return [];
+  try {
+    const manifest = JSON.parse(
+      readFileSync(join(projectDir, 'game/game.manifest.json'), 'utf8'),
+    ) as { acceptance?: { markers?: unknown } };
+    const markers = Array.isArray(manifest.acceptance?.markers)
+      ? manifest.acceptance.markers.map(String)
+      : [];
+    return expected.filter((marker) => !markers.includes(marker));
+  } catch {
+    return [...expected];
+  }
+}
+
 function slug(input: string): string {
   const value = input
     .toLowerCase()
@@ -132,6 +149,17 @@ const TOOLS: Tool[] = [
     description:
       'Create the initial Godot project from the selected development skill kit. Use this before verify.',
     async run(args, context) {
+      if (
+        existsSync(join(context.outDir, 'gamedream.yaml')) &&
+        existsSync(join(context.outDir, '.gamedream')) &&
+        args.force !== true
+      ) {
+        return {
+          ok: false,
+          output:
+            'Project is already scaffolded. Edit .gamedream modules/templates and call compose; pass force:true only to reset the project.',
+        };
+      }
       const skillName = String(args.skill ?? context.skill);
       const skillDir = join(context.skillsDir, skillName);
       const kitDir = join(skillDir, 'kit');
@@ -175,6 +203,34 @@ const TOOLS: Tool[] = [
         output: `Scaffolded ${templateIds[0]} with ${composed.order.length} modules into ${context.outDir}`,
         data: { template: templateIds[0], modules: composed.order, files: composed.files },
       };
+    },
+  },
+  {
+    name: 'compose',
+    description:
+      'Regenerate composer output from gamedream.yaml and the skill kit under .gamedream/modules and .gamedream/templates. Use after editing kit source.',
+    async run(_args, context) {
+      const specPath = join(context.outDir, 'gamedream.yaml');
+      const modulesDir = join(context.outDir, '.gamedream', 'modules');
+      const templatesDir = join(context.outDir, '.gamedream', 'templates');
+      if (!existsSync(specPath)) {
+        return { ok: false, output: 'gamedream.yaml not found; run scaffold first' };
+      }
+      try {
+        const composed = await composeProject({
+          specPath,
+          outDir: context.outDir,
+          modulesDir,
+          templatesDir,
+        });
+        return {
+          ok: true,
+          output: `Composed ${composed.order.length} modules and regenerated project files`,
+          data: { modules: composed.order, files: composed.files },
+        };
+      } catch (error) {
+        return { ok: false, output: (error as Error).message };
+      }
     },
   },
   {
@@ -233,9 +289,14 @@ const TOOLS: Tool[] = [
         visual: context.visual,
       });
       const failed = Object.values(report.gates).some((gate) => gate.status === 'fail');
+      const missing = missingExpectedMarkers(context.outDir, context.expectedMarkers);
       return {
-        ok: !failed,
-        output: JSON.stringify(report.gates, null, 2),
+        ok: !failed && missing.length === 0,
+        output: JSON.stringify(
+          { gates: report.gates, missingExpectedMarkers: missing },
+          null,
+          2,
+        ),
         data: report,
       };
     },
@@ -310,6 +371,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   let finished = false;
   let steps = 0;
   let lastVerify: VerifyReport | undefined;
+  let lastMissingMarkers: string[] = [];
   const maxSteps = options.maxSteps ?? 12;
 
   mkdirSync(options.outDir, { recursive: true });
@@ -333,6 +395,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     const result = await tool.run(action.args ?? {}, context);
     if (action.tool === 'verify' && result.data) {
       lastVerify = result.data as VerifyReport;
+      lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
     }
     user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
     if (action.tool === 'finish') {
@@ -340,10 +403,11 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       const passed =
         gates?.G1.status === 'pass' &&
         gates?.G2.status === 'pass' &&
-        gates?.G3.status === 'pass';
+        gates?.G3.status === 'pass' &&
+        lastMissingMarkers.length === 0;
       if (!passed) {
         user +=
-          '\n\nCannot finish: verification has not passed. Fix the generated project with write_file and call verify again.';
+          '\n\nCannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.';
         continue;
       }
       finished = true;
@@ -364,6 +428,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     steps,
     actions,
     finished,
+    missingMarkers: missingExpectedMarkers(options.outDir, options.expectedMarkers),
     verify,
   };
 }

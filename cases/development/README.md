@@ -25,9 +25,10 @@ model choose tools and edit the generated project. A minimal input is
 Tools available to the developer:
 
 - `scaffold` — copy the selected skill kit and compose the initial project
-- `read_file` / `write_file` / `list_files` — inspect and patch generated code
+- `compose` — regenerate composer output after editing the kit source
+- `read_file` / `write_file` / `list_files` — inspect and patch kit/generated code
 - `verify` — run G1/G2/G3 (and G6 with `--visual`)
-- `finish` — end the run after verification
+- `finish` — end the run after verification and case markers pass
 
 Skills live in `skills/<name>/SKILL.md` with an optional `kit/` starting
 project. The survivor skill is `skills/survivor-demo`.

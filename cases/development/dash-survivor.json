@@ -1,0 +1,15 @@
+{
+  "id": "dash-survivor",
+  "prompt": "在生存小游戏基础上增加一个真正可用的 Shift 冲刺：冲刺持续 0.18 秒、2 秒冷却，HUD 显示 Ready/Cooldown；新增验收 marker GAMEDREAM_DASH。保留自动攻击、升级、Boss 和 60 秒胜利。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_UPGRADE",
+    "GAMEDREAM_BOSS",
+    "GAMEDREAM_BOSS_PHASE",
+    "GAMEDREAM_DASH",
+    "GAMEDREAM_WIN"
+  ]
+}
