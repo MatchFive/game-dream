@@ -1,0 +1,31 @@
+{
+    "provider":  "comfyui",
+    "server":  "http://192.168.124.56:8000",
+    "assets":  [
+                   {
+                       "prompt":  "RGBA neon cyberpunk survivor heroine, top-down full-body sprite",
+                       "name":  "player",
+                       "file":  "generated-assets/player.png",
+                       "seed":  314159
+                   },
+                   {
+                       "prompt":  "RGBA small neon red cyber crawler drone",
+                       "name":  "enemy_crawler",
+                       "file":  "generated-assets/enemy_crawler.png",
+                       "seed":  271828
+                   },
+                   {
+                       "prompt":  "RGBA heavy neon orange cyber brute",
+                       "name":  "enemy_brute",
+                       "file":  "generated-assets/enemy_brute.png",
+                       "seed":  161803
+                   },
+                   {
+                       "prompt":  "RGBA large neon violet cyber boss",
+                       "name":  "boss",
+                       "file":  "generated-assets/boss.png",
+                       "seed":  141421
+                   }
+               ],
+    "workflow":  "D:\\QQ\\image_qwen_image_2_1_t2i.json"
+}

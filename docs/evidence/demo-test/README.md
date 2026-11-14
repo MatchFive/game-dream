@@ -8,6 +8,18 @@
 - Screenshot: 1280x720, 62 colors (`screenshot.png`).
 - This exercises the new P2 plugin tree (`readBudgetPlugin`) and cache flag.
 
+## ComfyUI assets
+
+- Server `http://192.168.124.56:8000`, workflow
+  `D:\QQ\image_qwen_image_2_1_t2i.json`.
+- Generated transparent PNGs for player, crawler, brute, and boss with
+  `scripts/comfyui-generate.mjs`.
+- Copied the PNGs into `.gamedream/modules/system.survivor/assets`, changed the
+  preload paths, then ran `dream compose`.
+- `verify` passes G1/G2/G3; `screenshot-neon.png` is 1280x720, 52 colors.
+- PNG alpha at `(0,0)` is 0 (transparent), verified with System.Drawing.
+
+
 ## Real-provider attempt
 
 - Command: `dream develop ... --provider openai --cache-breakpoints --max-steps 12`
