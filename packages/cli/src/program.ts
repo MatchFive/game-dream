@@ -262,7 +262,7 @@ export function createProgram(): Command {
             if (!report.finished) {
               printLine('Demo incomplete: the developer did not call finish (step budget exhausted).');
             }
-            printLine(`Session: ${report.sessionPath}${report.resumed ? ' (resumed)' : ''}${report.forked ? ` (forked ${report.forked})` : ''}`);
+            printLine(`Session: ${report.sessionPath}${report.resumed ? ' (resumed)' : ''}${report.forked ? ` (forked ${report.forked})` : ''} · generation ${report.generation}`);
             if (report.usage.calls > 0) {
               const cacheRate = report.usage.promptTokens
                 ? ((report.usage.cachedTokens / report.usage.promptTokens) * 100).toFixed(1)

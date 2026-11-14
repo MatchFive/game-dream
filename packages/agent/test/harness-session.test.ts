@@ -89,6 +89,26 @@ describe('AgentSession', () => {
     expect(() => session.rewind('missing')).toThrow('unknown checkpoint: missing');
   });
 
+  it('tracks generations through forks and JSONL', () => {
+    const session = new AgentSession('system', 'build');
+    session.appendAssistant('first');
+    const checkpoint = session.checkpoint('branch point');
+    const fork = session.fork(checkpoint.id);
+    expect(fork.generation).toBe(2);
+    expect(fork.parentGeneration).toBe(1);
+    expect(fork.parentCheckpoint).toBe(checkpoint.id);
+
+    const second = fork.fork();
+    expect(second.generation).toBe(3);
+    expect(second.parentGeneration).toBe(2);
+
+    const restored = AgentSession.fromJSONL('system', second.toJSONL());
+    expect(restored.generation).toBe(3);
+    expect(restored.parentGeneration).toBe(2);
+    expect(restored.messages).toEqual(second.messages);
+    expect(AgentSession.fromJSON('system', second.toJSON()).generation).toBe(3);
+  });
+
   it('projects an event log into model messages and ignores lifecycle events', () => {
     const session = new AgentSession('system', 'build');
     session.record('turn/start', 0);

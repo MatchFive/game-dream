@@ -85,6 +85,7 @@ export interface DevelopReport {
   sessionPath: string;
   resumed: boolean;
   forked?: string;
+  generation: number;
   usage: UsageTotals;
   verify: VerifyReport;
 }
@@ -593,6 +594,10 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       events?: unknown;
       messages?: unknown;
       checkpoints?: unknown;
+      generation?: unknown;
+      parentGeneration?: unknown;
+      parentCheckpoint?: unknown;
+      generationCreatedAt?: unknown;
     };
     session = AgentSession.fromJSON(system, {
       events: Array.isArray(saved.events)
@@ -604,6 +609,13 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       checkpoints: Array.isArray(saved.checkpoints)
         ? (saved.checkpoints as Parameters<typeof AgentSession.fromJSON>[1]['checkpoints'])
         : [],
+      generation: typeof saved.generation === 'number' ? saved.generation : undefined,
+      parentGeneration:
+        typeof saved.parentGeneration === 'number' ? saved.parentGeneration : undefined,
+      parentCheckpoint:
+        typeof saved.parentCheckpoint === 'string' ? saved.parentCheckpoint : undefined,
+      generationCreatedAt:
+        typeof saved.generationCreatedAt === 'string' ? saved.generationCreatedAt : undefined,
     });
     resumed = true;
     if (options.fork) {
@@ -705,6 +717,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     sessionPath,
     resumed,
     forked,
+    generation: session.generation,
     usage,
     verify,
   };

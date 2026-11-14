@@ -20,6 +20,14 @@ export interface SessionCheckpoint {
   createdAt: string;
 }
 
+export interface SessionGeneration {
+  type: 'session/generation';
+  generation: number;
+  parentGeneration?: number;
+  parentCheckpoint?: string;
+  createdAt: string;
+}
+
 function projectMessages(events: SessionEvent[]): ChatMessage[] {
   const messages: ChatMessage[] = [];
   for (const event of events) {
@@ -64,6 +72,10 @@ export class AgentSession {
   readonly system: string;
   events: SessionEvent[] = [];
   checkpoints: SessionCheckpoint[] = [];
+  generation = 1;
+  parentGeneration?: number;
+  parentCheckpoint?: string;
+  generationCreatedAt = new Date().toISOString();
   private readonly initialUser: ChatMessage;
 
   constructor(system: string, user: string) {
@@ -142,14 +154,20 @@ export class AgentSession {
   }
 
   fork(checkpointId?: string): AgentSession {
-    if (checkpointId === undefined) {
-      return AgentSession.restore(this.system, this.messages);
-    }
-    const checkpoint = this.checkpointFor(checkpointId);
-    return AgentSession.restore(
-      this.system,
-      this.messages.slice(0, checkpoint.messageIndex),
-    );
+    const fork = checkpointId === undefined
+      ? AgentSession.restore(this.system, this.messages)
+      : (() => {
+          const checkpoint = this.checkpointFor(checkpointId);
+          return AgentSession.restore(
+            this.system,
+            this.messages.slice(0, checkpoint.messageIndex),
+          );
+        })();
+    fork.generation = this.generation + 1;
+    fork.parentGeneration = this.generation;
+    fork.parentCheckpoint = checkpointId;
+    fork.generationCreatedAt = new Date().toISOString();
+    return fork;
   }
 
   checkpoint(label = ''): SessionCheckpoint {
@@ -219,10 +237,16 @@ export class AgentSession {
       events?: SessionEvent[];
       messages?: ChatMessage[];
       checkpoints?: SessionCheckpoint[];
+      generation?: number;
+      parentGeneration?: number;
+      parentCheckpoint?: string;
+      generationCreatedAt?: string;
     },
   ): AgentSession {
     if (!Array.isArray(data.events)) {
-      return AgentSession.restore(system, data.messages ?? [], data.checkpoints ?? []);
+      const restored = AgentSession.restore(system, data.messages ?? [], data.checkpoints ?? []);
+      restored.applyGeneration(data);
+      return restored;
     }
     const firstUser = data.events.find((event) => event.type === 'user/message');
     const session = new AgentSession(
@@ -231,13 +255,33 @@ export class AgentSession {
     );
     session.events = data.events;
     session.checkpoints = (data.checkpoints ?? []).map((checkpoint) => ({ ...checkpoint }));
+    session.applyGeneration(data);
     return session;
+  }
+
+  private applyGeneration(data: {
+    generation?: number;
+    parentGeneration?: number;
+    parentCheckpoint?: string;
+    generationCreatedAt?: string;
+  }): void {
+    this.generation =
+      data.generation !== undefined && Number.isFinite(data.generation)
+        ? data.generation
+        : 1;
+    this.parentGeneration = data.parentGeneration;
+    this.parentCheckpoint = data.parentCheckpoint;
+    this.generationCreatedAt = data.generationCreatedAt ?? this.generationCreatedAt;
   }
 
   toJSON(): {
     version: 2;
     system: string;
     prefixHash: string;
+    generation: number;
+    parentGeneration?: number;
+    parentCheckpoint?: string;
+    generationCreatedAt: string;
     events: SessionEvent[];
     messages: ChatMessage[];
     checkpoints: SessionCheckpoint[];
@@ -246,6 +290,10 @@ export class AgentSession {
       version: 2,
       system: this.system,
       prefixHash: this.prefixHash(),
+      generation: this.generation,
+      parentGeneration: this.parentGeneration,
+      parentCheckpoint: this.parentCheckpoint,
+      generationCreatedAt: this.generationCreatedAt,
       events: this.events.map((event) => ({ ...event })),
       messages: this.messages.map((message) => ({ ...message })),
       checkpoints: this.checkpoints.map((checkpoint) => ({ ...checkpoint })),
@@ -253,20 +301,41 @@ export class AgentSession {
   }
 
   toJSONL(): string {
-    return `${this.events.map((event) => JSON.stringify(event)).join('\n')}\n`;
+    const header: SessionGeneration = {
+      type: 'session/generation',
+      generation: this.generation,
+      parentGeneration: this.parentGeneration,
+      parentCheckpoint: this.parentCheckpoint,
+      createdAt: this.generationCreatedAt,
+    };
+    return `${JSON.stringify(header)}\n${this.events.map((event) => JSON.stringify(event)).join('\n')}\n`;
   }
 
   static fromJSONL(system: string, text: string): AgentSession {
-    const events = text
+    const records = text
       .split(/\r?\n/)
       .filter((line) => line.trim())
-      .map((line) => JSON.parse(line) as SessionEvent);
+      .map((line) => JSON.parse(line) as SessionEvent | SessionGeneration);
+    const header = records.find(
+      (record): record is SessionGeneration => record.type === 'session/generation',
+    );
+    const events = records.filter(
+      (record): record is SessionEvent => record.type !== 'session/generation',
+    );
     const firstUser = events.find((event) => event.type === 'user/message');
     const session = new AgentSession(
       system,
       firstUser?.type === 'user/message' ? firstUser.content : '',
     );
     session.events = events;
+    if (header) {
+      session.applyGeneration({
+        generation: header.generation,
+        parentGeneration: header.parentGeneration,
+        parentCheckpoint: header.parentCheckpoint,
+        generationCreatedAt: header.createdAt,
+      });
+    }
     return session;
   }
 }
