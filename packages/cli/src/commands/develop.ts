@@ -10,10 +10,12 @@ import {
 } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import {
+  AgentLoop,
   AgentSession,
   FakeProvider,
   createProvider,
-  extractJson,
+  type HarnessTool,
+  type HarnessToolResult,
   type ModelProvider,
   type ProviderKind,
 } from '@gamedream/agent';
@@ -55,17 +57,6 @@ export interface UsageTotals {
   cachedTokens: number;
 }
 
-export interface DevelopAction {
-  tool: string;
-  args?: Record<string, unknown>;
-}
-
-export interface DevelopToolResult {
-  ok: boolean;
-  output: string;
-  data?: unknown;
-}
-
 export interface DevelopReport {
   provider: string;
   skill: string;
@@ -89,7 +80,7 @@ interface DevelopContext extends DevelopOptions {
 interface Tool {
   name: string;
   description: string;
-  run(args: Record<string, unknown>, context: DevelopContext): Promise<DevelopToolResult>;
+  run(args: Record<string, unknown>, context: DevelopContext): Promise<HarnessToolResult>;
 }
 
 const SCRIPTED_ACTIONS = [
@@ -421,21 +412,6 @@ const TOOLS: Tool[] = [
   },
 ];
 
-function toolByName(name: string): Tool | undefined {
-  return TOOLS.find((tool) => tool.name === name);
-}
-
-function parseAction(raw: string): DevelopAction {
-  const value = extractJson(raw) as Record<string, unknown>;
-  const tool = typeof value.tool === 'string' ? value.tool : '';
-  if (!tool) throw new Error('model action has no tool');
-  const args =
-    typeof value.args === 'object' && value.args !== null
-      ? (value.args as Record<string, unknown>)
-      : {};
-  return { tool, args };
-}
-
 function scriptedProvider(): ModelProvider {
   return new FakeProvider({ responses: [...SCRIPTED_ACTIONS] });
 }
@@ -532,111 +508,61 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   const saveSession = () =>
     writeFileSync(sessionPath, `${JSON.stringify(session.toJSON(), null, 2)}\n`, 'utf8');
   saveSession();
-  const usage: UsageTotals = {
+  let lastVerify: VerifyReport | undefined;
+  let lastMissingMarkers: string[] = [];
+  let finished = false;
+  let steps = 0;
+  let actions: string[] = [];
+  let usage: UsageTotals = {
     calls: 0,
     promptTokens: 0,
     completionTokens: 0,
     cachedTokens: 0,
   };
-  const actions: string[] = [];
-  let finished = false;
-  let steps = 0;
-  let lastVerify: VerifyReport | undefined;
-  let lastMissingMarkers: string[] = [];
-  const maxSteps = options.maxSteps ?? 12;
-
-  try {
-    while (steps < maxSteps) {
-      steps += 1;
-      usage.calls += 1;
-      let raw: string;
-      if (provider.completeChatWithUsage) {
-        const response = await provider.completeChatWithUsage({
-          messages: session.requestMessages(),
-          temperature: 0.1,
-        });
-        raw = response.content;
-        usage.promptTokens += response.usage?.promptTokens ?? 0;
-        usage.completionTokens += response.usage?.completionTokens ?? 0;
-        usage.cachedTokens += response.usage?.cachedTokens ?? 0;
-      } else if (provider.completeChat) {
-        raw = await provider.completeChat({
-          messages: session.requestMessages(),
-          temperature: 0.1,
-        });
-      } else {
-        raw = await provider.complete({
-          system,
-          user: session.transcript(),
-          temperature: 0.1,
-        });
-      }
-      let action: DevelopAction;
-      try {
-        action = parseAction(raw);
-      } catch (error) {
-        session.appendUser(
-          `Previous response was invalid: ${(error as Error).message}. Return one JSON action.`,
-        );
-        saveSession();
-        continue;
-      }
-      actions.push(action.tool);
-      const tool = toolByName(action.tool);
-      if (!tool) {
-        session.appendUser(
-          `Unknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`,
-        );
-        saveSession();
-        continue;
-      }
-      const result = await tool.run(action.args ?? {}, context);
-      if (action.tool === 'verify' && result.data) {
+  const harnessTools: HarnessTool<DevelopContext>[] = TOOLS.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    execute: (args, toolContext) => tool.run(args, toolContext),
+  }));
+  const loop = new AgentLoop<DevelopContext>({
+    system,
+    initialUser: `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`,
+    provider,
+    tools: harnessTools,
+    context,
+    maxSteps: options.maxSteps ?? 12,
+    compactChars: 80_000,
+    session,
+    canFinish: () => {
+      const gates = lastVerify?.gates;
+      const ok =
+        gates?.G1.status === 'pass' &&
+        gates?.G2.status === 'pass' &&
+        gates?.G3.status === 'pass' &&
+        lastMissingMarkers.length === 0;
+      return {
+        ok,
+        reason: gates
+          ? 'verification has not passed or required case markers are missing'
+          : 'run verify first',
+      };
+    },
+    onSession: () => saveSession(),
+    onToolResult: (tool, result) => {
+      if (tool === 'verify' && result.data) {
         lastVerify = result.data as VerifyReport;
         lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
       }
-      session.appendAssistant(raw);
-      session.appendTool(
-        `Tool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output.slice(0, 24_000)}`,
-      );
-      if (
-        result.ok &&
-        lastVerify?.gates.G1.status === 'pass' &&
-        lastVerify?.gates.G2.status === 'pass' &&
-        lastVerify?.gates.G3.status === 'pass' &&
-        lastMissingMarkers.length === 0
-      ) {
-        session.appendUser(
-          'Verification is clean. Call finish now unless a requested feature is still missing.',
-        );
-      }
-      if (steps === maxSteps - 2) {
-        session.appendUser(
-          'Step budget is almost exhausted. If the requested demo is complete, run verify and call finish now; do not keep reading files.',
-        );
-      }
-      session.compact();
-      saveSession();
-      if (action.tool === 'finish') {
-        const gates = lastVerify?.gates;
-        const passed =
-          gates?.G1.status === 'pass' &&
-          gates?.G2.status === 'pass' &&
-          gates?.G3.status === 'pass' &&
-          lastMissingMarkers.length === 0;
-        if (!passed) {
-          session.appendUser(
-            'Cannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.',
-          );
-          saveSession();
-          continue;
-        }
-        finished = true;
-        break;
-      }
-    }
+    },
+  });
+
+  try {
+    const result = await loop.run();
+    actions = result.actions;
+    steps = result.steps;
+    finished = result.finished;
+    usage = result.usage;
   } finally {
-    saveSession();
     mcp?.close();
   }
 

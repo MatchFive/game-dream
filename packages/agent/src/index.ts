@@ -1,5 +1,6 @@
 export * from './types.js';
 export * from './harness/session.js';
+export * from './harness/loop.js';
 export * from './errors.js';
 export * from './provider/provider.js';
 export * from './provider/fake-provider.js';
