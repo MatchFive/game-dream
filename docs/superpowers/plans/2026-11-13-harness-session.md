@@ -51,7 +51,15 @@ Real provider evidence after the extraction:
 - Real provider finish case: `2 calls`, G1/G2/G3/G6 pass, 146 colors.
 - `AgentLoop` native-path unit test covers echo + finish and usage aggregation.
 
+## Streaming
+
+- OpenAI-compatible provider supports SSE `stream: true` with `include_usage`.
+- AgentLoop consumes streamed content/tool-call deltas and keeps cancellation
+  signals; non-streaming remains the fallback.
+- Real provider native stream: 4 calls, 88.9% cached, G1/G2/G3/G6 pass.
+
 ## Next
 
-- Add streaming responses and explicit cache boundaries.
 - Add session generation/JSONL persistence and forks/checkpoints.
+- Add provider-independent plugin/tool registry packaging.
+- Add explicit cache boundary controls where the provider supports them.

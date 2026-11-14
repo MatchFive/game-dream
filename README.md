@@ -348,7 +348,9 @@ For real providers, development uses an append-only structured session: the
 system/skill/tool prefix stays stable across steps, tool results are separate
 messages, and old context is compacted only after the character budget is
 exceeded. The session is saved to `.gamedream/session.json`; pass `--resume` to
-continue it. Provider usage is reported, including cached prompt tokens:
+continue it. Native tool calls, SSE streaming, cancellation signals, and usage
+accounting are used when the provider supports them. Provider usage is reported,
+including cached prompt tokens:
 
 For editor/scene/UI operations, point the developer at a Godot MCP server:
 

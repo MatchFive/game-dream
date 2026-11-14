@@ -34,6 +34,7 @@ export interface ChatRequest {
   messages: ChatMessage[];
   temperature?: number;
   tools?: ChatToolSchema[];
+  signal?: AbortSignal;
 }
 
 export interface ChatUsage {
@@ -57,4 +58,8 @@ export interface ModelProvider {
    */
   completeChat?(request: ChatRequest): Promise<string>;
   completeChatWithUsage?(request: ChatRequest): Promise<ChatResult>;
+  completeChatStream?(
+    request: ChatRequest,
+    onChunk?: (chunk: string) => void,
+  ): Promise<ChatResult>;
 }

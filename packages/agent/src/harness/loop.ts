@@ -36,6 +36,9 @@ export interface HarnessLoopOptions<TContext> {
   maxSteps: number;
   compactChars?: number;
   nativeTools?: boolean;
+  stream?: boolean;
+  signal?: AbortSignal;
+  onChunk?: (chunk: string) => void;
   session?: AgentSession;
   canFinish: () => { ok: boolean; reason?: string };
   onSession?: (session: AgentSession) => void;
@@ -117,11 +120,27 @@ export class AgentLoop<TContext> {
         usage.calls += 1;
         let raw: string;
         let nativeCalls: ChatToolCall[] = [];
-        if (options.provider.completeChatWithUsage) {
+        if (options.stream && options.provider.completeChatStream) {
+          const response = await options.provider.completeChatStream(
+            {
+              messages: session.requestMessages(),
+              temperature: 0.1,
+              tools: toolSchemas,
+              signal: options.signal,
+            },
+            options.onChunk,
+          );
+          raw = response.content;
+          nativeCalls = response.toolCalls ?? [];
+          usage.promptTokens += response.usage?.promptTokens ?? 0;
+          usage.completionTokens += response.usage?.completionTokens ?? 0;
+          usage.cachedTokens += response.usage?.cachedTokens ?? 0;
+        } else if (options.provider.completeChatWithUsage) {
           const response = await options.provider.completeChatWithUsage({
             messages: session.requestMessages(),
             temperature: 0.1,
             tools: toolSchemas,
+            signal: options.signal,
           });
           raw = response.content;
           nativeCalls = response.toolCalls ?? [];

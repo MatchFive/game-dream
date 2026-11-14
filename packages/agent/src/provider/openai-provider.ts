@@ -52,13 +52,165 @@ export class OpenAICompatibleProvider implements ModelProvider {
       request.messages,
       request.temperature,
       request.tools,
+      request.signal,
     );
+  }
+
+  async completeChatStream(
+    request: ChatRequest,
+    onChunk?: (chunk: string) => void,
+  ): Promise<ChatResult> {
+    const timeoutMs = this.options.timeoutMs ?? 120_000;
+    const timeout = AbortSignal.timeout(timeoutMs);
+    const signal = request.signal
+      ? AbortSignal.any([request.signal, timeout])
+      : timeout;
+    let response: Response;
+    try {
+      response = await this.fetchImpl(
+        `${this.options.baseUrl.replace(/\/$/, '')}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.options.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: this.options.model,
+            messages: this.serializeMessages(request.messages),
+            temperature: request.temperature ?? 0.2,
+            ...(request.tools && request.tools.length > 0
+              ? { tools: request.tools, tool_choice: 'auto' }
+              : { response_format: { type: 'json_object' } }),
+            stream: true,
+            stream_options: { include_usage: true },
+          }),
+          signal,
+        },
+      );
+    } catch (error) {
+      const caught = error as Error;
+      const timedOut = caught.name === 'TimeoutError' || caught.name === 'AbortError';
+      throw new AgentError(
+        'PROVIDER_HTTP_ERROR',
+        timedOut
+          ? `provider timed out after ${timeoutMs}ms`
+          : `provider request failed: ${caught.message}`,
+      );
+    }
+    if (!response.ok) {
+      const detail = (await response.text().catch(() => ''))
+        .replace(/\s+/g, ' ')
+        .slice(0, 500);
+      throw new AgentError(
+        'PROVIDER_HTTP_ERROR',
+        `provider returned ${response.status}${detail ? `: ${detail}` : ''}`,
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new AgentError('PROVIDER_HTTP_ERROR', 'provider returned no stream');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let content = '';
+    let usage: ChatUsage = { promptTokens: 0, completionTokens: 0, cachedTokens: 0 };
+    const callMap = new Map<string, ChatToolCall>();
+
+    const consume = (line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) return;
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === '[DONE]') return;
+      let chunk: {
+        choices?: Array<{
+          delta?: {
+            content?: string;
+            tool_calls?: Array<{
+              index?: number;
+              id?: string;
+              function?: { name?: string; arguments?: string };
+            }>;
+          };
+        }>;
+        usage?: {
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          prompt_tokens_details?: { cached_tokens?: number };
+          prompt_cache_hit_tokens?: number;
+        };
+      };
+      try {
+        chunk = JSON.parse(payload) as typeof chunk;
+      } catch {
+        return;
+      }
+      const delta = chunk.choices?.[0]?.delta;
+      if (delta?.content) {
+        content += delta.content;
+        onChunk?.(delta.content);
+      }
+      for (const call of delta?.tool_calls ?? []) {
+        const id = call.id ?? `call_${call.index ?? callMap.size}`;
+        const current = callMap.get(id) ?? { id, name: '', arguments: '' };
+        if (call.function?.name) current.name += call.function.name;
+        if (call.function?.arguments) current.arguments += call.function.arguments;
+        callMap.set(id, current);
+      }
+      if (chunk.usage) {
+        usage = {
+          promptTokens: chunk.usage.prompt_tokens ?? usage.promptTokens,
+          completionTokens: chunk.usage.completion_tokens ?? usage.completionTokens,
+          cachedTokens:
+            chunk.usage.prompt_tokens_details?.cached_tokens ??
+            chunk.usage.prompt_cache_hit_tokens ??
+            usage.cachedTokens,
+        };
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newline = buffer.indexOf('\n');
+      while (newline >= 0) {
+        consume(buffer.slice(0, newline));
+        buffer = buffer.slice(newline + 1);
+        newline = buffer.indexOf('\n');
+      }
+    }
+    if (buffer) consume(buffer);
+    const toolCalls = [...callMap.values()].filter((call) => call.name);
+    if (!content && toolCalls.length === 0) {
+      throw new AgentError('PROVIDER_EMPTY_RESPONSE', 'provider returned no content');
+    }
+    return { content, toolCalls, usage };
+  }
+
+  private serializeMessages(messages: ChatMessage[]): Record<string, unknown>[] {
+    return messages.map((message) => {
+      const base: Record<string, unknown> = {
+        role: message.role,
+        content: message.content,
+      };
+      if (message.toolCalls) {
+        base.tool_calls = message.toolCalls.map((call) => ({
+          id: call.id,
+          type: 'function',
+          function: { name: call.name, arguments: call.arguments },
+        }));
+      }
+      if (message.toolCallId) base.tool_call_id = message.toolCallId;
+      if (message.name) base.name = message.name;
+      return base;
+    });
   }
 
   private async completeMessages(
     messages: ChatMessage[],
     temperature?: number,
     tools?: ChatRequest['tools'],
+    externalSignal?: AbortSignal,
   ): Promise<ChatResult> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
     let response: Response;
@@ -74,29 +226,16 @@ export class OpenAICompatibleProvider implements ModelProvider {
           },
           body: JSON.stringify({
             model: this.options.model,
-            messages: messages.map((message) => {
-              const base: Record<string, unknown> = {
-                role: message.role,
-                content: message.content,
-              };
-              if (message.toolCalls) {
-                base.tool_calls = message.toolCalls.map((call) => ({
-                  id: call.id,
-                  type: 'function',
-                  function: { name: call.name, arguments: call.arguments },
-                }));
-              }
-              if (message.toolCallId) base.tool_call_id = message.toolCallId;
-              if (message.name) base.name = message.name;
-              return base;
-            }),
+            messages: this.serializeMessages(messages),
             temperature: temperature ?? 0.2,
             ...(tools && tools.length > 0
               ? { tools, tool_choice: 'auto' }
               : { response_format: { type: 'json_object' } }),
             stream: false,
           }),
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: externalSignal
+            ? AbortSignal.any([externalSignal, AbortSignal.timeout(timeoutMs)])
+            : AbortSignal.timeout(timeoutMs),
         },
       );
     } catch (error) {

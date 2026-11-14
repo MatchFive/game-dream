@@ -540,6 +540,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     maxSteps: options.maxSteps ?? 12,
     compactChars: 80_000,
     nativeTools,
+    stream: Boolean(provider.completeChatStream),
     session,
     canFinish: () => {
       const gates = lastVerify?.gates;
