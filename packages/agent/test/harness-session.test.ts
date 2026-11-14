@@ -42,6 +42,15 @@ describe('AgentSession', () => {
     expect(session.transcript()).toContain('compact');
   });
 
+  it('forks without mutating the source session', () => {
+    const session = new AgentSession('system', 'build');
+    session.appendAssistant('next');
+    const fork = session.fork();
+    fork.appendUser('branch');
+    expect(fork.messages.length).toBe(session.messages.length + 1);
+    expect(session.messages.length).toBe(2);
+  });
+
   it('projects an event log into model messages and ignores lifecycle events', () => {
     const session = new AgentSession('system', 'build');
     session.record('turn/start', 0);

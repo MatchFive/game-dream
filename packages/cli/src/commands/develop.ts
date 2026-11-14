@@ -1,4 +1,5 @@
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -48,6 +49,7 @@ export interface DevelopOptions {
   mcpConfig?: string;
   mcpServer?: string;
   resume?: boolean;
+  readOnly?: boolean;
 }
 
 export interface UsageTotals {
@@ -158,6 +160,15 @@ function missingExpectedMarkers(projectDir: string, expected: string[] | undefin
   }
 }
 
+function readOnlyDenied(context: DevelopContext, tool: string): HarnessToolResult | null {
+  return context.readOnly
+    ? {
+        ok: false,
+        output: `Permission denied: ${tool} is mutating; run without --read-only to allow it.`,
+      }
+    : null;
+}
+
 function slug(input: string): string {
   const value = input
     .toLowerCase()
@@ -183,6 +194,8 @@ const TOOLS: Tool[] = [
     description:
       'Create the initial Godot project from the selected development skill kit. Use this before verify.',
     async run(args, context) {
+      const denied = readOnlyDenied(context, 'scaffold');
+      if (denied) return denied;
       if (
         existsSync(join(context.outDir, 'gamedream.yaml')) &&
         existsSync(join(context.outDir, '.gamedream')) &&
@@ -244,6 +257,8 @@ const TOOLS: Tool[] = [
     description:
       'Regenerate composer output from gamedream.yaml and the skill kit under .gamedream/modules and .gamedream/templates. Use after editing kit source.',
     async run(_args, context) {
+      const denied = readOnlyDenied(context, 'compose');
+      if (denied) return denied;
       const specPath = join(context.outDir, 'gamedream.yaml');
       const modulesDir = join(context.outDir, '.gamedream', 'modules');
       const templatesDir = join(context.outDir, '.gamedream', 'templates');
@@ -306,6 +321,8 @@ const TOOLS: Tool[] = [
     description:
       'Write a UTF-8 file relative to the generated project. Use this to patch generated gameplay code or content.',
     async run(args, context) {
+      const denied = readOnlyDenied(context, 'write_file');
+      if (denied) return denied;
       try {
         const path = inside(context.outDir, String(args.path ?? ''));
         const content = String(args.content ?? '');
@@ -363,6 +380,8 @@ const TOOLS: Tool[] = [
     description:
       'Call a discovered Godot MCP tool. Args: {"name":"tool_name","arguments":{...}}. Use MCP for editor/scene/UI operations.',
     async run(args, context) {
+      const denied = readOnlyDenied(context, 'mcp');
+      if (denied) return denied;
       if (!context.mcp) {
         return { ok: false, output: 'MCP is not configured; start with --mcp-config <file>' };
       }
@@ -399,6 +418,25 @@ const TOOLS: Tool[] = [
           null,
           2,
         ),
+        data: report,
+      };
+    },
+  },
+  {
+    name: 'playtest',
+    description:
+      'Run the full verification plus G6 screenshot. Use this as the final playtest gate.',
+    async run(_args, context) {
+      const report = await verifyCommand({
+        projectDir: context.outDir,
+        env: context.env,
+        runner: context.runner,
+        visual: true,
+      });
+      const failed = Object.values(report.gates).some((gate) => gate.status === 'fail');
+      return {
+        ok: !failed,
+        output: JSON.stringify(report.gates, null, 2),
         data: report,
       };
     },
@@ -512,8 +550,10 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     );
   }
   mkdirSync(dirname(sessionPath), { recursive: true });
-  const saveSession = () =>
+  const saveSession = () => {
     writeFileSync(sessionPath, `${JSON.stringify(session.toJSON(), null, 2)}\n`, 'utf8');
+    writeFileSync(`${sessionPath}l`, session.toJSONL(), 'utf8');
+  };
   saveSession();
   let lastVerify: VerifyReport | undefined;
   let lastMissingMarkers: string[] = [];
@@ -558,7 +598,12 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     },
     onSession: () => saveSession(),
     onToolResult: (tool, result) => {
-      if (tool === 'verify' && result.data) {
+      appendFileSync(
+        join(options.outDir, '.gamedream', 'audit.jsonl'),
+        `${JSON.stringify({ tool, ok: result.ok, at: new Date().toISOString() })}\n`,
+        'utf8',
+      );
+      if ((tool === 'verify' || tool === 'playtest') && result.data) {
         lastVerify = result.data as VerifyReport;
         lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
       }

@@ -128,6 +128,10 @@ export class AgentSession {
     return true;
   }
 
+  fork(): AgentSession {
+    return AgentSession.restore(this.system, this.messages);
+  }
+
   static restore(system: string, messages: ChatMessage[]): AgentSession {
     const firstUser = messages.find((message) => message.role === 'user');
     const session = new AgentSession(system, firstUser?.content ?? '');
@@ -157,5 +161,23 @@ export class AgentSession {
       events: this.events.map((event) => ({ ...event })),
       messages: this.messages.map((message) => ({ ...message })),
     };
+  }
+
+  toJSONL(): string {
+    return `${this.events.map((event) => JSON.stringify(event)).join('\n')}\n`;
+  }
+
+  static fromJSONL(system: string, text: string): AgentSession {
+    const events = text
+      .split(/\r?\n/)
+      .filter((line) => line.trim())
+      .map((line) => JSON.parse(line) as SessionEvent);
+    const firstUser = events.find((event) => event.type === 'user/message');
+    const session = new AgentSession(
+      system,
+      firstUser?.type === 'user/message' ? firstUser.content : '',
+    );
+    session.events = events;
+    return session;
   }
 }
