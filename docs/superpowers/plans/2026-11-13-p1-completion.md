@@ -12,6 +12,8 @@ P1 = fork/checkpoint + multi-candidate generation/selection + cross-engine.
 - `fromJSON` restores the event log and checkpoints after `--resume`.
 - `AgentLoop` writes a checkpoint after every completed step.
 - CLI: `dream develop --resume --fork <checkpoint-id>`.
+- Actual CLI evidence: resumed a candidate session with `--fork cp-1`; the
+  rerun finished with G1/G2/G3 pass and exit 0.
 
 ## Multi-candidate generation
 
