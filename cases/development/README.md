@@ -32,8 +32,9 @@ Tools available to the developer:
 - `finish` — end the run after verification and case markers pass
 
 Skills live in `skills/<name>/SKILL.md` with an optional `kit/` starting
-project. The survivor skill is `skills/survivor-demo`; `skills/gdscript` is
-loaded automatically as the language skill.
+project. The survivor skill is `skills/survivor-demo`; `skills/gdscript` and the
+vendored MIT `skills/godot-gdscript-patterns` are loaded automatically as base
+skills. `read_skill` exposes their references to the developer model.
 
 ## Current limitation
 

@@ -234,6 +234,25 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'read_skill',
+    description:
+      'Read a skill file, defaulting to SKILL.md. Use this for skill references such as references/details.md.',
+    async run(args, context) {
+      try {
+        const skillName = String(args.skill ?? context.skill);
+        const relative = String(args.path ?? 'SKILL.md').replaceAll('\\', '/');
+        const root = join(context.skillsDir, skillName);
+        const target = inside(root, relative);
+        if (!existsSync(target) || statSync(target).isDirectory()) {
+          return { ok: false, output: `skill file not found: ${skillName}/${relative}` };
+        }
+        return { ok: true, output: readFileSync(target, 'utf8').slice(0, 120_000) };
+      } catch (error) {
+        return { ok: false, output: (error as Error).message };
+      }
+    },
+  },
+  {
     name: 'read_file',
     description: 'Read a UTF-8 file relative to the generated project.',
     async run(args, context) {
@@ -374,14 +393,16 @@ function systemPrompt(skillText: string): string {
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
   const env = options.env ?? process.env;
-  const baseSkillPath = join(options.skillsDir, 'gdscript', 'SKILL.md');
+  const baseSkills = ['gdscript', 'godot-gdscript-patterns'];
+  const loadedBaseSkills = baseSkills
+    .map((name) => join(options.skillsDir, name, 'SKILL.md'))
+    .filter((path) => existsSync(path))
+    .map((path) => readFileSync(path, 'utf8'));
   const skillTextPath = join(options.skillsDir, options.skill, 'SKILL.md');
-  const skillText = [
-    existsSync(baseSkillPath) ? readFileSync(baseSkillPath, 'utf8') : '',
-    existsSync(skillTextPath) ? readFileSync(skillTextPath, 'utf8') : '(no skill instructions found)',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  const selectedSkill = existsSync(skillTextPath)
+    ? readFileSync(skillTextPath, 'utf8')
+    : '(no skill instructions found)';
+  const skillText = [...loadedBaseSkills, selectedSkill].filter(Boolean).join('\n\n');
   const provider =
     options.provider ??
     (options.providerKind === 'fake' ||
