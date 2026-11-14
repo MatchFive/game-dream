@@ -19,6 +19,7 @@ import {
 import { composeProject } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
+import { McpClient, type McpTool } from './mcp.js';
 
 export interface DevelopmentCase {
   id: string;
@@ -41,6 +42,8 @@ export interface DevelopOptions {
   maxSteps?: number;
   visual?: boolean;
   expectedMarkers?: string[];
+  mcpConfig?: string;
+  mcpServer?: string;
 }
 
 export interface DevelopAction {
@@ -62,11 +65,13 @@ export interface DevelopReport {
   actions: string[];
   finished: boolean;
   missingMarkers: string[];
+  mcpTools: string[];
   verify: VerifyReport;
 }
 
 interface DevelopContext extends DevelopOptions {
   projectDir: string;
+  mcp?: McpClient;
 }
 
 interface Tool {
@@ -325,6 +330,27 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'mcp',
+    description:
+      'Call a discovered Godot MCP tool. Args: {"name":"tool_name","arguments":{...}}. Use MCP for editor/scene/UI operations.',
+    async run(args, context) {
+      if (!context.mcp) {
+        return { ok: false, output: 'MCP is not configured; start with --mcp-config <file>' };
+      }
+      const name = String(args.name ?? '');
+      if (!name) return { ok: false, output: 'mcp requires args.name' };
+      const callArgs =
+        typeof args.arguments === 'object' && args.arguments !== null
+          ? (args.arguments as Record<string, unknown>)
+          : {};
+      try {
+        return { ok: true, output: await context.mcp.call(name, callArgs) };
+      } catch (error) {
+        return { ok: false, output: (error as Error).message };
+      }
+    },
+  },
+  {
     name: 'verify',
     description:
       'Run G1/G2/G3 (and optional G6) against the generated project. Fix failures with write_file, then verify again.',
@@ -376,13 +402,21 @@ function scriptedProvider(): ModelProvider {
   return new FakeProvider({ responses: [...SCRIPTED_ACTIONS] });
 }
 
-function systemPrompt(skillText: string): string {
+function systemPrompt(skillText: string, mcpTools: McpTool[] = []): string {
+  const mcpLines = mcpTools.length
+    ? [
+        '',
+        'Discovered MCP tools (call with tool "mcp", args {name, arguments}):',
+        ...mcpTools.map((tool) => `- ${tool.name}: ${tool.description ?? ''}`),
+      ]
+    : [];
   return [
     'You are GameDream, an autonomous game developer.',
     'You build a playable Godot demo from the user prompt using tools.',
     'Respond with exactly one JSON object per turn: {"tool":"<name>","args":{...}}.',
     'Available tools:',
     ...TOOLS.map((tool) => `- ${tool.name}: ${tool.description}`),
+    ...mcpLines,
     'Start with scaffold. Verify, inspect failures, patch files with write_file, and verify again.',
     'Call finish only when verification passes.',
     '',
@@ -393,7 +427,7 @@ function systemPrompt(skillText: string): string {
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
   const env = options.env ?? process.env;
-  const baseSkills = ['gdscript', 'godot-gdscript-patterns'];
+  const baseSkills = ['gdscript', 'godot-gdscript-patterns', 'godot-ui', 'game-feel'];
   const loadedBaseSkills = baseSkills
     .map((name) => join(options.skillsDir, name, 'SKILL.md'))
     .filter((path) => existsSync(path))
@@ -413,12 +447,18 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
           env,
           fetchImpl: options.fetchImpl,
         }));
+  let mcp: McpClient | undefined;
+  if (options.mcpConfig) {
+    mcp = await McpClient.connect(options.mcpConfig, options.mcpServer ?? 'godot');
+  }
   const context: DevelopContext = {
     ...options,
     projectDir: options.outDir,
     env,
+    mcp,
   };
-  const system = systemPrompt(skillText);
+  const mcpTools = mcp?.tools.map((tool) => tool.name) ?? [];
+  const system = systemPrompt(skillText, mcp?.tools ?? []);
   let user = `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`;
   const actions: string[] = [];
   let finished = false;
@@ -429,43 +469,47 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
 
   mkdirSync(options.outDir, { recursive: true });
 
-  while (steps < maxSteps) {
-    steps += 1;
-    const raw = await provider.complete({ system, user, temperature: 0.1 });
-    let action: DevelopAction;
-    try {
-      action = parseAction(raw);
-    } catch (error) {
-      user += `\n\nPrevious response was invalid: ${(error as Error).message}. Return one JSON action.`;
-      continue;
-    }
-    actions.push(action.tool);
-    const tool = toolByName(action.tool);
-    if (!tool) {
-      user += `\n\nUnknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`;
-      continue;
-    }
-    const result = await tool.run(action.args ?? {}, context);
-    if (action.tool === 'verify' && result.data) {
-      lastVerify = result.data as VerifyReport;
-      lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
-    }
-    user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
-    if (action.tool === 'finish') {
-      const gates = lastVerify?.gates;
-      const passed =
-        gates?.G1.status === 'pass' &&
-        gates?.G2.status === 'pass' &&
-        gates?.G3.status === 'pass' &&
-        lastMissingMarkers.length === 0;
-      if (!passed) {
-        user +=
-          '\n\nCannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.';
+  try {
+    while (steps < maxSteps) {
+      steps += 1;
+      const raw = await provider.complete({ system, user, temperature: 0.1 });
+      let action: DevelopAction;
+      try {
+        action = parseAction(raw);
+      } catch (error) {
+        user += `\n\nPrevious response was invalid: ${(error as Error).message}. Return one JSON action.`;
         continue;
       }
-      finished = true;
-      break;
+      actions.push(action.tool);
+      const tool = toolByName(action.tool);
+      if (!tool) {
+        user += `\n\nUnknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`;
+        continue;
+      }
+      const result = await tool.run(action.args ?? {}, context);
+      if (action.tool === 'verify' && result.data) {
+        lastVerify = result.data as VerifyReport;
+        lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
+      }
+      user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
+      if (action.tool === 'finish') {
+        const gates = lastVerify?.gates;
+        const passed =
+          gates?.G1.status === 'pass' &&
+          gates?.G2.status === 'pass' &&
+          gates?.G3.status === 'pass' &&
+          lastMissingMarkers.length === 0;
+        if (!passed) {
+          user +=
+            '\n\nCannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.';
+          continue;
+        }
+        finished = true;
+        break;
+      }
     }
+  } finally {
+    mcp?.close();
   }
 
   const verify = await verifyCommand({
@@ -482,6 +526,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     actions,
     finished,
     missingMarkers: missingExpectedMarkers(options.outDir, options.expectedMarkers),
+    mcpTools,
     verify,
   };
 }

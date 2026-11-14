@@ -339,6 +339,21 @@ The fake provider is a deterministic offline developer. Set `OPENAI_API_KEY` and
 pass `--provider openai` to let a model choose the same tools. See
 `cases/development/README.md` and `skills/survivor-demo/SKILL.md`.
 
+For editor/scene/UI operations, point the developer at a Godot MCP server:
+
+```bash
+dream develop \
+  --case cases/development/survivor-demo.json \
+  --out build/survivor-demo \
+  --provider openai \
+  --mcp-config "$USERPROFILE/.commandcode/mcp.json"
+```
+
+The bridge discovers MCP tools at startup and exposes them to the model as the
+`mcp` tool. The current Godot MCP config uses
+`@coding-solo/godot-mcp` via `npx.cmd` on Windows and `GODOT_PATH` pointing at
+the console Godot binary.
+
 ## Release artifacts
 
 Manual `workflow_dispatch` (or a `v*` tag) builds three engine artifacts from the

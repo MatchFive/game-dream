@@ -163,6 +163,8 @@ export function createProgram(): Command {
     .option('--skills <dir>', 'skills directory', 'skills')
     .option('--provider <kind>', 'auto | fake | openai', 'fake')
     .option('--max-steps <count>', 'maximum tool steps', '12')
+    .option('--mcp-config <file>', 'MCP server config for Godot tools')
+    .option('--mcp-server <name>', 'MCP server name', 'godot')
     .option('--visual', 'run G6 screenshot gate')
     .option('--json', 'print JSON')
     .action(
@@ -175,6 +177,8 @@ export function createProgram(): Command {
           skills: string;
           provider: string;
           maxSteps: string;
+          mcpConfig?: string;
+          mcpServer: string;
           visual?: boolean;
           json?: boolean;
         },
@@ -196,6 +200,8 @@ export function createProgram(): Command {
             maxSteps: Number(options.maxSteps),
             visual: options.visual,
             expectedMarkers: selected?.expected_markers,
+            mcpConfig: options.mcpConfig,
+            mcpServer: options.mcpServer,
           });
           if (options.json) printJson(report);
           else {

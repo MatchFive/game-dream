@@ -28,13 +28,15 @@ Tools available to the developer:
 - `compose` — regenerate composer output after editing the kit source
 - `check_script` — parse a generated `.gd` file with Godot before verify
 - `read_file` / `write_file` / `list_files` — inspect and patch kit/generated code
+- `mcp` — call a discovered Godot MCP tool when `--mcp-config` is supplied
 - `verify` — run G1/G2/G3 (and G6 with `--visual`)
 - `finish` — end the run after verification and case markers pass
 
 Skills live in `skills/<name>/SKILL.md` with an optional `kit/` starting
-project. The survivor skill is `skills/survivor-demo`; `skills/gdscript` and the
-vendored MIT `skills/godot-gdscript-patterns` are loaded automatically as base
-skills. `read_skill` exposes their references to the developer model.
+project. The survivor skill is `skills/survivor-demo`; `skills/gdscript`,
+`skills/godot-ui`, `skills/game-feel`, and the vendored MIT
+`skills/godot-gdscript-patterns` are loaded automatically as base skills.
+`read_skill` exposes their references to the developer model.
 
 ## Current limitation
 
