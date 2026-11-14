@@ -86,10 +86,12 @@ export class AgentLoop<TContext> {
     let steps = 0;
     const save = () => options.onSession?.(session);
 
+    session.record('turn/start', 0);
     save();
     try {
       while (steps < options.maxSteps) {
         steps += 1;
+        session.record('step/start', steps);
         usage.calls += 1;
         let raw: string;
         if (options.provider.completeChatWithUsage) {
@@ -137,10 +139,9 @@ export class AgentLoop<TContext> {
 
         const result = await tool.execute(action.args, options.context);
         session.appendAssistant(raw);
-        session.appendTool(
-          `Tool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output.slice(0, 24_000)}`,
-        );
+        session.appendTool(result.output.slice(0, 24_000), action.tool, result.ok);
         options.onToolResult?.(action.tool, result, session);
+        session.record('step/end', steps);
 
         const decision = options.canFinish();
         if (decision.ok) {
@@ -169,6 +170,7 @@ export class AgentLoop<TContext> {
         }
       }
     } finally {
+      session.recordTurnEnd(finished, steps);
       save();
     }
 

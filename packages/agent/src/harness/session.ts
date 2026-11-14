@@ -1,38 +1,70 @@
 import { createHash } from 'node:crypto';
 import type { ChatMessage } from '../types.js';
 
+export type SessionEvent =
+  | { type: 'user/message'; content: string }
+  | { type: 'assistant/message'; content: string }
+  | { type: 'tool/result'; tool: string; ok: boolean; content: string }
+  | { type: 'turn/start'; step: number }
+  | { type: 'step/start'; step: number }
+  | { type: 'step/end'; step: number }
+  | { type: 'turn/end'; finished: boolean; steps: number }
+  | { type: 'session/compact'; messages: ChatMessage[] };
+
 /**
- * A small DSH-inspired append-only session.
+ * Append-only session log with a model-message projection.
  *
  * The system prompt is kept outside the mutable transcript so a provider can
- * reuse the same byte-stable prefix across steps. Tool results are messages,
- * not concatenated into the user prompt. Compaction is explicit and only runs
- * when a character budget is exceeded.
+ * reuse the same byte-stable prefix across steps. Events preserve facts for
+ * replay/telemetry; only message events project into the model request.
  */
 export class AgentSession {
   readonly system: string;
-  messages: ChatMessage[] = [];
+  events: SessionEvent[] = [];
   private readonly initialUser: ChatMessage;
 
   constructor(system: string, user: string) {
     this.system = system;
     this.initialUser = { role: 'user', content: user };
-    this.messages.push(this.initialUser);
+    this.events.push({ type: 'user/message', content: user });
+  }
+
+  get messages(): ChatMessage[] {
+    const messages: ChatMessage[] = [];
+    for (const event of this.events) {
+      if (event.type === 'user/message') messages.push({ role: 'user', content: event.content });
+      else if (event.type === 'assistant/message') {
+        messages.push({ role: 'assistant', content: event.content });
+      } else if (event.type === 'tool/result') {
+        messages.push({
+          role: 'user',
+          content: `Tool ${event.tool} result (${event.ok ? 'ok' : 'error'}):\n${event.content}`,
+        });
+      } else if (event.type === 'session/compact') {
+        messages.splice(0, messages.length, ...event.messages);
+      }
+    }
+    return messages;
   }
 
   appendAssistant(content: string): void {
-    this.messages.push({ role: 'assistant', content });
+    this.events.push({ type: 'assistant/message', content });
   }
 
-  appendTool(content: string): void {
-    // The JSON action protocol has no native tool-call id, so use a user
-    // message for maximum OpenAI-compatible provider support. It remains an
-    // append-only message and keeps the cacheable prefix intact.
-    this.messages.push({ role: 'user', content });
+  appendTool(content: string, tool = 'tool', ok = true): void {
+    this.events.push({ type: 'tool/result', tool, ok, content });
   }
 
   appendUser(content: string): void {
-    this.messages.push({ role: 'user', content });
+    this.events.push({ type: 'user/message', content });
+  }
+
+  record(kind: 'turn/start' | 'step/start' | 'step/end', step: number): void {
+    this.events.push({ type: kind, step });
+  }
+
+  recordTurnEnd(finished: boolean, steps: number): void {
+    this.events.push({ type: 'turn/end', finished, steps });
   }
 
   requestMessages(): ChatMessage[] {
@@ -61,35 +93,48 @@ export class AgentSession {
   compact(maxChars = 80_000): boolean {
     if (this.charCount() <= maxChars || this.messages.length <= 8) return false;
     const recent = this.messages.slice(-16);
-    this.messages = [
-      this.initialUser,
-      {
-        role: 'user',
-        content:
-          '[Earlier tool history compacted to fit the context budget. Re-read files if exact content is needed.]',
-      },
-      ...recent,
-    ];
+    this.events.push({
+      type: 'session/compact',
+      messages: [
+        this.initialUser,
+        {
+          role: 'user',
+          content:
+            '[Earlier tool history compacted to fit the context budget. Re-read files if exact content is needed.]',
+        },
+        ...recent,
+      ],
+    });
     return true;
   }
 
   static restore(system: string, messages: ChatMessage[]): AgentSession {
     const firstUser = messages.find((message) => message.role === 'user');
     const session = new AgentSession(system, firstUser?.content ?? '');
-    session.messages = messages.map((message) => ({ ...message }));
+    session.events = messages.map((message) => {
+      if (message.role === 'assistant') {
+        return { type: 'assistant/message', content: message.content };
+      }
+      if (message.role === 'user') {
+        return { type: 'user/message', content: message.content };
+      }
+      return { type: 'tool/result', tool: 'restored', ok: true, content: message.content };
+    });
     return session;
   }
 
   toJSON(): {
-    version: 1;
+    version: 2;
     system: string;
     prefixHash: string;
+    events: SessionEvent[];
     messages: ChatMessage[];
   } {
     return {
-      version: 1,
+      version: 2,
       system: this.system,
       prefixHash: this.prefixHash(),
+      events: this.events.map((event) => ({ ...event })),
       messages: this.messages.map((message) => ({ ...message })),
     };
   }

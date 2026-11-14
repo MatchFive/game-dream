@@ -41,4 +41,20 @@ describe('AgentSession', () => {
     expect(session.requestMessages()[0].content).toBe('system');
     expect(session.transcript()).toContain('compact');
   });
+
+  it('projects an event log into model messages and ignores lifecycle events', () => {
+    const session = new AgentSession('system', 'build');
+    session.record('turn/start', 0);
+    session.record('step/start', 1);
+    session.appendAssistant('next');
+    session.appendTool('ok', 'scaffold', true);
+    session.record('step/end', 1);
+    session.recordTurnEnd(true, 1);
+    expect(session.messages.map((message) => message.role)).toEqual([
+      'user',
+      'assistant',
+      'user',
+    ]);
+    expect(session.events.some((event) => event.type === 'turn/end')).toBe(true);
+  });
 });

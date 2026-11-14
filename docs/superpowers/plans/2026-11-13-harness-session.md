@@ -31,9 +31,18 @@ reduces context cost.
   `prompt 9440 · cached 8960 (94.9%)`.
 - Existing lower-level tests remain green.
 
+## Event log and loop
+
+`AgentSession` now stores durable session events (`turn/start`, `step/start`,
+`tool/result`, `step/end`, `turn/end`, `session/compact`) and projects only
+message events into model history. `AgentLoop` owns the turn/step lifecycle and
+tool execution; the CLI only supplies tools, finish policy, and persistence.
+
+Real provider evidence after the extraction:
+`2 calls · prompt 5839 · cached 5632 (96.5%)`, G1/G2/G3/G6 pass.
+
 ## Next
 
 - Move from JSON text actions to native tool calls with stable tool schemas.
-- Add token/cache metrics from provider usage.
-- Persist sessions and support resume/checkpointing.
-- Use explicit cache boundaries/compaction policy from DSH.
+- Add streaming responses and explicit cache boundaries.
+- Add session generation/JSONL persistence and forks/checkpoints.
