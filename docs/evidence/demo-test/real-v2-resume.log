@@ -1,0 +1,17 @@
+node : (node:25116) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to se
+curity vulnerabilities, as the arguments are not escaped, only concatenated.
+所在位置 行:2 字符: 53
++ ... n-real-v2'; node packages/cli/dist/index.js develop --case cases/deve ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:25116) [D...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)
+G1: pass
+G2: fail (SCRIPT ERROR: Parse Error: Invalid index type "String" for a base of type "Array".
+ERROR: Failed to load script "res://modules/system.survivor/src/survivor.gd" with error "Parse error".)
+G3: skip (Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.)
+Demo incomplete: the developer did not call finish (step budget exhausted).
+Session: D:\project\game_dream\build\p2-neon-real-v2\.gamedream\session.json (resumed) · generation 1
+Usage: 6 calls · prompt 199366 · cached 171172 (85.9%) · completion 65739
+Demo incomplete: D:\project\game_dream\build\p2-neon-real-v2 · 6 steps · read_file -> compose -> check_script -> read_file -> list_files -> list_files -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file -> write_file

@@ -118,7 +118,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
     let buffer = '';
     let content = '';
     let usage: ChatUsage = { promptTokens: 0, completionTokens: 0, cachedTokens: 0 };
-    const callMap = new Map<string, ChatToolCall>();
+    const callMap = new Map<number, ChatToolCall>();
 
     const consume = (line: string) => {
       const trimmed = line.trim();
@@ -154,11 +154,14 @@ export class OpenAICompatibleProvider implements ModelProvider {
         onChunk?.(delta.content);
       }
       for (const call of delta?.tool_calls ?? []) {
-        const id = call.id ?? `call_${call.index ?? callMap.size}`;
-        const current = callMap.get(id) ?? { id, name: '', arguments: '' };
+        // OpenAI-compatible streams split one call across chunks: the first
+        // chunk carries id/name, later chunks only index + arguments.
+        const index = call.index ?? 0;
+        const current = callMap.get(index) ?? { id: '', name: '', arguments: '' };
+        if (call.id) current.id = call.id;
         if (call.function?.name) current.name += call.function.name;
         if (call.function?.arguments) current.arguments += call.function.arguments;
-        callMap.set(id, current);
+        callMap.set(index, current);
       }
       if (chunk.usage) {
         usage = {
@@ -184,7 +187,13 @@ export class OpenAICompatibleProvider implements ModelProvider {
       }
     }
     if (buffer) consume(buffer);
-    const toolCalls = [...callMap.values()].filter((call) => call.name);
+    const toolCalls = [...callMap.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([index, call]) => ({
+        ...call,
+        id: call.id || `call_${index}`,
+      }))
+      .filter((call) => call.name);
     if (!content && toolCalls.length === 0) {
       throw new AgentError('PROVIDER_EMPTY_RESPONSE', 'provider returned no content');
     }

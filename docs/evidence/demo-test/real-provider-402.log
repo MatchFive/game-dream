@@ -1,6 +1,6 @@
 node : (node:9300) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to sec
 urity vulnerabilities, as the arguments are not escaped, only concatenated.
-所在位置 行:2 字符: 255
+鎵€鍦ㄤ綅缃?琛?2 瀛楃: 255
 + ... rce $out }; node packages/cli/dist/index.js develop --case cases/deve ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: ((node:9300) [DE...y concatenated.:String) [], RemoteException

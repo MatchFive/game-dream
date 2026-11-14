@@ -47,6 +47,42 @@ describe('OpenAICompatibleProvider', () => {
     expect(body.prompt_cache_key).toBe('prefix-hash-123');
   });
 
+  it('aggregates streamed tool-call arguments by index', async () => {
+    const sse = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"read_file","arguments":""}}]}}]}',
+      '',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"path\\":"}}]}}]}',
+      '',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"game/scenes/main.tscn\\"}"}}]}}]}',
+      '',
+      'data: [DONE]',
+      '',
+    ].join('\n');
+    const fetchImpl = vi.fn(async () => new Response(sse, { status: 200 })) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider({
+      apiKey: 'test-key',
+      baseUrl: 'https://example.test/v1',
+      model: 'test-model',
+      fetchImpl,
+    });
+    const result = await provider.completeChatStream({
+      messages: [{ role: 'user', content: 'read' }],
+      tools: [
+        {
+          type: 'function',
+          function: { name: 'read_file', description: 'read', parameters: {} },
+        },
+      ],
+    });
+    expect(result.toolCalls).toEqual([
+      {
+        id: 'call_1',
+        name: 'read_file',
+        arguments: '{"path":"game/scenes/main.tscn"}',
+      },
+    ]);
+  });
+
   it('throws a provider error on HTTP failure', async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: false,

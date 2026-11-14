@@ -36,3 +36,16 @@
 - `offline-demo.log`
 - `offline-verify.log`
 - `offline-screenshot.log`
+
+## Real-provider success (v2)
+
+- `real-v2-develop.log`: 10 steps, 86.2% prompt cache, model wrote custom neon HUD/UI.
+- `real-v2-resume.log`: 6 more steps, 85.9% cache, finished code work.
+- Fixed harness/provider bugs discovered by this run:
+  - SSE tool-call arguments were keyed by id; MiniMax sends arguments in later chunks by index. Fixed in `openai-provider.ts` with regression test.
+  - Model wrote `pulses["timer"]` instead of `pulses[i]["timer"]`.
+  - Model omitted the boss spawn and phase trigger; added both.
+- Integrated the four ComfyUI transparent PNGs, composed, and verified.
+- `real-v2-verify.log`: G1/G2/G3 pass.
+- `real-v2-screenshot.log`: 1280x720, 175 colors.
+- `real-v2-screenshot.png`: final neon survivor demo.
