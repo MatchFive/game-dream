@@ -19,7 +19,7 @@ import {
 import { composeProject } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
-import { McpClient, type McpTool } from './mcp.js';
+import { McpClient, defaultMcpConfig, type McpTool } from './mcp.js';
 
 export interface DevelopmentCase {
   id: string;
@@ -474,8 +474,16 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
           fetchImpl: options.fetchImpl,
         }));
   let mcp: McpClient | undefined;
-  if (options.mcpConfig) {
-    mcp = await McpClient.connect(options.mcpConfig, options.mcpServer ?? 'godot');
+  const discoveredMcp =
+    options.mcpConfig ??
+    (options.providerKind === 'fake' ? undefined : defaultMcpConfig());
+  if (discoveredMcp) {
+    try {
+      mcp = await McpClient.connect(discoveredMcp, options.mcpServer ?? 'godot');
+    } catch (error) {
+      if (options.mcpConfig) throw error;
+      // Auto-discovery is best-effort; the project can still be built without MCP.
+    }
   }
   const context: DevelopContext = {
     ...options,
@@ -526,6 +534,10 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         lastMissingMarkers.length === 0
       ) {
         user += '\n\nVerification is clean. Call finish now unless a requested feature is still missing.';
+      }
+      if (steps === maxSteps - 2) {
+        user +=
+          '\n\nStep budget is almost exhausted. If the requested demo is complete, run verify and call finish now; do not keep reading files.';
       }
       if (action.tool === 'finish') {
         const gates = lastVerify?.gates;

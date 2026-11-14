@@ -351,9 +351,10 @@ dream develop \
 ```
 
 The bridge discovers MCP tools at startup and exposes them to the model as the
-`mcp` tool. The current Godot MCP config uses
-`@coding-solo/godot-mcp` via `npx.cmd` on Windows and `GODOT_PATH` pointing at
-the console Godot binary.
+`mcp` tool. For non-fake providers it also auto-discovers
+`~/.commandcode/mcp.json`; `--mcp-config` remains available to override or force
+MCP. The current Godot MCP config uses `@coding-solo/godot-mcp` via `npx.cmd` on
+Windows and `GODOT_PATH` pointing at the console Godot binary.
 
 ## Release artifacts
 
