@@ -107,6 +107,15 @@ finish-mcp-survivor: 3 steps scaffold -> verify -> finish
 G1/G2/G3/G6 pass; 1280x720, 146 colors
 ```
 
+### Follow-up fixes applied
+
+- bounded G2/G3 retry for Windows Godot NTSTATUS crashes
+- verify success now nudges the model to `finish` instead of reading indefinitely
+- unfinished tool loops no longer report `Demo ready`
+- `.gd` write checks use a proper relative path
+- MCP process trees are terminated on Windows
+- added a regression test for the transient import retry
+
 ## 2026-11-13 — dash-survivor (OpenAI, actual modification)
 
 Prompt asked for Shift dash with cooldown, HUD, and `GAMEDREAM_DASH`.

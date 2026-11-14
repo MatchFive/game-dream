@@ -94,7 +94,12 @@ export async function verifyCommand(options: {
     return { gates, engine };
   }
 
-  const imported = await importProject(options.projectDir, godot, options.runner);
+  const importProjectOnce = () =>
+    importProject(options.projectDir, godot, options.runner);
+  let imported = await importProjectOnce();
+  if (isTransientGodotCrash(imported)) {
+    imported = await importProjectOnce();
+  }
   const importErrors = findScriptErrors(imported);
   if (imported.exitCode !== 0 || importErrors.length > 0) {
     gates.G2 = {
@@ -106,10 +111,15 @@ export async function verifyCommand(options: {
   }
   gates.G2 = { status: 'pass' };
 
-  const run = await runHeadless(options.projectDir, godot, {
-    quitAfter: 1200,
-    runner: options.runner,
-  });
+  const runHeadlessOnce = () =>
+    runHeadless(options.projectDir, godot, {
+      quitAfter: 1200,
+      runner: options.runner,
+    });
+  let run = await runHeadlessOnce();
+  if (isTransientGodotCrash(run)) {
+    run = await runHeadlessOnce();
+  }
   const errors = findScriptErrors(run);
   if (run.exitCode !== 0) {
     gates.G3 = { status: 'fail', message: `exit ${run.exitCode}` };
@@ -165,6 +175,12 @@ export async function verifyCommand(options: {
   }
 
   return { gates, engine };
+}
+
+function isTransientGodotCrash(result: { exitCode: number }): boolean {
+  // Windows NTSTATUS: access violation / stack buffer overrun seen
+  // intermittently when Godot imports or exits on this machine.
+  return result.exitCode === 3221225477 || result.exitCode === 3221226356;
 }
 
 function visualFailure(shot: ScreenshotResult): string | null {

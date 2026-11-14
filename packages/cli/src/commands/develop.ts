@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import {
   FakeProvider,
   createProvider,
@@ -309,10 +309,8 @@ const TOOLS: Tool[] = [
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, content, 'utf8');
         if (path.endsWith('.gd')) {
-          const relative = path
-            .slice(context.outDir.length + 1)
-            .replaceAll('\\', '/');
-          const checked = await checkGdScript(context, relative);
+          const relativePath = relative(context.outDir, path).replaceAll('\\', '/');
+          const checked = await checkGdScript(context, relativePath);
           if (!checked.ok) {
             return {
               ok: false,
@@ -520,6 +518,15 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
       }
       user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
+      if (
+        result.ok &&
+        lastVerify?.gates.G1.status === 'pass' &&
+        lastVerify?.gates.G2.status === 'pass' &&
+        lastVerify?.gates.G3.status === 'pass' &&
+        lastMissingMarkers.length === 0
+      ) {
+        user += '\n\nVerification is clean. Call finish now unless a requested feature is still missing.';
+      }
       if (action.tool === 'finish') {
         const gates = lastVerify?.gates;
         const passed =
