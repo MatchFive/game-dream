@@ -15,7 +15,11 @@ import {
   parseProviderKind,
 } from './commands/create.js';
 import { benchmarkExitCode, runBenchmark } from './commands/benchmark.js';
-import { developCommand, loadDevelopmentCase } from './commands/develop.js';
+import {
+  developCandidates,
+  developCommand,
+  loadDevelopmentCase,
+} from './commands/develop.js';
 import { evalCommand, evalExitCode } from './commands/eval.js';
 import { mapExportCommand, mapImportCommand } from './commands/map.js';
 import { runCommand as runProject } from './commands/run.js';
@@ -163,6 +167,7 @@ export function createProgram(): Command {
     .option('--skills <dir>', 'skills directory', 'skills')
     .option('--provider <kind>', 'auto | fake | openai', 'fake')
     .option('--max-steps <count>', 'maximum tool steps', '12')
+    .option('--candidates <count>', 'generate and select among N candidates', '1')
     .option('--mcp-config <file>', 'MCP server config for Godot tools')
     .option('--mcp-server <name>', 'MCP server name', 'godot')
     .option('--resume', 'resume the saved session in --out')
@@ -179,6 +184,7 @@ export function createProgram(): Command {
           skills: string;
           provider: string;
           maxSteps: string;
+          candidates: string;
           mcpConfig?: string;
           mcpServer: string;
           resume?: boolean;
@@ -195,7 +201,8 @@ export function createProgram(): Command {
             process.exitCode = 1;
             return;
           }
-          const report = await developCommand({
+          const candidateCount = Math.max(1, Number(options.candidates) || 1);
+          const candidateOptions = {
             prompt,
             outDir: options.out,
             skillsDir: options.skills,
@@ -208,7 +215,34 @@ export function createProgram(): Command {
             mcpServer: options.mcpServer,
             resume: options.resume,
             readOnly: options.readOnly,
-          });
+          };
+          const candidates = candidateCount > 1
+            ? await developCandidates({
+                ...candidateOptions,
+                candidates: candidateCount,
+              })
+            : undefined;
+          const report = candidates?.selected.report ?? await developCommand(candidateOptions);
+          if (options.json) printJson(candidates ?? report);
+          else if (candidates) {
+            for (const candidate of candidates.candidates) {
+              printLine(
+                `Candidate ${candidate.index}: score ${candidate.score} · ${candidate.outDir} · ${candidate.report.finished ? 'finished' : 'incomplete'}`,
+              );
+            }
+            printLine(
+              `Selected candidate ${candidates.selected.index}: ${candidates.selected.outDir}`,
+            );
+            for (const [gate, result] of Object.entries(report.verify.gates)) {
+              printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+            }
+            printLine(`Session: ${report.sessionPath}`);
+            process.exitCode =
+              report.finished && report.missingMarkers.length === 0
+                ? exitCodeFor(report.verify)
+                : 2;
+            return;
+          }
           if (options.json) printJson(report);
           else {
             const passed = report.finished &&

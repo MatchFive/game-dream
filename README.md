@@ -349,8 +349,9 @@ system/skill/tool prefix stays stable across steps, tool results are separate
 messages, and old context is compacted only after the character budget is
 exceeded. The session is saved to `.gamedream/session.json`; pass `--resume` to
 continue it. Native tool calls, SSE streaming, cancellation signals, and usage
-accounting are used when the provider supports them. Provider usage is reported,
-including cached prompt tokens:
+accounting are used when the provider supports them. Add `--candidates N` to
+generate N independent projects and automatically select the best
+finish/gates/marker/G6 score.
 
 For editor/scene/UI operations, point the developer at a Godot MCP server:
 

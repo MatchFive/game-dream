@@ -50,6 +50,19 @@ export interface DevelopOptions {
   mcpServer?: string;
   resume?: boolean;
   readOnly?: boolean;
+  candidates?: number;
+}
+
+export interface CandidateReport {
+  index: number;
+  outDir: string;
+  score: number;
+  report: DevelopReport;
+}
+
+export interface CandidatesReport {
+  selected: CandidateReport;
+  candidates: CandidateReport[];
 }
 
 export interface UsageTotals {
@@ -481,6 +494,43 @@ function systemPrompt(
     'Selected skill:',
     skillText,
   ].join('\n');
+}
+
+function reportScore(report: DevelopReport): number {
+  const gates = report.verify.gates;
+  const gateScore =
+    (gates.G1.status === 'pass' ? 100 : 0) +
+    (gates.G2.status === 'pass' ? 100 : 0) +
+    (gates.G3.status === 'pass' ? 100 : 0);
+  const colors = Number(/(\d+) colors/.exec(gates.G6?.message ?? '')?.[1] ?? 0);
+  return (report.finished ? 1000 : 0) +
+    (report.missingMarkers.length === 0 ? 100 : 0) +
+    gateScore +
+    colors;
+}
+
+export async function developCandidates(
+  options: DevelopOptions,
+): Promise<CandidatesReport> {
+  const count = Math.max(1, Math.min(options.candidates ?? 1, 8));
+  const candidates: CandidateReport[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const outDir = join(options.outDir, `candidate-${index + 1}`);
+    rmSync(outDir, { recursive: true, force: true });
+    const report = await developCommand({
+      ...options,
+      outDir,
+      candidates: undefined,
+    });
+    candidates.push({
+      index: index + 1,
+      outDir,
+      score: reportScore(report),
+      report,
+    });
+  }
+  const selected = [...candidates].sort((a, b) => b.score - a.score)[0];
+  return { selected, candidates };
 }
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
