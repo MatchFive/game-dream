@@ -172,6 +172,7 @@ export function createProgram(): Command {
     .option('--mcp-server <name>', 'MCP server name', 'godot')
     .option('--resume', 'resume the saved session in --out')
     .option('--fork <checkpoint>', 'fork the resumed session at a checkpoint id')
+    .option('--cache-breakpoints', 'send stable prompt_cache_key boundaries')
     .option('--read-only', 'deny mutating tools (scaffold/compose/write/mcp)')
     .option('--visual', 'run G6 screenshot gate')
     .option('--json', 'print JSON')
@@ -190,6 +191,7 @@ export function createProgram(): Command {
           mcpServer: string;
           resume?: boolean;
           fork?: string;
+          cacheBreakpoints?: boolean;
           readOnly?: boolean;
           visual?: boolean;
           json?: boolean;
@@ -217,6 +219,7 @@ export function createProgram(): Command {
             mcpServer: options.mcpServer,
             resume: options.resume,
             fork: options.fork,
+            cacheBreakpoints: options.cacheBreakpoints,
             readOnly: options.readOnly,
           };
           const candidates = candidateCount > 1

@@ -52,6 +52,7 @@ export interface DevelopOptions {
   fork?: string;
   readOnly?: boolean;
   candidates?: number;
+  cacheBreakpoints?: boolean;
 }
 
 export interface CandidateReport {
@@ -660,6 +661,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     compactChars: 80_000,
     nativeTools,
     stream: Boolean(provider.completeChatStream),
+    cacheBreakpoints: options.cacheBreakpoints,
     session,
     canFinish: () => {
       const gates = lastVerify?.gates;

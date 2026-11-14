@@ -35,6 +35,11 @@ export interface ChatRequest {
   temperature?: number;
   tools?: ChatToolSchema[];
   signal?: AbortSignal;
+  /**
+   * Stable prefix key for providers that expose an explicit prompt/KV-cache
+   * boundary (for example OpenAI-compatible `prompt_cache_key`).
+   */
+  cacheKey?: string;
 }
 
 export interface ChatUsage {

@@ -43,6 +43,8 @@ export class OpenAICompatibleProvider implements ModelProvider {
         request.messages,
         request.temperature,
         request.tools,
+        request.signal,
+        request.cacheKey,
       )
     ).content;
   }
@@ -53,6 +55,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
       request.temperature,
       request.tools,
       request.signal,
+      request.cacheKey,
     );
   }
 
@@ -79,6 +82,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
             model: this.options.model,
             messages: this.serializeMessages(request.messages),
             temperature: request.temperature ?? 0.2,
+            ...(request.cacheKey ? { prompt_cache_key: request.cacheKey } : {}),
             ...(request.tools && request.tools.length > 0
               ? { tools: request.tools, tool_choice: 'auto' }
               : { response_format: { type: 'json_object' } }),
@@ -211,6 +215,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
     temperature?: number,
     tools?: ChatRequest['tools'],
     externalSignal?: AbortSignal,
+    cacheKey?: string,
   ): Promise<ChatResult> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
     let response: Response;
@@ -228,6 +233,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
             model: this.options.model,
             messages: this.serializeMessages(messages),
             temperature: temperature ?? 0.2,
+            ...(cacheKey ? { prompt_cache_key: cacheKey } : {}),
             ...(tools && tools.length > 0
               ? { tools, tool_choice: 'auto' }
               : { response_format: { type: 'json_object' } }),

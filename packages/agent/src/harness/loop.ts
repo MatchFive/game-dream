@@ -1,4 +1,5 @@
 import { AgentSession } from './session.js';
+import type { AgentPluginTree } from './plugins.js';
 import { extractJson } from '../intake/extract-json.js';
 import type {
   ChatToolCall,
@@ -40,6 +41,8 @@ export interface HarnessLoopOptions<TContext> {
   signal?: AbortSignal;
   onChunk?: (chunk: string) => void;
   session?: AgentSession;
+  pluginTree?: AgentPluginTree<TContext>;
+  cacheBreakpoints?: boolean;
   canFinish: () => { ok: boolean; reason?: string };
   onSession?: (session: AgentSession) => void;
   onToolResult?: (
@@ -94,8 +97,15 @@ export class AgentLoop<TContext> {
     const actions: string[] = [];
     let finished = false;
     let steps = 0;
+    const tools = options.pluginTree?.resolveTools(options.tools) ?? options.tools;
+    const cacheKey = options.cacheBreakpoints ? session.prefixHash() : undefined;
+    const pluginContext = (step: number) => ({
+      session,
+      step,
+      context: options.context,
+    });
     const toolSchemas: ChatToolSchema[] | undefined = options.nativeTools
-      ? options.tools.map((tool) => ({
+      ? tools.map((tool) => ({
           type: 'function',
           function: {
             name: tool.name,
@@ -117,6 +127,7 @@ export class AgentLoop<TContext> {
       while (steps < options.maxSteps) {
         steps += 1;
         session.record('step/start', steps);
+        await options.pluginTree?.onStepStart(pluginContext(steps));
         usage.calls += 1;
         let raw: string;
         let nativeCalls: ChatToolCall[] = [];
@@ -127,6 +138,7 @@ export class AgentLoop<TContext> {
               temperature: 0.1,
               tools: toolSchemas,
               signal: options.signal,
+              cacheKey,
             },
             options.onChunk,
           );
@@ -141,6 +153,7 @@ export class AgentLoop<TContext> {
             temperature: 0.1,
             tools: toolSchemas,
             signal: options.signal,
+            cacheKey,
           });
           raw = response.content;
           nativeCalls = response.toolCalls ?? [];
@@ -151,6 +164,7 @@ export class AgentLoop<TContext> {
           raw = await options.provider.completeChat({
             messages: session.requestMessages(),
             temperature: 0.1,
+            cacheKey,
           });
         } else {
           raw = await options.provider.complete({
@@ -165,7 +179,7 @@ export class AgentLoop<TContext> {
           let finishRequested = false;
           for (const call of nativeCalls) {
             actions.push(call.name);
-            const tool = options.tools.find((entry) => entry.name === call.name);
+            const tool = tools.find((entry) => entry.name === call.name);
             let result: HarnessToolResult;
             if (!tool) {
               result = { ok: false, output: `Unknown tool ${call.name}` };
@@ -186,6 +200,11 @@ export class AgentLoop<TContext> {
             }
             session.appendTool(result.output.slice(0, 24_000), call.name, result.ok, call.id);
             options.onToolResult?.(call.name, result, session);
+            await options.pluginTree?.onToolResult({
+              ...pluginContext(steps),
+              tool: call.name,
+              result,
+            });
             if (call.name === 'finish') finishRequested = true;
           }
           session.record('step/end', steps);
@@ -224,10 +243,10 @@ export class AgentLoop<TContext> {
         }
 
         actions.push(action.tool);
-        const tool = options.tools.find((entry) => entry.name === action.tool);
+        const tool = tools.find((entry) => entry.name === action.tool);
         if (!tool) {
           session.appendUser(
-            `Unknown tool ${action.tool}. Available: ${options.tools.map((entry) => entry.name).join(', ')}.`,
+            `Unknown tool ${action.tool}. Available: ${tools.map((entry) => entry.name).join(', ')}.`,
           );
           save();
           continue;
@@ -237,6 +256,11 @@ export class AgentLoop<TContext> {
         session.appendAssistant(raw);
         session.appendTool(result.output.slice(0, 24_000), action.tool, result.ok);
         options.onToolResult?.(action.tool, result, session);
+        await options.pluginTree?.onToolResult({
+          ...pluginContext(steps),
+          tool: action.tool,
+          result,
+        });
         session.record('step/end', steps);
 
         const decision = options.canFinish();
@@ -271,6 +295,8 @@ export class AgentLoop<TContext> {
       save();
     }
 
-    return { session, actions, steps, finished, usage };
+    const result: HarnessLoopResult = { session, actions, steps, finished, usage };
+    await options.pluginTree?.onFinish(pluginContext(steps), result);
+    return result;
   }
 }

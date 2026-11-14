@@ -31,6 +31,22 @@ describe('OpenAICompatibleProvider', () => {
     expect(body.response_format).toEqual({ type: 'json_object' });
   });
 
+  it('sends an explicit prompt_cache_key when a cache breakpoint is provided', async () => {
+    const fetchImpl = vi.fn(async () => okResponse as Response);
+    const provider = new OpenAICompatibleProvider({
+      apiKey: 'test-key',
+      baseUrl: 'https://example.test/v1',
+      model: 'test-model',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await provider.completeChatWithUsage({
+      messages: [{ role: 'user', content: 'cache me' }],
+      cacheKey: 'prefix-hash-123',
+    });
+    const body = JSON.parse((fetchImpl.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.prompt_cache_key).toBe('prefix-hash-123');
+  });
+
   it('throws a provider error on HTTP failure', async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: false,

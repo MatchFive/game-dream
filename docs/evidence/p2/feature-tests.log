@@ -1,0 +1,11 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/25793/.commandcode/worktrees/game_dream-325fe52d923f/8e419fc2-6727-4b71-b25f-99c193adbc63[39m
+
+ [32m✓[39m packages/agent/test/openai-provider.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m packages/agent/test/harness-p2.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+[2m   Start at [22m 11:43:33
+[2m   Duration [22m 562ms[2m (transform 130ms, setup 0ms, collect 252ms, tests 28ms, environment 0ms, prepare 300ms)[22m
+
