@@ -340,6 +340,11 @@ The fake provider is a deterministic offline developer. Set `OPENAI_API_KEY` and
 pass `--provider openai` to let a model choose the same tools. See
 `cases/development/README.md` and `skills/survivor-demo/SKILL.md`.
 
+For real providers, development uses an append-only structured session: the
+system/skill/tool prefix stays stable across steps, tool results are separate
+messages, and old context is compacted only after the character budget is
+exceeded. This is the first step toward DSH-style prompt-cache stability.
+
 For editor/scene/UI operations, point the developer at a Godot MCP server:
 
 ```bash

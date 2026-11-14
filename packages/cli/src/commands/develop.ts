@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import {
+  AgentSession,
   FakeProvider,
   createProvider,
   extractJson,
@@ -491,9 +492,15 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     env,
     mcp,
   };
-  const mcpTools = mcp?.tools.map((tool) => tool.name) ?? [];
-  const system = systemPrompt(skillText, mcp?.tools ?? []);
-  let user = `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`;
+  const sortedMcpTools = [...(mcp?.tools ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  const mcpTools = sortedMcpTools.map((tool) => tool.name);
+  const system = systemPrompt(skillText, sortedMcpTools);
+  const session = new AgentSession(
+    system,
+    `Build this game:\n${options.prompt}\n\nOutput directory: ${options.outDir}`,
+  );
   const actions: string[] = [];
   let finished = false;
   let steps = 0;
@@ -506,18 +513,31 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   try {
     while (steps < maxSteps) {
       steps += 1;
-      const raw = await provider.complete({ system, user, temperature: 0.1 });
+      const raw = provider.completeChat
+        ? await provider.completeChat({
+            messages: session.requestMessages(),
+            temperature: 0.1,
+          })
+        : await provider.complete({
+            system,
+            user: session.transcript(),
+            temperature: 0.1,
+          });
       let action: DevelopAction;
       try {
         action = parseAction(raw);
       } catch (error) {
-        user += `\n\nPrevious response was invalid: ${(error as Error).message}. Return one JSON action.`;
+        session.appendUser(
+          `Previous response was invalid: ${(error as Error).message}. Return one JSON action.`,
+        );
         continue;
       }
       actions.push(action.tool);
       const tool = toolByName(action.tool);
       if (!tool) {
-        user += `\n\nUnknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`;
+        session.appendUser(
+          `Unknown tool ${action.tool}. Available: ${TOOLS.map((entry) => entry.name).join(', ')}.`,
+        );
         continue;
       }
       const result = await tool.run(action.args ?? {}, context);
@@ -525,7 +545,10 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         lastVerify = result.data as VerifyReport;
         lastMissingMarkers = missingExpectedMarkers(context.outDir, options.expectedMarkers);
       }
-      user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
+      session.appendAssistant(raw);
+      session.appendTool(
+        `Tool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output.slice(0, 24_000)}`,
+      );
       if (
         result.ok &&
         lastVerify?.gates.G1.status === 'pass' &&
@@ -533,12 +556,16 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
         lastVerify?.gates.G3.status === 'pass' &&
         lastMissingMarkers.length === 0
       ) {
-        user += '\n\nVerification is clean. Call finish now unless a requested feature is still missing.';
+        session.appendUser(
+          'Verification is clean. Call finish now unless a requested feature is still missing.',
+        );
       }
       if (steps === maxSteps - 2) {
-        user +=
-          '\n\nStep budget is almost exhausted. If the requested demo is complete, run verify and call finish now; do not keep reading files.';
+        session.appendUser(
+          'Step budget is almost exhausted. If the requested demo is complete, run verify and call finish now; do not keep reading files.',
+        );
       }
+      session.compact();
       if (action.tool === 'finish') {
         const gates = lastVerify?.gates;
         const passed =
@@ -547,8 +574,9 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
           gates?.G3.status === 'pass' &&
           lastMissingMarkers.length === 0;
         if (!passed) {
-          user +=
-            '\n\nCannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.';
+          session.appendUser(
+            'Cannot finish: verification has not passed or required case markers are missing. Fix the project and call verify again.',
+          );
           continue;
         }
         finished = true;

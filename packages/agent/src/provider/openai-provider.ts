@@ -1,4 +1,9 @@
-import type { ModelProvider, ModelRequest } from '../types.js';
+import type {
+  ChatMessage,
+  ChatRequest,
+  ModelProvider,
+  ModelRequest,
+} from '../types.js';
 import { AgentError } from '../errors.js';
 
 export interface OpenAICompatibleOptions {
@@ -18,6 +23,23 @@ export class OpenAICompatibleProvider implements ModelProvider {
   }
 
   async complete(request: ModelRequest): Promise<string> {
+    return this.completeMessages(
+      [
+        { role: 'system', content: request.system },
+        { role: 'user', content: request.user },
+      ],
+      request.temperature,
+    );
+  }
+
+  async completeChat(request: ChatRequest): Promise<string> {
+    return this.completeMessages(request.messages, request.temperature);
+  }
+
+  private async completeMessages(
+    messages: ChatMessage[],
+    temperature?: number,
+  ): Promise<string> {
     const timeoutMs = this.options.timeoutMs ?? 120_000;
     let response: Response;
 
@@ -32,11 +54,8 @@ export class OpenAICompatibleProvider implements ModelProvider {
           },
           body: JSON.stringify({
             model: this.options.model,
-            messages: [
-              { role: 'system', content: request.system },
-              { role: 'user', content: request.user },
-            ],
-            temperature: request.temperature ?? 0.2,
+            messages,
+            temperature: temperature ?? 0.2,
             response_format: { type: 'json_object' },
             stream: false,
           }),
