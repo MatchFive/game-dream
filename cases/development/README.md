@@ -18,7 +18,9 @@ GODOT_BIN=/path/to/Godot_v4.4.1-stable_win64_console.exe \
 
 `--provider fake` uses a deterministic scripted developer for offline
 integration testing. Set `OPENAI_API_KEY` and use `--provider openai` to let a
-model choose tools and edit the generated project.
+model choose tools and edit the generated project. A minimal input is
+`cases/development/simple-survivor.json`; observed issues from real runs live in
+`ISSUES.md`.
 
 Tools available to the developer:
 

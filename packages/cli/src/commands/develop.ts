@@ -309,6 +309,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   const actions: string[] = [];
   let finished = false;
   let steps = 0;
+  let lastVerify: VerifyReport | undefined;
   const maxSteps = options.maxSteps ?? 12;
 
   mkdirSync(options.outDir, { recursive: true });
@@ -330,8 +331,21 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       continue;
     }
     const result = await tool.run(action.args ?? {}, context);
+    if (action.tool === 'verify' && result.data) {
+      lastVerify = result.data as VerifyReport;
+    }
     user += `\n\nAssistant: ${raw}\nTool ${action.tool} result (${result.ok ? 'ok' : 'error'}):\n${result.output}`;
     if (action.tool === 'finish') {
+      const gates = lastVerify?.gates;
+      const passed =
+        gates?.G1.status === 'pass' &&
+        gates?.G2.status === 'pass' &&
+        gates?.G3.status === 'pass';
+      if (!passed) {
+        user +=
+          '\n\nCannot finish: verification has not passed. Fix the generated project with write_file and call verify again.';
+        continue;
+      }
       finished = true;
       break;
     }

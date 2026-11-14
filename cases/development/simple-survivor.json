@@ -1,0 +1,11 @@
+{
+  "id": "simple-survivor",
+  "prompt": "做一个简单的俯视角自动攻击小游戏：角色能移动，自动攻击最近的敌人，击杀获得经验并升级，活到计时结束即可胜利。",
+  "skill": "survivor-demo",
+  "expected_playable": true,
+  "expected_markers": [
+    "GAMEDREAM_SURVIVOR_SPAWN",
+    "GAMEDREAM_SURVIVOR_LEVEL",
+    "GAMEDREAM_WIN"
+  ]
+}
