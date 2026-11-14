@@ -6,6 +6,11 @@ const PLAYER_MAX_HP := 180.0
 const RUN_SECONDS := 60.0
 const BOSS_TIME := 40.0
 const MAX_WEAPON_LEVEL := 5
+const PLAYER_TEXTURE := preload("res://modules/system.survivor/assets/player.svg")
+const CRAWLER_TEXTURE := preload("res://modules/system.survivor/assets/enemy_crawler.svg")
+const BRUTE_TEXTURE := preload("res://modules/system.survivor/assets/enemy_brute.svg")
+const BOSS_TEXTURE := preload("res://modules/system.survivor/assets/boss.svg")
+const GEM_TEXTURE := preload("res://modules/system.survivor/assets/gem.svg")
 const SPAWN_POINTS := [
 	Vector2(60, 65),
 	Vector2(480, 55),
@@ -409,18 +414,21 @@ func _draw() -> void:
 
 	for gem in gems:
 		var position: Vector2 = gem["pos"]
-		draw_set_transform(position, 0.0, Vector2(1, 1))
-		draw_colored_polygon(
-			PackedVector2Array([Vector2(0, -8), Vector2(8, 0), Vector2(0, 8), Vector2(-8, 0)]),
-			Color(0.35, 0.95, 0.55),
-		)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1, 1))
+		draw_texture_rect(GEM_TEXTURE, Rect2(position - Vector2(10, 10), Vector2(20, 20)), false)
 
 	for enemy in enemies:
 		var position: Vector2 = enemy["pos"]
 		var radius: float = enemy["radius"]
-		draw_circle(position, radius, enemy["color"])
-		draw_circle(position, radius * 0.35, Color(0.2, 0.08, 0.1))
+		var texture: Texture2D = CRAWLER_TEXTURE
+		if bool(enemy["boss"]):
+			texture = BOSS_TEXTURE
+		elif String(enemy["type"]) == "brute":
+			texture = BRUTE_TEXTURE
+		draw_texture_rect(
+			texture,
+			Rect2(position - Vector2(radius * 1.35, radius * 1.35), Vector2(radius * 2.7, radius * 2.7)),
+			false,
+		)
 		if bool(enemy["boss"]):
 			draw_arc(position, radius + 8.0, 0.0, TAU, 32, Color(1.0, 0.4, 0.9), 3.0)
 
@@ -431,8 +439,11 @@ func _draw() -> void:
 		var progress := 1.0 - float(pulse["timer"]) / 0.22
 		draw_arc(pulse["pos"], float(pulse["radius"]) * progress, 0.0, TAU, 40, pulse["color"], 3.0)
 
-	draw_circle(player_pos, 18.0, Color(0.25, 0.7, 1.0))
-	draw_circle(player_pos, 7.0, Color(0.8, 0.95, 1.0))
+	draw_texture_rect(
+		PLAYER_TEXTURE,
+		Rect2(player_pos - Vector2(22, 22), Vector2(44, 44)),
+		false,
+	)
 
 	if choosing:
 		draw_rect(Rect2(240, 150, 500, 250), Color(0.03, 0.04, 0.07, 0.92))

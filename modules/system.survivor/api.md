@@ -11,6 +11,8 @@
 - Markers: `GAMEDREAM_SURVIVOR_SPAWN`, `GAMEDREAM_SURVIVOR_LEVEL`,
   `GAMEDREAM_UPGRADE`, `GAMEDREAM_BOSS`, `GAMEDREAM_BOSS_PHASE`.
 - Headless mode uses time scaling and automatic upgrade choices for CI.
+- SVG assets under `assets/` render the player, crawler, brute, boss, and gems;
+  HUD and combat effects remain runtime-drawn.
 
 ## Inputs
 
