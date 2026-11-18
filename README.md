@@ -1,398 +1,244 @@
-# GameDream
+<div align="center">
+  <h1>GameDream</h1>
+  <p><strong>Turn a text prompt into a playable, verified game prototype.</strong></p>
 
-AI game development assistant. Plan 1 implements the deterministic core + Godot vertical slice:
-a fixture GameSpec + template is composed into a bootable Godot project with four local modules,
-and verified with a real headless boot/inventory check. Plan 2 adds prompt → GameSpec drafting,
-genre template selection, and the `dream create` command.
+  <p>
+    <img alt="Node.js 22+" src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white">
+    <img alt="pnpm 9" src="https://img.shields.io/badge/pnpm-9-FFCB3D?logo=pnpm&logoColor=111">
+    <img alt="Godot 4.4+" src="https://img.shields.io/badge/Godot-4.4%2B-478CBF?logo=godotengine&logoColor=white">
+    <img alt="Unity 6" src="https://img.shields.io/badge/Unity-6000.x-000000?logo=unity&logoColor=white">
+  </p>
+</div>
 
-## Prerequisites
+GameDream is an AI game-development harness. It combines a spec/composer layer,
+engine adapters, and a tool-using agent with real verification: generated
+projects must compile, boot, exercise their core loop, and produce a screenshot
+before they are considered playable.
+
+It currently ships working 2D slices for **Godot**, **Web**, and **Unity**, with
+shared content and engine-specific runtimes. Unreal is a future adapter.
+
+![Neon survivor demo](docs/evidence/demo-test/real-v2-screenshot.png)
+
+## Why GameDream
+
+Most AI game demos stop at generated code. GameDream treats the game itself as
+the deliverable:
+
+- **Spec-driven composition** — a prompt resolves to a template and module set,
+  with managed/user file boundaries and a lockfile.
+- **Verification, not vibes** — G1 schema/lockfile, G2 import/parse, G3 boot and
+  core-loop markers, plus opt-in screenshot and vision gates.
+- **Engine-aware output** — native Godot projects, Web ESM/Phaser projects, and
+  Unity 6 source projects.
+- **Agent workflow built in** — structured sessions, durable checkpoints,
+  parallel candidates, a plugin tree, explicit cache boundaries, and MCP tools.
+- **Local asset generation** — optional ComfyUI integration produces transparent
+  sprites for generated games.
+
+## Quick Start
+
+### Requirements
 
 - Node.js 22+
-- pnpm via corepack (`corepack enable`)
-- Godot 4.4+ — set `GODOT_BIN` to the **console** executable:
-  - Windows: `C:\path\to\Godot_v4.4.1-stable_win64_console.exe`
-  - Linux/macOS: the `godot` binary
+- pnpm 9 via Corepack (`corepack enable`)
+- Godot 4.4+ for Godot verification (optional for Web/Unity-only work)
+- Unity 6 for Unity runtime checks (optional; static checks work without it)
 
-## Configuration
-
-Copy `.env.example` to `.env` in the repository root and fill in the values. The
-CLI loads `.env` automatically; explicit environment variables take precedence.
-
-- `OPENAI_API_KEY` — required for `--provider openai`
-- `OPENAI_BASE_URL` — defaults to `https://api.openai.com/v1`
-- `GAMEDREAM_MODEL` — defaults to `gpt-4o-mini`
-- `GAMEDREAM_VISION_MODEL` — defaults to `gpt-4o-mini`
-- `GAMEDREAM_TIMEOUT_MS` — provider request timeout, defaults to `120000`
-- `GODOT_BIN` — console Godot 4.4+ executable
-- `UNITY_BIN` — optional Unity editor path
-
-## Commands
+### Install and build
 
 ```bash
+git clone git@github.com:MatchFive/game-dream.git
+cd game-dream
+corepack enable
 corepack pnpm install
-corepack pnpm test
+corepack pnpm build
+```
 
-corepack pnpm exec tsx packages/cli/src/index.ts doctor
+Create a local configuration from the example. The CLI loads `.env` from the
+current directory; explicit environment variables take precedence.
 
-corepack pnpm exec tsx packages/cli/src/index.ts compose \
-  --spec fixtures/specs/minimal.yaml \
-  --out "tmp/my-game" \
+```bash
+cp .env.example .env        # Windows: Copy-Item .env.example .env
+```
+
+### Generate a demo
+
+The deterministic fake provider needs no API key and is the fastest way to
+check the pipeline:
+
+```bash
+node packages/cli/dist/index.js create \
+  "做一个俯视角动作 RPG，有背包和 1 个敌人" \
+  --out tmp/my-game \
+  --provider fake \
   --modules modules \
   --templates templates
-
-corepack pnpm exec tsx packages/cli/src/index.ts verify --path "tmp/my-game"
 ```
 
-Expected verify output:
+Verify the generated project:
 
+```bash
+node packages/cli/dist/index.js verify --path tmp/my-game
 ```
+
+Expected gates:
+
+```text
 G1: pass
 G2: pass
 G3: pass
 ```
 
-`G1` validates the lockfile and generated game manifest. `G2` imports the project with
-Godot. `G3` boots it headlessly and checks the `GAMEDREAM_BOOT_OK` and
-`INVENTORY_COUNT=1` markers. If Godot is not found, `G2`/`G3` report `skip` — never a
-false pass.
+If Godot is not installed, G2/G3 report `skip` instead of a false pass.
 
-## One-command create
+### Use a real model
 
-```bash
-# offline deterministic provider (no API key)
-corepack pnpm exec tsx packages/cli/src/index.ts create \
-  "做一个俯视角动作 RPG，有背包和 1 个敌人" \
-  --out "tmp/my-game" \
-  --provider fake \
-  --modules modules \
-  --templates templates
+Set an OpenAI-compatible provider in `.env`, then switch the provider:
 
-# review the plan without writing anything
-corepack pnpm exec tsx packages/cli/src/index.ts create \
-  "做一个俯视角动作 RPG" \
-  --out "tmp/plan-only" \
-  --provider fake \
-  --mode dry-run \
-  --modules modules \
-  --templates templates
-```
-
-`--provider auto` uses the OpenAI-compatible provider when `OPENAI_API_KEY` is set,
-otherwise the deterministic fake provider. Real-model runs also read `OPENAI_BASE_URL`
-and `GAMEDREAM_MODEL`. `--mode dry-run` writes nothing; `--no-verify` skips Godot
-verification.
-
-## Playable M0 slice
-
-Action-RPG prompts now select the `rpg-action-m1` template: a five-level campaign
-through forest, shrine, throne, and sanctum maps with slime/wisp/guardian
-variants and a final boss, tile maps, animated sprites, a player,
-health/combat, progression, loot, equipment, a skill, quests, and dialogue. Desktop controls:
-**WASD** move, **J / Space** attack, **K** cast Ember Bolt.
-Headless autoplay prints `GAMEDREAM_MAP_OK`, `GAMEDREAM_SPRITE_OK`,
-`GAMEDREAM_AUDIO_OK`, `GAMEDREAM_DIALOGUE`, `GAMEDREAM_LEVEL_UP`, `GAMEDREAM_EQUIPPED`,
-`GAMEDREAM_SKILL_CAST`, `GAMEDREAM_LEVEL_2`, `GAMEDREAM_BOSS`,
-`GAMEDREAM_BOSS_PHASE`, `GAMEDREAM_QUEST_COMPLETE`, `GAMEDREAM_VICTORY`, and
-`GAMEDREAM_WIN`. The intro
-dialogue, slime/wisp/guardian/boss kill quests, five-level campaign, maps, and sprite configs come
-from `game/content/dialogue`, `game/content/quests`, `game/content/levels`,
-`game/content/maps`, and `game/content/sprites`; the quest tracker is always on.
-
-On desktop, winning or losing opens a result screen with **Restart** and **Quit**.
-Restart resets levels, health, inventory, progression, equipment, quests, and
-skills, then rebuilds level 1.
-
-UI controls: **I** inventory, **C** equipment, **L** skills, **Esc** pause.
-The pause menu saves to `user://save.json`; the main and pause menus open
-**Settings**. The main menu offers New Game / Continue on desktop. Headless runs
-hide the menu and autoplay.
-
-## Audio and settings
-
-`system.audio` generates music and SFX at runtime (no audio assets), routes them
-through Music/SFX buses, and plays hit/pickup/level/skill/quest/win/lose/dialogue
-sounds. `system.settings` persists music volume, SFX volume, and fullscreen in
-`user://settings.json`; `ui.settings` exposes sliders and a fullscreen toggle
-from both menus. M1 prints `GAMEDREAM_AUDIO_OK`.
-
-Content is data-driven under `game/content/`:
-
-- `items/*.json` — item id, slot, stat bonuses
-- `skills/*.json` — damage, range, cooldown
-- `loot/*.json` — enemy kind → drop table
-- `quests/*.json` — slime/wisp/guardian/boss kill objectives with XP rewards
-- `dialogue/*.json` — speaker lines
-- `levels/*.json` — per-level map id, enemy stats, and positions
-- `maps/*.json` — tile rows (`#` wall, `.` floor), colors, and tile size
-- `sprites/*.json` — texture path, frame size, and idle/move/attack ranges
-
-The composer copies template content only when a file does not already exist, so
-user edits survive recompose. Existing projects keep their old `campaign.json`
-(including its level count); re-create into a fresh directory to pick up the M2
-five-level campaign, or merge `levels/campaign.json`, `maps/shrine.json`,
-`maps/sanctum.json`, `quests/kill_wisp.json`, `quests/kill_guardian.json`,
-`sprites/wisp.json`, `sprites/guardian.json`, and the new AI assets manually.
-`rpg-action-m0` and `fixture-minimal` remain available as smaller templates.
-
-## Screenshots and G6
-
-Generated projects include a no-op `ScreenshotCapture` autoload. It only activates
-with `--screenshot`, starts a new game, waits 60 frames, captures the viewport to
-`user://screenshot.png`, and prints path/metrics.
-
-- `dream screenshot --path ./my-game` — copy the PNG to
-  `game/screenshots/screenshot.png` (or `--out`).
-- `dream verify --path ./my-game --visual` — run G6 with the same capture.
-  G6 requires a windowed Godot run (no `--headless`), at least 640×360 output,
-  ≥5% non-black samples, ≥8 distinct colors, and ≥4 center-region colors. Use
-  `--screenshot-out` to choose the PNG path.
-- `dream verify --path ./my-game --visual --vision fake` — additionally review
-  HUD/player/enemy/dialogue readability. `--vision openai` uses
-  `OPENAI_API_KEY` and the OpenAI-compatible vision API (`GAMEDREAM_VISION_MODEL`
-  defaults to `gpt-4o-mini`). `--vision` implies `--visual`.
-
-G6 is opt-in so headless CI keeps running G1–G3. Golden-image diffing and
-multi-frame review are deferred. `--vision fake` keeps the image local;
-`--vision openai` uploads it to the configured vision endpoint.
-
-## Unity 2D M0
-
-```bash
-dream unity compose --out ./unity-game --content templates/rpg-action-m1/content
-dream unity verify --path ./unity-game
-dream unity verify --path ./unity-game --runtime
-dream unity verify --path ./unity-game --runtime --unity "D:\unity\6000.6.9f1\Editor"
-dream unity build --path ./unity-game
-dream unity build --path ./unity-game --target webgl
-dream unity webgl-check --path ./unity-game/Builds/WebGL
-dream unity smoke --path ./unity-game
-dream unity screenshot --path ./unity-game
-```
-
-`unity compose` generates a Unity 6 (`6000.x`) source project with a pure C#
-`GameSim`, runtime bootstrap, and `EditorVerifier`. With `--content` it embeds the
-same five-level campaign, maps, quests, items and loot used by Godot/Web; item
-slot/bonuses are auto-equipped, and player builds save inventory/equipment/
-level/quests under `Application.persistentDataPath` (headless verification and
-editor screenshots never load saves). Without content, the M0 single-arena
-fallback is used. No Unity binary is bundled.
-`unity verify` is a fast static file/marker check. `--runtime` launches
-`Unity.exe -batchmode -quit -projectPath <dir> -executeMethod EditorVerifier.Run
--logFile -` and requires `UNITY_SIM_OK` + `UNITY_WIN`; it auto-detects common
-Unity Hub installs or uses `UNITY_BIN` / `--unity`. Exit codes: 0 pass, 1
-static/runtime marker failure, 3 Unity missing.
-
-Play mode prints `UNITY_BOOT_OK`, then `UNITY_WIN` or `UNITY_LOSE`. Headless
-`EditorVerifier` prints `UNITY_SIM_OK`, then `UNITY_WIN`, `UNITY_LOSE`, or
-`UNITY_TIMEOUT`; M1 content additionally requires `UNITY_MAP_OK`,
-`UNITY_QUEST_COMPLETE`, `UNITY_BOSS_PHASE`, `UNITY_LOOT_OK`, and
-`UNITY_SAVE_OK`. It does not boot the scene, so a pass is not a screenshot.
-Open the project in Unity and press Play to use the runtime bootstrap (no scene
-asset is required).
-
-`unity build` generates/updates `Assets/Scenes/Main.unity` and
-`ProjectSettings/EditorBuildSettings.asset`, then writes a Windows player
-(default `Builds/Windows/GameDream.exe`). `unity screenshot` enters play mode,
-renders the arena to a PNG, and exits. Both require a fresh output file and
-`UNITY_BUILD_OK` / `UNITY_SCREENSHOT_OK`; use a short project path on Windows to
-avoid Unity's long-path build issues. `--target webgl` requires a fresh
-`index.html` + `Build/` directory. WebGL is built with compression disabled, so
-serve `Builds/WebGL` over HTTP (for example `python -m http.server`) rather than
-opening `index.html` via `file://`. `unity webgl-check` serves the directory,
-loads it in headless Chrome/Edge, and requires a non-blank 1280×720 screenshot. `unity smoke` launches the built exe with
-`GAMEDREAM_SMOKE_OUT=1` and requires `UNITY_BOOT_OK` + `UNITY_SMOKE_OK` in its
-log; a player without a matching build stamp is rejected.
-
-## Web M0 (Phaser)
-
-The second engine track is a Web M0 prototype: a pure ESM simulation plus a
-vendored Phaser 3 renderer and keyboard controls. `dream web compose` writes
-`index.html`, `style.css`, `sim.mjs`, `sim-run.mjs`, `save.mjs`, `settings.mjs`,
-`camera.mjs`, `game.js`, `game.json`, and `vendor/phaser.min.js`; `dream web verify` runs the deterministic simulation and checks
-`WEB_BOOT_OK`/`WEB_WIN`. Serve the generated directory over HTTP (ES modules and
-`fetch` do not work from `file://`); the generated `README.md` shows the command.
-The generated project vendors `vendor/phaser.min.js`; the simulation contract
-remains browser- and headless-compatible.
-
-- `dream web compose --out ./web-game [--force]`
-- `dream web compose --out ./web-game --content templates/rpg-action-m1/content --modules modules`
-  embeds the five levels, maps, quests, enemy variants, and player/enemy/boss/wisp/guardian SVG assets.
-- `dream web verify --path ./web-game` requires `WEB_MAP_OK`/`WEB_QUEST_COMPLETE`
-  when the embedded config has levels/quests, and `WEB_BOSS_PHASE` when a boss
-  level is embedded.
-- `dream web verify --path ./web-game --visual` captures a 1280×720 real browser
-  screenshot and checks non-black pixels/colors. Set `GAMEDREAM_BROWSER` if
-  Chrome/Edge is not auto-detected. Exit codes: 0 pass, 1 infrastructure,
-  2 visual gate, 3 browser missing.
-- `dream web screenshot --path ./web-game [--out ./web.png] [--width 1280] [--height 720]`
-  captures the page without running the marker gate.
-- The generated game saves level/HP/inventory/quests in localStorage, offers
-  `O` settings, `P` pause, `R` reset, and runtime WebAudio music/SFX with
-  persisted volumes. The camera follows the player with map bounds (desktop ~1.2×,
-  mobile ~2×), and coarse-pointer/narrow viewports get touch D-pad, attack,
-  panel, and pause controls with a responsive canvas/panel layout.
-- `dream web package --path ./web-game --out ./release/web-game` checks required
-  files and writes a deployable static directory plus `deployment.json` with
-  content sizes/SHA-256 hashes (the manifest itself is excluded). See
-  [docs/deploy-web.md](docs/deploy-web.md).
-
-## Godot release
-
-- `dream godot package --path ./game --out ./release/game-source` copies a clean
-  source release (modules/game/content/presets) with `release.json` hashes.
-- `dream godot export --path ./game --preset "Windows Desktop" --out ./build/game.exe`
-  runs a native export when matching Godot 4.4 export templates are installed.
-  Missing templates exit 3 with guidance. `dream godot templates` reports the
-  expected directory/platforms. See [docs/release-godot.md](docs/release-godot.md)
-  and [docs/ci.md](docs/ci.md).
-
-## Prompt evaluation
-
-`dream eval` runs 20 prompt → GameSpec → template cases from
-`fixtures/eval/prompts.json`. The default fake provider is deterministic and needs
-no API key; each case checks genre and template. `--provider openai` runs the same
-cases against the configured model. Use `--fixtures`, `--templates`, and `--json`
-to override paths/output.
-
-## Tiled maps
-
-Internal maps use rows (`#` wall, `.` floor). Tiled JSON `.tmj` uses gid `1` =
-floor and `2` = wall; colors and id round-trip through Tiled custom properties.
-Import expects the 2-tile GameDream sheet with `firstgid: 1` and CSV/uncompressed
-layers; infinite and base64/compressed maps are rejected.
-
-- `dream map export --map game/content/maps/clearing.json --out clearing.tmj`
-  writes the `.tmj` and a generated `clearing.png` tileset sheet. Use `--force` to
-  overwrite existing files.
-- `dream map import --tmj clearing.tmj --out game/content/maps/clearing.json`
-  restores the internal map; `--id/--floor/--wall/--layer/--force` override Tiled
-  data. Colors are canonicalized to lowercase 6-digit hex.
-
-## Generated project layout
-
-- `modules/` — managed by the composer; do not edit
-- `project.godot` — composer-managed merge: only autoloads and the main scene are
-  rewritten; other sections are preserved and a `.bak` is written on recompose
-- `game/_generated/` — composer-owned main scene, service locator, and UI mounts
-- `game/content/`, `game/config/`, `game/scripts/`, `game/ui/`, `game/tests/` —
-  user-owned; the composer never overwrites these
-- `game/game.manifest.json` — managed/user ownership and hashes
-
-## Fixture modules
-
-- `core.events` — event bus
-- `core.stats` — numeric stats service
-- `system.inventory` — inventory service with signals and save serialization
-- `ui.hud` — HUD scene bound to inventory count
-
-## Case benchmark
-
-```bash
-pnpm build
-node packages/cli/dist/index.js benchmark --provider fake
-```
-
-`cases/benchmark.json` covers action RPG, platformer, shooter, roguelike,
-tower-defense, puzzle, and survivor prompts. The command creates each project and runs
-normal G1/G2/G3, then reports `playable`, `fallback`, `unverified`, or `failed`.
-Fallback is not counted as success. The current baseline is 7 playable
-(action RPG, platformer, shooter, roguelike, tower-defense, puzzle, survivor) /
-0 fallback; `dream benchmark` now exits 0.
-
-`platformer-2d` is a real Godot template (`system.platformer`): gravity/jump,
-coins, goal, HUD, camera follow, and headless autoplay. It passes G1/G2/G3/G6.
-
-`shooter-topdown` is a real Godot template (`system.shooter`): top-down
-movement, three waves, nearest-enemy shooting, enemy chase, HP, wave/kill/win
-markers, and headless auto-fire. It also passes G1/G2/G3/G6.
-
-`roguelike-topdown` is a real Godot template (`system.roguelike`): seeded maze
-generation, turn-based movement, bump combat, chasing enemies, permadeath, and
-a farthest-cell exit. It also passes G1/G2/G3/G6.
-
-`tower-defense` is a real Godot template (`system.tower_defense`): a waypoint
-path, base HP, three waves, build/upgrade economy, automatic tower fire, and
-headless wave management. It also passes G1/G2/G3/G6.
-
-`puzzle-2d` is a real Godot template (`system.puzzle`): Sokoban walls, targets,
-boxes, two levels, push/win markers, and a headless BFS solver. Puzzle prompts
-now classify as puzzle instead of action-rpg.
-
-`survivor-topdown` is a real Godot template (`system.survivor`): a 60-second
-demo with crawlers, brutes, XP gems, three auto-weapons (bolt/aura/nova),
-level-up upgrade choices, a boss at 40 seconds, and a half-HP boss phase. It
-also passes G1/G2/G3/G6, with headless time scaling for CI.
-
-Cross-engine survivor slices are available as `templates/web-survivor`
-(Canvas/ESM, `WEB_BOOT_OK`/`WEB_WIN`) and `templates/unity-survivor`
-(Unity 6, `UNITY_SIM_OK`/`UNITY_WIN`). Both compose and verify without the
-Godot toolchain.
-
-## Development case
-
-`dream develop` is the project-as-developer workflow. It reads a short prompt
-and a skill, scaffolds a project, verifies it, and can patch files through tools
-before finishing.
-
-```text
-Usage: 2 calls · prompt 5839 · cached 5632 (96.5%) · completion 403
+```ini
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
+GAMEDREAM_MODEL=gpt-4o-mini
+GAMEDREAM_VISION_MODEL=gpt-4o-mini
+GODOT_BIN=C:\path\to\Godot_v4.4.1-stable_win64_console.exe
 ```
 
 ```bash
-dream develop \
-  --case cases/development/survivor-demo.json \
-  --out build/survivor-demo \
-  --provider fake
-```
-
-The fake provider is a deterministic offline developer. Set `OPENAI_API_KEY` and
-pass `--provider openai` to let a model choose the same tools. See
-`cases/development/README.md` and `skills/survivor-demo/SKILL.md`.
-
-For real providers, development uses an append-only structured session: the
-system/skill/tool prefix stays stable across steps, tool results are separate
-messages, and old context is compacted only after the character budget is
-exceeded. The session is saved to `.gamedream/session.json`; pass `--resume` to
-continue it. Native tool calls, SSE streaming, cancellation signals, and usage
-accounting are used when the provider supports them. Every completed step writes
-a durable checkpoint; use `--resume --fork <checkpoint-id>` to branch from one.
-Add `--candidates N` to generate N independent projects and automatically select
-the best finish/gates/marker/G6 score.
-
-For editor/scene/UI operations, point the developer at a Godot MCP server:
-
-```bash
-dream develop \
+node packages/cli/dist/index.js develop \
   --case cases/development/survivor-demo.json \
   --out build/survivor-demo \
   --provider openai \
-  --mcp-config "$USERPROFILE/.commandcode/mcp.json"
+  --cache-breakpoints
 ```
 
-The bridge discovers MCP tools at startup and exposes them to the model as the
-`mcp` tool. For non-fake providers it also auto-discovers
-`~/.commandcode/mcp.json`; `--mcp-config` remains available to override or force
-MCP. The current Godot MCP config uses `@coding-solo/godot-mcp` via `npx.cmd` on
-Windows and `GODOT_PATH` pointing at the console Godot binary.
+`--provider auto` uses the configured provider when `OPENAI_API_KEY` is set;
+otherwise it falls back to the deterministic fake provider.
 
-## Release artifacts
+## Demo
 
-Manual `workflow_dispatch` (or a `v*` tag) builds three engine artifacts from the
-shared M1 content:
+The repository contains seven Godot benchmark templates: action RPG,
+platformer, shooter, roguelike, tower defense, puzzle, and survivor. Web and
+Unity have cross-engine survivor slices in addition to the shared action-RPG
+M1 campaign.
 
-- `gamedream-web-release` — verified/package Web build
-- `gamedream-godot-release` — packaged Godot source project with `release.json`
-- `gamedream-unity-release` — statically verified Unity source project
-- `gamedream-release-manifest` — path/bytes/SHA-256 for every artifact file
+The screenshot above is the neon survivor test slice produced through
+`dream develop`, with transparent sprites generated by ComfyUI and integrated
+into the Godot project. See [ComfyUI assets](docs/comfyui-assets.md) for the
+asset workflow.
 
-Unity/Godot release jobs require no Unity/Godot binary; runtime acceptance remains
-an opt-in local step (`UNITY_BIN`, `GODOT_BIN`). UE is intentionally out of scope.
+## How It Works
 
-For local release acceptance, pass already-built project directories:
+```text
+Prompt / GameSpec
+      │
+      ▼
+Template + module resolver ──► lockfile
+      │
+      ▼
+Engine composer
+  ├─ Godot: project.godot + scenes + GDScript
+  ├─ Web: ESM simulation + Phaser/Canvas renderer
+  └─ Unity: C# source project + batchmode verifier
+      │
+      ▼
+Agent loop (tools, sessions, checkpoints, plugins)
+      │
+      ▼
+G1 schema ─► G2 import/parse ─► G3 boot/loop ─► G6 screenshot/vision
+      │
+      ▼
+Playable prototype or structured repair loop
+```
+
+### Agent features
+
+- Append-only `AgentSession` with JSONL generation headers and durable checkpoints.
+- `--resume` and `--resume --fork <checkpoint-id>` for branching a development run.
+- `--candidates N` to generate several projects and select by verification score.
+- Replaceable plugin tree with tool overrides and step/tool/finish hooks.
+- Explicit `prompt_cache_key` boundaries when the provider supports them.
+- MCP bridge for Godot editor tools, discoverable through `mcp.json`.
+
+## CLI
+
+| Command | Purpose |
+|---|---|
+| `dream doctor` | Detect Node, Godot, Unity, and provider configuration |
+| `dream create` | Prompt → GameSpec → template → generated project |
+| `dream compose` | Compose a GameSpec and module set into a project |
+| `dream verify` | Run G1–G3 and optional G6 visual gates |
+| `dream develop` | Run the tool-using developer loop |
+| `dream screenshot` | Capture a generated project |
+| `dream web` | Compose, verify, screenshot, and package Web projects |
+| `dream unity` | Compose, verify, build, smoke, and screenshot Unity projects |
+| `dream godot` | Package and export Godot projects |
+| `dream benchmark` | Run all benchmark cases and report playability |
+| `dream eval` | Run prompt → GameSpec template evaluation |
+
+During development, run the TypeScript entry point directly:
 
 ```bash
-pnpm build
-pnpm release:accept \
+corepack pnpm exec tsx packages/cli/src/index.ts doctor
+```
+
+After `corepack pnpm build`, use `node packages/cli/dist/index.js` or add the
+built CLI to your PATH.
+
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI-compatible chat/vision key |
+| `OPENAI_BASE_URL` | Chat/vision endpoint, default `https://api.openai.com/v1` |
+| `GAMEDREAM_MODEL` | Development model |
+| `GAMEDREAM_VISION_MODEL` | Screenshot review model |
+| `GAMEDREAM_TIMEOUT_MS` | Provider request timeout |
+| `GODOT_BIN` | Godot 4.4+ console executable |
+| `UNITY_BIN` | Optional Unity 6 editor path |
+| `COMFYUI_URL` | Local ComfyUI server for asset generation |
+| `COMFYUI_WORKFLOW` | Qwen Image workflow JSON |
+
+`G2`/`G3` skip when Godot is missing. `--runtime` is required for Unity
+batchmode verification; static Unity checks do not claim a runtime pass.
+
+## Project Layout
+
+```text
+packages/
+  core/       schemas, resolver, composer, lockfile
+  cli/        dream CLI and development tools
+  agent/      agent loop, sessions, providers, plugins, multi-agent
+  godot/      Godot adapter and headless runner
+  web/        Web composer, verifier, screenshots, packaging
+  unity/      Unity composer, verifier, build/smoke helpers
+modules/      reusable Godot modules
+templates/    game templates and engine projects
+cases/        benchmark and development cases
+skills/       agent skills and starter kits
+docs/         design, architecture, release, and evidence docs
+```
+
+## Development
+
+```bash
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+```
+
+Focused checks:
+
+```bash
+corepack pnpm vitest run packages/agent/test
+corepack pnpm vitest run packages/cli/test
+```
+
+The release acceptance helper runs Web, Godot, and Unity checks against
+already-built projects:
+
+```bash
+corepack pnpm release:accept \
   --web ./web-game \
   --godot ./godot-game \
   --unity-dir ./unity-game \
@@ -400,20 +246,23 @@ pnpm release:accept \
   --unity-bin "$UNITY_BIN"
 ```
 
-The script writes `dist/release-acceptance/<timestamp>/acceptance.json` with each
-engine's verify/package/runtime commands, exit codes, artifacts, and skipped-runtime
-reasons. `--skip-runtime` performs static/package checks only. CI downloads the
-three release artifacts, runs the same acceptance with `--skip-runtime`, uploads
-`gamedream-acceptance`, and includes it in the SHA-256 release manifest.
+## Documentation
 
-Rollback: keep the previous release artifacts; to revert, redeploy the prior Web
-package, restore the prior Godot/Unity source artifact, and re-run
-`release:accept` against those paths. The acceptance manifest identifies the
-exact artifact set that passed.
+- [Architecture and technical choices](docs/architecture.md)
+- [Design spec](docs/superpowers/specs/2026-11-12-gamedream-design.md)
+- [Web deployment](docs/deploy-web.md)
+- [Godot release](docs/release-godot.md)
+- [ComfyUI transparent sprites](docs/comfyui-assets.md)
+- [Development cases](cases/development/README.md)
+- [P1 verification evidence](docs/evidence/p1/README.md)
+- [Demo test evidence](docs/evidence/demo-test/README.md)
 
-## Docs
+## Status and Limitations
 
-- Design spec: `docs/superpowers/specs/2026-11-12-gamedream-design.md`
-- Plan 1 (core + Godot slice): `docs/superpowers/plans/2026-11-12-core-godot-vertical-slice.md`
-- Plan 2 (agent runtime + create): `docs/superpowers/plans/2026-11-12-agent-runtime-create.md`
-- Technical research: `docs/architecture.md`
+GameDream is under active development. Godot is the most complete engine path;
+Web and Unity have real playable slices but not every gameplay template yet.
+Unreal and 3D production pipelines are not implemented. Generated content is a
+starting point, not a substitute for game design review.
+
+The repository does not currently include a license file. Add one before
+redistributing the project or generated assets.
