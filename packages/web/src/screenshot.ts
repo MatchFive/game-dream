@@ -115,7 +115,9 @@ export function findWebBrowser(options: {
   const configured = env.GAMEDREAM_BROWSER ?? env.CHROME_BIN ?? env.EDGE_BIN;
   if (configured) {
     const found = existsSync(configured) ? configured : fromPath(configured, platform, env);
-    if (found) return found;
+    // An explicit browser configuration is authoritative; do not silently
+    // substitute a different installed browser.
+    return found;
   }
   for (const candidate of platformCandidates(env, platform)) {
     if (existsSync(candidate)) return candidate;

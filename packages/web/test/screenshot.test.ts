@@ -67,7 +67,7 @@ describe('web screenshot', () => {
     composeWebProject({ outDir, templatesDir });
     const result = await captureWebScreenshot({
       projectDir: outDir,
-      env: { PATH: '' },
+      env: { PATH: '', GAMEDREAM_BROWSER: '/definitely/missing-browser' },
     });
     expect(result.passed).toBe(false);
     expect(result.exitCode).toBe(3);
@@ -87,6 +87,12 @@ describe('web screenshot', () => {
   it('validates project and browser precedence', async () => {
     expect(findWebBrowser({ env: {}, platform: 'win32' })).toBeUndefined();
     expect(findWebBrowser({ explicit: '/missing/browser', env: {}, platform: 'win32' })).toBeUndefined();
+    expect(
+      findWebBrowser({
+        env: { GAMEDREAM_BROWSER: '/definitely/missing-browser' },
+        platform: 'linux',
+      }),
+    ).toBeUndefined();
     const missing = await captureWebScreenshot({
       projectDir: join(makeTempDir('gamedream web missing project '), 'nope'),
       env: {},
