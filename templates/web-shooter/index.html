@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Neon Drift</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Neon Drift</h1>
+      <div id="game"></div>
+      <p id="status">WASD move · auto-target · clear 3 waves · R restart</p>
+      <p id="quests-line"></p>
+      <section id="inventory" class="panel hidden">
+        <h2>Inventory</h2>
+        <ul id="inventory-list"></ul>
+      </section>
+      <section id="quests" class="panel hidden">
+        <h2>Quests</h2>
+        <ul id="quest-list"></ul>
+      </section>
+      <section id="settings" class="panel hidden">
+        <h2>Settings</h2>
+        <label>Music <input id="music" type="range" min="0" max="1" step="0.05" /></label>
+        <label>SFX <input id="sfx" type="range" min="0" max="1" step="0.05" /></label>
+        <label class="check"><input id="fullscreen" type="checkbox" /> Fullscreen</label>
+      </section>
+      <div id="touch-controls" aria-label="Touch controls">
+        <div class="dpad">
+          <button type="button" data-hold="up" aria-label="Move up">▲</button>
+          <button type="button" data-hold="left" aria-label="Move left">◀</button>
+          <button type="button" data-hold="down" aria-label="Move down">▼</button>
+          <button type="button" data-hold="right" aria-label="Move right">▶</button>
+        </div>
+        <div class="touch-actions">
+          <button type="button" data-hold="attack" class="attack" aria-label="Attack">ATK</button>
+          <button type="button" data-panel="inventory">Bag</button>
+          <button type="button" data-panel="quests">Quests</button>
+          <button type="button" data-panel="settings">Settings</button>
+          <button type="button" data-panel="pause">Pause</button>
+        </div>
+      </div>
+      <section
+        id="pause"
+        class="overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pause-title"
+      >
+        <div class="pause-card">
+          <h2 id="pause-title">Paused</h2>
+          <button type="button" id="resume">Resume</button>
+          <button type="button" id="pause-restart">Restart</button>
+          <button type="button" id="pause-settings">Settings</button>
+        </div>
+      </section>
+    </main>
+    <script src="./vendor/phaser.min.js"></script>
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
