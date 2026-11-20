@@ -8,11 +8,12 @@ real path, waves, buildable towers, upgrades, and base defense.
 ## Scope
 
 - Fixed enemy path and a base with HP.
-- Three waves of two enemies with increasing HP.
+- Twenty waves of two enemies with increasing HP.
 - Build and upgrade towers with gold earned from kills.
 - Towers automatically acquire and shoot enemies; projectiles and HP bars.
 - HUD and a visible path/arena.
-- Headless auto-build/upgrade/wave management for G3.
+- Headless auto-build/upgrade/wave management for G3, accelerated with
+  `Engine.time_scale`.
 - Same create/compose/G1/G2/G3/G6 path as other cases.
 
 ## Implementation
@@ -33,4 +34,4 @@ real path, waves, buildable towers, upgrades, and base defense.
 ## Limits
 
 - Godot-only slice; Web/Unity tower-defense parity is not claimed.
-- Three waves rather than the prompt's 20; tower placement is slot-based.
+- Twenty waves now match the prompt; tower placement remains slot-based.

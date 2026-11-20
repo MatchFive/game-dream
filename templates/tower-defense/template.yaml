@@ -17,5 +17,5 @@ minimum_complete:
   quests: 0
 acceptance:
   - "敌人沿路径推进，炮塔自动攻击"
-  - "可建塔和升级，并清空所有波次"
+  - "可建塔和升级，并清空 20 波敌人"
 acceptance_markers: [GAMEDREAM_BOOT_OK, GAMEDREAM_WAVE, GAMEDREAM_WIN]

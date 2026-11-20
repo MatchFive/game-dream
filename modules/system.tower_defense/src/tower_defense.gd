@@ -13,12 +13,12 @@ const PATH := [
 const TOWER_SPOTS := [Vector2(320, 210), Vector2(650, 330), Vector2(760, 330)]
 const BUILD_COST := 25
 const UPGRADE_COST := 20
-const TOTAL_WAVES := 3
+const TOTAL_WAVES := 20
 const ENEMIES_PER_WAVE := 2
 const ENEMY_SPEED := 360.0
 const BULLET_SPEED := 900.0
-const START_GOLD := 100
-const BASE_HP := 10
+const START_GOLD := 150
+const BASE_HP := 30
 
 var enemies: Array = []
 var bullets: Array = []
@@ -38,6 +38,7 @@ func _ready() -> void:
 	_build_hud()
 	autoplay = DisplayServer.get_name() == "headless"
 	if autoplay:
+		Engine.time_scale = 6.0
 		_auto_manage()
 
 func _build_hud() -> void:
@@ -210,7 +211,7 @@ func _update_bullets(delta: float) -> void:
 			bullets.remove_at(i)
 			hit = true
 			if int(enemy["hp"]) <= 0:
-				gold += 10
+				gold += 15
 				enemies.remove_at(j)
 			break
 		if hit:
