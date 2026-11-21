@@ -14,6 +14,7 @@
     "smoke:agent": "node scripts/studio-agent-smoke.mjs",
     "smoke:godot": "node scripts/godot-runtime-smoke.mjs",
     "smoke:godot-export": "node scripts/godot-export-smoke.mjs",
+    "smoke:unity-release": "node scripts/unity-release-smoke.mjs",
     "typecheck": "corepack pnpm -r typecheck",
     "release:accept": "node scripts/release-acceptance.mjs"
   },

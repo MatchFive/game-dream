@@ -130,7 +130,7 @@
 | ID | 事项 | 验收标准 | 状态 |
 |---|---|---|---|
 | R1 | Godot export templates CI | CI job 已下载 4.4.1 模板并执行 `smoke:godot-export --require`；本机当前模板仍缺失 | 安装 4.4.1 模板并真实导出 artifact；本地/CI 状态可区分 | In progress |
-| R2 | Unity release runtime | 真实 batchmode build、运行 marker、截图、artifact | Next |
+| R2 | Unity release runtime | 已通过真实 Unity build/player smoke/screenshot；本地 artifact 落盘，CI self-hosted job 上传 player | 真实 batchmode build、运行 marker、截图、artifact | Done |
 | R3 | 真实 MCP CI | 真实 Godot MCP 场景保存回归，不再只靠 fixture | Backlog |
 | R4 | 发布回滚/签名 | release artifact 可追溯、hash、失败保留旧包 | Backlog |
 
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **R1 Godot export templates CI**：首次 runs-on 验证模板安装和真实 artifact。
-2. **AS1e Godot 模板动画**：让 Godot 模板自动发现 `SpriteFrames` 并播放。
-3. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
+1. **AS1e Godot 模板动画**：让 Godot 模板自动发现 `SpriteFrames` 并播放。
+2. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
+3. **AS2b SFX**：补文本音效生成与降级。
 
 ## 11. Definition of Done
 

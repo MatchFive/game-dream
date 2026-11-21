@@ -48,7 +48,9 @@ labeled `unity`. Enable it with repository variables:
 - `UNITY_BIN=D:\unity\6000.6.9f1\Editor`
 
 When the variables are absent, the job is skipped and does not report Unity as
-verified.
+verified. When enabled, it runs the runtime tests and
+`pnpm smoke:unity-release -- --require`, then uploads
+`gamedream-unity-release-player` (player, smoke log, screenshot).
 
 `dream godot templates` reports whether matching export templates are installed
 for the host platform.

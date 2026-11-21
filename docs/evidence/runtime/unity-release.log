@@ -1,0 +1,7 @@
+﻿UNITY_RELEASE_OK=1
+unity=6000.6.9f1
+exe=D:\project\game_dream\dist\unity-release\Builds\Windows\GameDream.exe
+exe_bytes=667136
+smoke=D:\project\game_dream\dist\unity-release\Temp\smoke.log
+screenshot=D:\project\game_dream\dist\unity-release\Screenshots\unity.png
+EXIT=0

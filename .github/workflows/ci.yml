@@ -121,6 +121,18 @@ jobs:
         env:
           UNITY_BIN: ${{ vars.UNITY_BIN }}
         run: pnpm exec vitest run packages/unity/test/runtime.test.ts
+      - name: Unity release artifact
+        env:
+          UNITY_BIN: ${{ vars.UNITY_BIN }}
+        run: pnpm smoke:unity-release -- --require --out dist/unity-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-unity-release-player
+          path: |
+            dist/unity-release/Builds
+            dist/unity-release/smoke.log
+            dist/unity-release/Screenshots
+          if-no-files-found: error
 
   web-release:
     needs: test

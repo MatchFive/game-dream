@@ -48,3 +48,10 @@ but export templates are missing, so `smoke:godot-export --require` exits 3 with
 `GODOT_EXPORT_SKIP=1`. The CI `godot-export` job installs the official 4.4.1
 templates and runs the same script with `--require`; missing templates fail that
 job instead of producing a false pass.
+
+## Unity release artifact
+
+`unity-release.log` records the local `pnpm smoke:unity-release` run against
+Unity 6000.6.9f1: `UNITY_RELEASE_OK=1`, player bytes, `smoke.log`, and
+`Screenshots/unity.png`, exit `0`. The optional self-hosted CI job runs the same
+script with `--require` and uploads `gamedream-unity-release-player`.
