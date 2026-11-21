@@ -172,6 +172,9 @@
   .node-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .node-art { height: 235px; background: #e9e5d8; }
   .node-art img { object-fit: contain; object-position: center 18%; }
+  .animation-frame { background: #11150f; }
+  .animation-badge { position: absolute; right: 7px; bottom: 7px; padding: 3px 5px; border: 1px solid var(--lime); border-radius: 3px; color: var(--lime); background: #0b0d0a; font: 8px/1 var(--mono); }
+  .node-animation .node-foot { flex-wrap: wrap; }
   .node-game { height: 158px; background: #060806; }
   .node-game img { object-fit: cover; }
   .node-body { padding: 9px; }

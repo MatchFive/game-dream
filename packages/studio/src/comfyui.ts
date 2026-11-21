@@ -60,7 +60,13 @@ export class ComfyRunner {
     return existsSync(this.config.workflow);
   }
 
-  start(prompt: string, transparent: boolean, variant?: number, batchSize?: number): ComfyJob {
+  start(
+    prompt: string,
+    transparent: boolean,
+    variant?: number,
+    batchSize?: number,
+    animation?: { id: string; index: number; count: number },
+  ): ComfyJob {
     const now = new Date().toISOString();
     const job: ComfyJob = {
       id: randomUUID(),
@@ -73,6 +79,9 @@ export class ComfyRunner {
       progress: 'queued',
       variant,
       batchSize,
+      animationId: animation?.id,
+      frameIndex: animation?.index,
+      frameCount: animation?.count,
     };
     this.jobs.set(job.id, job);
     void this.run(job);
@@ -84,6 +93,19 @@ export class ComfyRunner {
     const safeCount = Math.max(1, Math.min(4, requested));
     return Array.from({ length: safeCount }, (_, index) =>
       this.start(prompt, transparent, index + 1, safeCount),
+    );
+  }
+
+  startAnimation(prompt: string, transparent: boolean, frames: number): ComfyJob[] {
+    const requested = Number.isFinite(frames) ? Math.trunc(frames) : 2;
+    const safeFrames = Math.max(2, Math.min(4, requested));
+    const id = `animation-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`;
+    return Array.from({ length: safeFrames }, (_, index) =>
+      this.start(prompt, transparent, index + 1, safeFrames, {
+        id,
+        index: index + 1,
+        count: safeFrames,
+      }),
     );
   }
 
@@ -197,6 +219,9 @@ export class ComfyRunner {
             transparent: job.transparent,
             variant: job.variant,
             batchSize: job.batchSize,
+            animationId: job.animationId,
+            frameIndex: job.frameIndex,
+            frameCount: job.frameCount,
             file: basename(file),
             source: image.filename,
             createdAt: job.createdAt,

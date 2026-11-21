@@ -74,6 +74,17 @@ depending on an installed editor. Real-engine validation remains separate.
 - `studio-agent-smoke.log` still verifies the complete actual-CLI approval and
   finish path after these changes.
 
+## Animation sequence
+
+- `POST /api/generate` with `{ "animation": true, "count": 2-4 }` creates jobs
+  sharing one `animationId` with `frameIndex` and `frameCount`.
+- The Asset Canvas **Animate** chip creates an `animation` node that groups the
+  generated transparent frames, plays them, and can regenerate the sequence.
+- `packages/studio/test/studio.test.ts` asserts animation job metadata and that
+  animation canvas nodes persist through `saveCanvas`/`loadCanvas`.
+- `agent-animation-node.png` shows a rendered 3-frame animation node.
+- No sprite sheet/atlas packer or engine animation metadata yet (AS1b).
+
 ## Build selection
 
 - Selecting an asset copies it under `game/build-assets/studio/` and writes
@@ -137,6 +148,7 @@ depending on an installed editor. Real-engine validation remains separate.
 - `agent-budget-form.png`: Agent composer with the optional Token 预算 field.
 - `agent-queue.png`: active approval plus queued batches and cancel controls.
 - `agent-policy-editor.png`: per-tool and default approval policy editor.
+- `agent-animation-node.png`: three-frame animation canvas node with playback.
 
 The screenshots were taken against the Studio server using a fixture agent CLI
 for deterministic approval/candidate UI. The real CLI path is separately covered

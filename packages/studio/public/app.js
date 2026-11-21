@@ -17,11 +17,13 @@ const state = {
   tool: 'select',
   generating: false,
   batchSize: 1,
+  animate: false,
   audio: null,
 };
 
 let saveTimer;
 let jobTimer;
+const animationTimers = new Map();
 const canvas = $('#canvas');
 const world = $('#world');
 
@@ -198,7 +200,7 @@ function defaultNodes() {
 function pruneNodes(nodes) {
   return nodes.filter((node) => {
     if (node.empty || node.kind === 'brief') return true;
-    if (node.kind === 'group') {
+    if (node.kind === 'group' || node.kind === 'animation') {
       node.assetIds = (node.assetIds ?? []).filter((id) => assetById(id));
       return node.assetIds.length > 0;
     }
@@ -351,6 +353,15 @@ function nodeMarkup(node) {
       <div class="node-body"><div class="node-title">${t('assets.spriteCount', { count: assets.length })}</div><div class="node-sub">${t('assets.rgba')}</div></div>
       <div class="node-foot"><span class="node-tag">${allInBuild ? t('common.inBuild') : t('common.set')}</span><button class="button secondary" type="button" data-use-group>${t('common.manage')}</button></div>`;
   }
+  if (node.kind === 'animation') {
+    const frames = (node.assetIds ?? []).map(assetById).filter(Boolean);
+    const first = frames[0];
+    if (!first) return '';
+    return `${nodeHead(t('assets.nodesAnimation'), t('assets.frameCount', { count: frames.length }))}
+      <div class="node-media node-art animation-frame"><img data-animation-frame src="${escapeHtml(first.url)}" alt="${escapeHtml(node.title ?? first.name)}"><span class="animation-badge">${frames.length}F</span></div>
+      <div class="node-body"><div class="node-title">${escapeHtml(node.title ?? first.name)}</div><div class="node-sub">${t('assets.animationHint')}</div></div>
+      <div class="node-foot"><span class="node-tag">${t('assets.frameCount', { count: frames.length })}</span><button class="button secondary" type="button" data-animation-play>${t('assets.playAnimation')}</button><button class="button secondary" type="button" data-animation-regenerate>${t('assets.regenerateAnimation')}</button></div>`;
+  }
   if (node.generating) {
     return `${nodeHead(t('assets.nodesGenerating'), t('assets.job'))}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">${t('assets.generatingAsset')}</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}${node.batchSize > 1 ? ` · ${node.batchIndex}/${node.batchSize}` : ''}</div></div>`;
   }
@@ -369,6 +380,8 @@ function nodeMarkup(node) {
 }
 
 function renderCanvas() {
+  for (const timer of animationTimers.values()) clearInterval(timer);
+  animationTimers.clear();
   $$('.node', world).forEach((node) => node.remove());
   for (const node of state.canvas.nodes) {
     const element = document.createElement('article');
@@ -432,12 +445,56 @@ function bindNode(element, node) {
       previewAudio(button.dataset.audio);
     });
   });
+  $$('[data-animation-play]', element).forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleAnimation(node, element);
+    });
+  });
+  $$('[data-animation-regenerate]', element).forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      regenerateAnimation(node);
+    });
+  });
   $$('[data-menu]', element).forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       toast(t('assets.actionsInspector'));
     });
   });
+}
+
+function toggleAnimation(node, element) {
+  const frames = (node.assetIds ?? []).map(assetById).filter(Boolean);
+  const image = $('[data-animation-frame]', element);
+  const button = $('[data-animation-play]', element);
+  if (!image || !button || frames.length < 2) return;
+  const running = animationTimers.get(node.id);
+  if (running) {
+    clearInterval(running);
+    animationTimers.delete(node.id);
+    button.textContent = t('assets.playAnimation');
+    image.src = frames[0].url;
+    return;
+  }
+  let index = 0;
+  button.textContent = t('assets.stopAnimation');
+  const timer = setInterval(() => {
+    index = (index + 1) % frames.length;
+    image.src = frames[index].url;
+  }, 180);
+  animationTimers.set(node.id, timer);
+}
+
+function regenerateAnimation(node) {
+  const prompt = node.title ?? node.prompt ?? '';
+  if (!prompt) return;
+  $('#promptInput').value = prompt;
+  $('#promptInput').dataset.touched = 'true';
+  state.animate = true;
+  updateAnimationChip();
+  generateAsset();
 }
 
 function renderWires() {
@@ -691,7 +748,8 @@ async function generateAsset() {
     return;
   }
   const transparent = $('#transparentChip').classList.contains('accent');
-  const count = state.batchSize;
+  const animate = state.animate;
+  const count = animate ? Math.max(2, state.batchSize) : state.batchSize;
   const started = Date.now();
   const nodes = Array.from({ length: count }, (_, index) => {
     const column = index % 2;
@@ -719,7 +777,7 @@ async function generateAsset() {
   try {
     const result = await request('/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, transparent, count }),
+      body: JSON.stringify({ prompt, transparent, count, animation: animate }),
     });
     const jobs = Array.isArray(result.jobs) ? result.jobs : [result.job];
     await Promise.all(nodes.map((node, index) => {
@@ -728,6 +786,18 @@ async function generateAsset() {
     }));
     const ready = nodes.filter((node) => node.assetId && !node.error);
     const failed = nodes.length - ready.length;
+    if (animate && ready.length >= 2) {
+      const first = nodes[0];
+      state.canvas.nodes.push({
+        id: `animation-${started}`,
+        kind: 'animation',
+        x: first.x + 300,
+        y: first.y,
+        width: 286,
+        title: prompt,
+        assetIds: ready.map((node) => node.assetId),
+      });
+    }
     setGenerating(false);
     renderAssetState();
     renderMinimap();
@@ -806,10 +876,18 @@ async function pollJob(node, jobId) {
 }
 
 function updateBatchChip() {
-  $('#countChip').textContent = t('assets.imageCount', {
-    count: state.batchSize,
-    s: state.batchSize === 1 ? '' : 's',
-  });
+  $('#countChip').textContent = state.animate
+    ? t('assets.frameCount', { count: Math.max(2, state.batchSize) })
+    : t('assets.imageCount', {
+        count: state.batchSize,
+        s: state.batchSize === 1 ? '' : 's',
+      });
+}
+
+function updateAnimationChip() {
+  $('#animationChip').classList.toggle('accent', state.animate);
+  if (state.animate) state.batchSize = Math.max(2, state.batchSize);
+  updateBatchChip();
 }
 
 $('#assetSearch').addEventListener('input', (event) => {
@@ -874,8 +952,19 @@ $('#transparentChip').addEventListener('click', () => {
 $('#modelChip').addEventListener('click', () => toast(t('assets.modelHint')));
 $('#countChip').addEventListener('click', () => {
   state.batchSize = state.batchSize % 4 + 1;
+  if (state.animate) state.batchSize = Math.max(2, state.batchSize);
   updateBatchChip();
   toast(t('assets.batchHint', { count: state.batchSize }));
+});
+$('#animationChip').addEventListener('click', () => {
+  state.animate = !state.animate;
+  updateAnimationChip();
+  toast(t(
+    state.animate
+      ? 'assets.frameHint'
+      : 'assets.imageHint',
+    { count: Math.max(2, state.batchSize) },
+  ));
 });
 $('#refChip').addEventListener('click', () => toast(t('assets.refHint')));
 

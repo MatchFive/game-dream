@@ -145,7 +145,7 @@ function isCanvasNode(value: unknown): value is CanvasNode {
   const node = value as Partial<CanvasNode>;
   return (
     typeof node.id === 'string' &&
-    ['brief', 'asset', 'group', 'build'].includes(String(node.kind)) &&
+    ['brief', 'asset', 'group', 'build', 'animation'].includes(String(node.kind)) &&
     Number.isFinite(node.x) &&
     Number.isFinite(node.y) &&
     Number.isFinite(node.width) &&

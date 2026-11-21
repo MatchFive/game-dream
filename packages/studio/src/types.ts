@@ -15,7 +15,7 @@ export interface StudioAsset {
   inBuild: boolean;
 }
 
-export type CanvasNodeKind = 'brief' | 'asset' | 'group' | 'build';
+export type CanvasNodeKind = 'brief' | 'asset' | 'group' | 'build' | 'animation';
 
 export interface CanvasNode {
   id: string;
@@ -71,4 +71,7 @@ export interface ComfyJob {
   error?: string;
   variant?: number;
   batchSize?: number;
+  animationId?: string;
+  frameIndex?: number;
+  frameCount?: number;
 }

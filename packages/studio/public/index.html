@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>GameDream Asset Canvas</title>
-<link rel="stylesheet" href="/styles.css?v=2">
+<link rel="stylesheet" href="/styles.css?v=3">
 <link rel="stylesheet" href="/runtime.css?v=2">
 </head>
 <body data-screen="canvas">
@@ -108,6 +108,7 @@
         <button class="chip" type="button" id="modelChip"><svg class="icon"><use href="#i-spark"></use></svg> Qwen-Image 2.1</button>
         <button class="chip accent" type="button" id="transparentChip"><svg class="icon"><use href="#i-image"></use></svg> <span data-i18n="assets.transparent">透明背景</span></button>
         <button class="chip" type="button" id="countChip">1 张图片</button>
+        <button class="chip" type="button" id="animationChip"><svg class="icon"><use href="#i-play"></use></svg> <span data-i18n="assets.animation">动画</span></button>
         <button class="chip" type="button" id="refChip"><svg class="icon"><use href="#i-folder"></use></svg> <span data-i18n="assets.projectRef">@项目</span></button>
       </div>
       <div class="dock-foot"><span><kbd>⌘</kbd><kbd>↵</kbd> <span data-i18n="assets.shortcuts">生成 · 选择 · 平移 · 适配</span></span><span id="queueLabel" data-i18n="assets.localSandbox">本地沙盒</span></div>
@@ -130,6 +131,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="/app.js?v=4"></script>
+<script type="module" src="/app.js?v=5"></script>
 </body>
 </html>

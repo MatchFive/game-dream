@@ -48,10 +48,21 @@ describe('studio assets', () => {
   it('persists canvas nodes and build selection', () => {
     const asset = scanAssets(root).find((entry) => entry.kind === 'concept')!;
     saveCanvas(root, {
-      nodes: [{ id: 'hero', kind: 'asset', assetId: asset.id, x: 10, y: 20, width: 300 }],
+      nodes: [
+        { id: 'hero', kind: 'asset', assetId: asset.id, x: 10, y: 20, width: 300 },
+        {
+          id: 'walk',
+          kind: 'animation',
+          assetIds: [asset.id, asset.id],
+          x: 320,
+          y: 20,
+          width: 300,
+        },
+      ],
       inBuild: [],
     });
     expect(loadCanvas(root).nodes[0]).toMatchObject({ id: 'hero', assetId: asset.id });
+    expect(loadCanvas(root).nodes[1]).toMatchObject({ id: 'walk', kind: 'animation' });
     expect(setInBuild(root, asset.id, true).inBuild).toEqual([asset.id]);
     expect(toggleInBuild(root, asset.id).inBuild).toEqual([]);
   });
@@ -100,6 +111,11 @@ describe('studio assets', () => {
     expect(jobs.map((job) => job.variant)).toEqual([1, 2, 3, 4]);
     expect(jobs.every((job) => job.batchSize === 4)).toBe(true);
     expect(new Set(jobs.map((job) => job.seed)).size).toBeGreaterThan(1);
+    const animation = runner.startAnimation('walk cycle', true, 9);
+    expect(animation).toHaveLength(4);
+    expect(new Set(animation.map((job) => job.animationId)).size).toBe(1);
+    expect(animation.map((job) => job.frameIndex)).toEqual([1, 2, 3, 4]);
+    expect(animation.every((job) => job.frameCount === 4)).toBe(true);
     expect(runner.startBatch('clamped', false, 99)).toHaveLength(4);
     expect(runner.startBatch('minimum', false, 0)).toHaveLength(1);
   });

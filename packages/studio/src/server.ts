@@ -737,7 +737,7 @@ async function handleApi(
   }
 
   if (method === 'POST' && pathname === '/api/generate') {
-    let body: { prompt?: unknown; transparent?: unknown; count?: unknown };
+    let body: { prompt?: unknown; transparent?: unknown; count?: unknown; animation?: unknown };
     try {
       body = (await readJson(request)) as typeof body;
     } catch (error) {
@@ -762,8 +762,14 @@ async function handleApi(
       json(response, 503, { error: `ComfyUI workflow not found: ${comfyui.workflow}` });
       return;
     }
-    const jobs = runner.startBatch(prompt, body.transparent === true, count);
-    json(response, 202, { job: jobs[0], jobs });
+    const jobs = body.animation === true
+      ? runner.startAnimation(prompt, body.transparent === true, count)
+      : runner.startBatch(prompt, body.transparent === true, count);
+    json(response, 202, {
+      job: jobs[0],
+      jobs,
+      animationId: jobs[0]?.animationId,
+    });
     return;
   }
 

@@ -27,12 +27,17 @@ No AnimateDiff loader node is installed. `/models/animatediff_models` and
 `/models/animatediff_motion_lora` are empty. `WanAnimateToVideo` is installed,
 but it is an image/video animation model, not an AnimateDiff sprite pipeline.
 
-Planned sprite path:
+Implemented in Studio:
 
-1. Generate transparent keyframes with the Qwen image workflow.
-2. Produce a short pose/frame sequence.
-3. Export PNG frames and pack a sprite sheet/atlas.
-4. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
+- **Animate** requests 2–4 transparent keyframes through the existing Qwen
+  workflow, one seed per frame.
+- The frames are ordinary PNG assets and are grouped into an animation canvas
+  node with playback and regenerate controls.
+- Build selection can stage the frames under `game/build-assets/`.
+
+Still pending:
+
+1. Pack frames into a horizontal sprite sheet/atlas.
+2. Emit engine animation metadata (frame size, frame count, FPS, loop).
+3. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
    motion module; video output still needs alpha cleanup and frame extraction.
-
-Animation remains a placeholder until that pipeline is requested.

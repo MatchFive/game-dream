@@ -62,6 +62,11 @@ their progress. Up to four variants can be requested in one batch; each variant
 gets its own seed, image, and metadata name. Jobs are in memory, so restarting
 the server cancels the UI's view of an in-flight job.
 
+The **Animate** chip generates 2–4 transparent keyframes with independent seeds
+and creates an animation canvas node that plays the frames and can regenerate
+the sequence from its prompt. This is a keyframe sequence, not an AnimateDiff or
+sprite-atlas pipeline; the generated frames are ordinary PNG assets.
+
 ## Agent
 
 The Studio Agent panel starts the same `dream develop` loop used by the CLI as a
@@ -153,7 +158,7 @@ binding.
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
-| `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
+| `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4, "animation"?: true }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active, queued, and historical Agent batches |
 | `GET /api/agent/policy` | Read the Studio approval policy, available tools, and source path |
@@ -204,4 +209,6 @@ expose it on a public interface.
   are not rewritten; generated apps should use relative paths.
 - Godot playtest requires a local display and a 4.x `GODOT_BIN`; Unity playtest
   is not available from the Studio server.
-- Animation generation is not implemented; animation nodes remain a placeholder.
+- Animation generation produces a 2–4 frame keyframe sequence with playback and
+  regeneration. There is no sprite-sheet/atlas packer, AnimateDiff node, or
+  automatic engine animation resource yet.

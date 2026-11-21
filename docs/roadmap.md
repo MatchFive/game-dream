@@ -13,7 +13,7 @@
 | Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止、批次队列 |
 | Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队、按工具审批编辑器 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
-| Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG |
+| Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG、2–4 帧动画序列 |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
 | CI | MCP fixture smoke、真实 Godot 4.4.1 runtime smoke、typecheck/build/full tests |
 | UI | 中文默认、中英切换、桌面/移动布局 |
@@ -48,7 +48,7 @@
 |---|---|---|---|
 | M1 | Agent 运行生产化 | 硬预算、队列、策略编辑、崩溃恢复 | In progress |
 | M2 | 验证与试玩闭环 | 真实 playtest、Unity runtime、G6 集成 | Next |
-| M3 | 资产管线完整化 | 动画、音频 UI、SFX、构建素材落地 | Next |
+| M3 | 资产管线完整化 | 动画序列、音频 UI、SFX、构建素材落地 | In progress |
 | M4 | 游戏内容深度 | survivor/roguelike/模板内容提升 | Backlog |
 | M5 | 平台扩展 | Unity/Unreal/3D/协作 | Backlog |
 
@@ -93,7 +93,8 @@
 
 | ID | 事项 | 当前缺口 | 验收标准 | 状态 |
 |---|---|---|---|---|
-| AS1 | 动画节点 | 没有 AnimateDiff loader/motion module；无 sprite sheet/atlas | 透明关键帧 → 序列 → PNG/atlas → 引擎资源；可预览和重生成 | Next |
+| AS1 | 动画关键帧序列 | 已支持 2–4 帧透明关键帧、动画节点播放/重生成；没有 atlas | 生成序列、节点预览、可重生成 | Done |
+| AS1b | 动画图集/引擎资源 | 没有 sprite sheet 打包和引擎动画元数据 | 横向/网格 atlas、frame_size/FPS/loop、Godot/Web 引用 | Backlog |
 | AS2 | Asset Canvas 音频生成 | 只能索引/试听已有音频 | UI 内生成 BGM/SFX、试听、重命名、加入构建 | Next |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
 | AS4 | BGM 全模板覆盖 | 生成的 MiniMax BGM 只接 Godot survivor | Web/Unity survivor 及其他需要音频的模板统一接入音量和循环设置 | Next |
@@ -132,8 +133,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
-2. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+2. **AS1b 动画图集**：给现有帧序列加 atlas 打包和引擎动画元数据。
+3. **AS2 Asset Canvas 音频生成**：UI 内生成 BGM/SFX 并加入构建。
 
 ## 11. Definition of Done
 
