@@ -50,16 +50,34 @@ var level_marker_printed := false
 var upgrade_marker_printed := false
 var hud: Label
 var choice_label: Label
+var bgm: AudioStreamPlayer
 
 func _ready() -> void:
 	_build_hud()
 	autoplay = DisplayServer.get_name() == "headless"
 	if autoplay:
 		Engine.time_scale = 6.0
+	else:
+		_start_bgm()
 	for i in range(8):
 		_spawn_enemy("crawler")
 	print("GAMEDREAM_SURVIVOR_SPAWN")
 	queue_redraw()
+
+func _start_bgm() -> void:
+	var path := "res://modules/system.survivor/assets/bgm.mp3"
+	if not ResourceLoader.exists(path):
+		return
+	var stream := load(path) as AudioStreamMP3
+	if stream == null:
+		return
+	stream.loop = true
+	bgm = AudioStreamPlayer.new()
+	bgm.stream = stream
+	bgm.volume_db = -12.0
+	add_child(bgm)
+	bgm.play()
+	print("GAMEDREAM_BGM_OK")
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()

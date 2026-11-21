@@ -2,26 +2,17 @@
 
 ## Audio
 
-Current ComfyUI exposes MiniMax Music 3 nodes and has:
+MiniMax Music 3 is now fully available in the local ComfyUI instance:
 
 - `minimax_music3_dit_int8_convrot.safetensors` in `diffusion_models`
+- `minimax_music3_text_encoder_pruned_int8_convrot.safetensors` in `clip`
 - `minimax_music3_dav.safetensors` in `vae`
 
-The text encoder is still missing from `/models/clip`:
-
-- `minimax_music3_text_encoder_pruned_int8_convrot.safetensors`
-
-Download that file into `ComfyUI/models/clip/`, then run:
-
-```bash
-node scripts/comfyui-audio-generate.mjs \
-  --caption "Instrumental neon cyberpunk survival game loop. 92 BPM, minor key, pulsing synth bass, arpeggiated cyan lead, restrained percussion, tense but loopable." \
-  --duration 30 \
-  --out D:/project/game_dream/build/p2-neon-real-v2/generated-assets/bgm.mp3
-```
-
-The script preflights the three model files, builds a local MiniMax Music 3
-workflow, submits it to ComfyUI, polls history, and downloads the MP3.
+A 30-second instrumental BGM was generated with `scripts/comfyui-audio-generate.mjs`
+(seed `20261121`) and saved to
+`modules/system.survivor/assets/bgm.mp3`. The survivor runtime loads it with
+`AudioStreamMP3`, loops it, and prints `GAMEDREAM_BGM_OK` in windowed runs.
+Headless verification skips audio playback.
 
 Recommended asset split:
 
