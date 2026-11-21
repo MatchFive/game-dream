@@ -6,6 +6,12 @@ import { startStudioServer } from '../packages/studio/dist/index.js';
 
 const root = mkdtempSync(join(tmpdir(), 'gamedream-agent-smoke-'));
 const cliEntry = resolve('packages/cli/dist/index.js');
+const fakeGodot = resolve(
+  process.platform === 'win32'
+    ? 'scripts/fixtures/fake-godot.cmd'
+    : 'scripts/fixtures/fake-godot.sh',
+);
+process.env.GODOT_BIN = fakeGodot;
 const studio = await startStudioServer({
   projectDir: root,
   port: 0,

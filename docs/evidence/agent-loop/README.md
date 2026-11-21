@@ -16,18 +16,24 @@ Commit: `d2bb120` on `master`, synced to `D:\project\game_dream`.
 
 `scripts/studio-agent-smoke.mjs` starts the real CLI as a child of the Studio
 server, waits for `approval/request`, writes an allow decision, and then reads
-the final batch. The captured run proves:
+the final batch. The smoke uses `scripts/fixtures/fake-godot`, which reports
+version `4.4.1`, accepts import, and emits the generated project's acceptance
+markers. This keeps the smoke focused on the Agent/Studio loop rather than
+requiring a local Godot installation. The captured successful run proves:
 
 - `AGENT_APPROVAL_STATUS=awaiting-approval`
 - `AGENT_APPROVAL_TOOL=scaffold`
 - required events include `run/start`, `session/event`, `tool/start`,
   `approval/request`, `approval/decision`, `tool/end`, and `run/end`
+- `AGENT_FINAL_STATUS=finished`
+- `AGENT_REPORT_FINISHED=true`
+- `AGENT_REPORT_STEPS=3`
+- `AGENT_SCORE=1400`
 - `AGENT_APPROVAL_FLOW_OK=1`
 
-The smoke intentionally does not fake a Godot installation. In this environment
-G2/G3 are skipped and the report is `finished=false`, so the Studio correctly
-shows the run as failed rather than claiming a playable build. The Agent flow
-(events, approval, persistence) is still fully exercised.
+The fixture Godot is not an engine test; it deliberately makes the marker-based
+G2/G3 gates pass so the Studio/Agent orchestration can be verified without
+depending on an installed editor. Real-engine validation remains separate.
 
 ## UI evidence
 
