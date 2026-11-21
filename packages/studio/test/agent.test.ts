@@ -286,6 +286,8 @@ it('pushes agent snapshots over SSE', async () => {
     buffer = buffer.slice(boundary + 2);
     const data = frame.split(/\r?\n/).find((line) => line.startsWith('data: '));
     if (!data) throw new Error(`SSE frame has no data: ${frame}`);
+    expect(frame).toMatch(/^id: \d+/m);
+    expect(frame).toContain('retry: 1500');
     return JSON.parse(data.slice(6)) as Record<string, unknown>;
   };
 

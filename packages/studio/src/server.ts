@@ -280,6 +280,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
   const childServers = new Set<StudioServerHandle>();
   const sseClients = new Set<ServerResponse>();
+  const sseSequence = { value: 0 };
   let playtestChild: ReturnType<typeof spawn> | undefined;
   const stopPlaytest = () => {
     if (!playtestChild?.pid) return;
@@ -327,6 +328,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           cliEntry,
           agent,
           sseClients,
+          sseSequence,
           stopPlaytest,
           (child) => { playtestChild = child; },
         );
@@ -650,6 +652,7 @@ async function handleApi(
   cliEntry: string | undefined,
   agent: AgentManager,
   sseClients: Set<ServerResponse>,
+  sseSequence: { value: number },
   stopPlaytest: () => void,
   setPlaytestChild: (child: ReturnType<typeof spawn>) => void,
 ): Promise<void> {
@@ -759,7 +762,10 @@ async function handleApi(
     });
     const send = () => {
       if (response.writableEnded) return;
-      response.write(`event: snapshot\ndata: ${JSON.stringify(agent.list())}\n\n`);
+      sseSequence.value += 1;
+      response.write(
+        `id: ${sseSequence.value}\nretry: 1500\nevent: snapshot\ndata: ${JSON.stringify(agent.list())}\n\n`,
+      );
     };
     send();
     const unsubscribe = agent.subscribe(send);

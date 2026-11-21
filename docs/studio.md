@@ -111,7 +111,9 @@ The Studio Agent panel starts the same `dream develop` loop used by the CLI as a
 child process. The child writes append-only JSONL events, and the browser
 subscribes to `/api/agent/events` with Server-Sent Events. Each snapshot contains
 the active/latest batch, candidates, transcript events, and approvals; polling
-remains as a fallback when `EventSource` is unavailable.
+remains as a fallback when `EventSource` is unavailable. Snapshots carry an SSE
+`id` and `retry: 1500`, so the browser reconnects with the last event id and the
+server immediately sends a fresh full snapshot.
 
 The CLI flags used by the Studio are:
 
