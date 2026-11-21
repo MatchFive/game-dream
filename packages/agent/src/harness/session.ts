@@ -28,6 +28,8 @@ export interface SessionGeneration {
   createdAt: string;
 }
 
+export type SessionEventListener = (event: SessionEvent) => void;
+
 function projectMessages(events: SessionEvent[]): ChatMessage[] {
   const messages: ChatMessage[] = [];
   for (const event of events) {
@@ -77,6 +79,7 @@ export class AgentSession {
   parentCheckpoint?: string;
   generationCreatedAt = new Date().toISOString();
   private readonly initialUser: ChatMessage;
+  private readonly listeners = new Set<SessionEventListener>();
 
   constructor(system: string, user: string) {
     this.system = system;
@@ -84,32 +87,42 @@ export class AgentSession {
     this.events.push({ type: 'user/message', content: user });
   }
 
+  onEvent(listener: SessionEventListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private push(event: SessionEvent): void {
+    this.events.push(event);
+    for (const listener of this.listeners) listener(event);
+  }
+
   get messages(): ChatMessage[] {
     return projectMessages(this.events);
   }
 
   appendAssistant(content: string): void {
-    this.events.push({ type: 'assistant/message', content });
+    this.push({ type: 'assistant/message', content });
   }
 
   appendAssistantToolCalls(content: string, calls: ChatToolCall[]): void {
-    this.events.push({ type: 'assistant/tool_calls', content, calls });
+    this.push({ type: 'assistant/tool_calls', content, calls });
   }
 
   appendTool(content: string, tool = 'tool', ok = true, callId?: string): void {
-    this.events.push({ type: 'tool/result', tool, ok, content, callId });
+    this.push({ type: 'tool/result', tool, ok, content, callId });
   }
 
   appendUser(content: string): void {
-    this.events.push({ type: 'user/message', content });
+    this.push({ type: 'user/message', content });
   }
 
   record(kind: 'turn/start' | 'step/start' | 'step/end', step: number): void {
-    this.events.push({ type: kind, step });
+    this.push({ type: kind, step });
   }
 
   recordTurnEnd(finished: boolean, steps: number): void {
-    this.events.push({ type: 'turn/end', finished, steps });
+    this.push({ type: 'turn/end', finished, steps });
   }
 
   requestMessages(): ChatMessage[] {
@@ -138,7 +151,7 @@ export class AgentSession {
   compact(maxChars = 80_000): boolean {
     if (this.charCount() <= maxChars || this.messages.length <= 8) return false;
     const recent = this.messages.slice(-16);
-    this.events.push({
+    this.push({
       type: 'session/compact',
       messages: [
         this.initialUser,

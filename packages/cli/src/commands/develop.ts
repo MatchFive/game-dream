@@ -9,6 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import {
   AgentLoop,
@@ -64,6 +65,10 @@ export interface DevelopOptions {
   denyTools?: string[];
   askTools?: string[];
   yes?: boolean;
+  eventsFile?: string;
+  approvalDir?: string;
+  runId?: string;
+  onChunk?: (chunk: string) => void;
 }
 
 export interface CandidateReport {
@@ -641,11 +646,83 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     );
   }
   mkdirSync(dirname(sessionPath), { recursive: true });
+  let eventSeq = 0;
+  const emitEvent = (event: Record<string, unknown>) => {
+    if (!options.eventsFile) return;
+    mkdirSync(dirname(options.eventsFile), { recursive: true });
+    appendFileSync(
+      options.eventsFile,
+      `${JSON.stringify({
+        seq: ++eventSeq,
+        at: new Date().toISOString(),
+        runId: options.runId,
+        ...event,
+      })}\n`,
+      'utf8',
+    );
+  };
   const saveSession = () => {
     writeFileSync(sessionPath, `${JSON.stringify(session.toJSON(), null, 2)}\n`, 'utf8');
     writeFileSync(`${sessionPath}l`, session.toJSONL(), 'utf8');
   };
   saveSession();
+  session.onEvent((event) => emitEvent({ type: 'session/event', event }));
+  emitEvent({
+    type: 'run/start',
+    prompt: options.prompt,
+    outDir: options.outDir,
+    skill: options.skill,
+    provider: provider.name,
+    resumed: options.resume === true,
+  });
+  const requestApproval = async (
+    tool: string,
+    args: Record<string, unknown>,
+  ): Promise<boolean> => {
+    if (!options.approvalDir) return false;
+    const id = randomUUID();
+    const directory = options.approvalDir;
+    mkdirSync(directory, { recursive: true });
+    const requestPath = join(directory, `${id}.request.json`);
+    const decisionPath = join(directory, `${id}.decision.json`);
+    writeFileSync(
+      requestPath,
+      `${JSON.stringify({ id, tool, args, createdAt: new Date().toISOString() }, null, 2)}\n`,
+      'utf8',
+    );
+    emitEvent({ type: 'approval/request', id, tool, args });
+    const deadline = Date.now() + 10 * 60_000;
+    while (Date.now() < deadline) {
+      if (existsSync(decisionPath)) {
+        try {
+          const decision = JSON.parse(readFileSync(decisionPath, 'utf8')) as {
+            allowed?: unknown;
+            reason?: unknown;
+          };
+          const allowed = decision.allowed === true;
+          emitEvent({
+            type: 'approval/decision',
+            id,
+            tool,
+            allowed,
+            reason: typeof decision.reason === 'string' ? decision.reason : undefined,
+          });
+          return allowed;
+        } catch {
+          // Wait for the Studio server to finish writing the decision.
+        }
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    }
+    emitEvent({
+      type: 'approval/decision',
+      id,
+      tool,
+      allowed: false,
+      reason: 'approval timed out',
+    });
+    return false;
+  };
   let lastVerify: VerifyReport | undefined;
   let lastMissingMarkers: string[] = [];
   const defaultPermissionPath = join(options.outDir, '.gamedream', 'permissions.json');
@@ -660,6 +737,8 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   const permissionGate = new ToolPermissionGate({
     policy: permissionPolicy,
     autoApprove: options.yes,
+    interactive: options.approvalDir ? true : undefined,
+    prompt: options.approvalDir ? requestApproval : undefined,
   });
   let finished = false;
   let steps = 0;
@@ -674,16 +753,52 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     name: tool.name,
     description: tool.description,
     execute: async (args, toolContext) => {
+      const started = Date.now();
+      emitEvent({ type: 'tool/start', tool: tool.name, args });
       const denied = readOnlyDenied(toolContext, tool.name);
-      if (denied) return denied;
+      if (denied) {
+        emitEvent({
+          type: 'tool/end',
+          tool: tool.name,
+          ok: false,
+          output: denied.output,
+          durationMs: Date.now() - started,
+        });
+        return denied;
+      }
       const confirmation = await permissionGate.authorize(tool.name, args);
       if (!confirmation.allowed) {
-        return {
+        const output = `Permission denied: ${confirmation.reason ?? tool.name}`;
+        emitEvent({
+          type: 'tool/end',
+          tool: tool.name,
           ok: false,
-          output: `Permission denied: ${confirmation.reason ?? tool.name}`,
-        };
+          output,
+          durationMs: Date.now() - started,
+        });
+        return { ok: false, output };
       }
-      return tool.run(args, toolContext);
+      try {
+        const result = await tool.run(args, toolContext);
+        emitEvent({
+          type: 'tool/end',
+          tool: tool.name,
+          ok: result.ok,
+          output: result.output.slice(0, 8000),
+          durationMs: Date.now() - started,
+        });
+        return result;
+      } catch (error) {
+        const output = (error as Error).message;
+        emitEvent({
+          type: 'tool/end',
+          tool: tool.name,
+          ok: false,
+          output,
+          durationMs: Date.now() - started,
+        });
+        throw error;
+      }
     },
   }));
   const loop = new AgentLoop<DevelopContext>({
@@ -699,6 +814,12 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     compactChars: 80_000,
     nativeTools,
     stream: Boolean(provider.completeChatStream),
+    onChunk: options.onChunk || options.eventsFile
+      ? (chunk) => {
+          emitEvent({ type: 'assistant/chunk', text: chunk });
+          options.onChunk?.(chunk);
+        }
+      : undefined,
     cacheBreakpoints: options.cacheBreakpoints,
     session,
     canFinish: () => {
@@ -730,35 +851,45 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   });
 
   try {
-    const result = await loop.run();
-    actions = result.actions;
-    steps = result.steps;
-    finished = result.finished;
-    usage = result.usage;
-  } finally {
-    mcp?.close();
-  }
+    try {
+      const result = await loop.run();
+      actions = result.actions;
+      steps = result.steps;
+      finished = result.finished;
+      usage = result.usage;
+    } finally {
+      mcp?.close();
+    }
 
-  const verify = await verifyCommand({
-    projectDir: options.outDir,
-    env,
-    runner: options.runner,
-    visual: options.visual,
-  });
-  return {
-    provider: provider.name,
-    skill: options.skill,
-    outDir: options.outDir,
-    steps,
-    actions,
-    finished,
-    missingMarkers: missingExpectedMarkers(options.outDir, options.expectedMarkers),
-    mcpTools,
-    sessionPath,
-    resumed,
-    forked,
-    generation: session.generation,
-    usage,
-    verify,
-  };
+    const verify = await verifyCommand({
+      projectDir: options.outDir,
+      env,
+      runner: options.runner,
+      visual: options.visual,
+    });
+    const report: DevelopReport = {
+      provider: provider.name,
+      skill: options.skill,
+      outDir: options.outDir,
+      steps,
+      actions,
+      finished,
+      missingMarkers: missingExpectedMarkers(options.outDir, options.expectedMarkers),
+      mcpTools,
+      sessionPath,
+      resumed,
+      forked,
+      generation: session.generation,
+      usage,
+      verify,
+    };
+    emitEvent({ type: 'run/end', report });
+    return report;
+  } catch (error) {
+    emitEvent({
+      type: 'run/error',
+      error: (error as Error).message,
+    });
+    throw error;
+  }
 }

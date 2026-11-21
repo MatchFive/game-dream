@@ -1,5 +1,14 @@
 export { startStudioServer, type StudioServerHandle, type StudioServerOptions } from './server.js';
 export {
+  AgentManager,
+  type AgentApproval,
+  type AgentBatch,
+  type AgentEvent,
+  type AgentReport,
+  type AgentRun,
+  type AgentRunStatus,
+} from './agent.js';
+export {
   loadCanvas,
   loadProject,
   saveCanvas,

@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AgentManager } from './agent.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, toggleInBuild } from './assets.js';
 import { ComfyRunner } from './comfyui.js';
 import {
@@ -123,6 +124,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
   const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
+  const agent = new AgentManager({ root, cliEntry });
 
   const server = createServer(async (request, response) => {
     try {
@@ -130,7 +132,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       const pathname = decodeURIComponent(url.pathname);
 
       if (pathname.startsWith('/api/')) {
-        await handleApi(request, response, pathname, root, runner, comfyui, cliEntry);
+        await handleApi(request, response, pathname, root, runner, comfyui, cliEntry, agent);
         return;
       }
 
@@ -174,6 +176,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     url: `http://${displayHost}:${actualPort}`,
     port: actualPort,
     close: () => new Promise((resolveClose, rejectClose) => {
+      agent.close();
       server.close((error) => (error ? rejectClose(error) : resolveClose()));
     }),
   };
@@ -243,8 +246,113 @@ async function handleApi(
   runner: ComfyRunner,
   comfyui: ComfyUiConfig,
   cliEntry: string | undefined,
+  agent: AgentManager,
 ): Promise<void> {
   const method = request.method ?? 'GET';
+
+  if (method === 'GET' && pathname === '/api/agent') {
+    json(response, 200, agent.list());
+    return;
+  }
+
+  const agentBatchMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)$/);
+  if (method === 'GET' && agentBatchMatch) {
+    const batch = agent.get(agentBatchMatch[1]);
+    if (!batch) {
+      json(response, 404, { error: 'agent batch not found' });
+      return;
+    }
+    json(response, 200, { batch });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/agent/start') {
+    try {
+      const body = (await readJson(request)) as {
+        prompt?: unknown;
+        provider?: unknown;
+        skill?: unknown;
+        maxSteps?: unknown;
+        candidates?: unknown;
+        resume?: unknown;
+        approvalTools?: unknown;
+      };
+      const batch = await agent.start({
+        prompt: typeof body.prompt === 'string' ? body.prompt : '',
+        provider: body.provider === 'fake' ? 'fake' : 'auto',
+        skill: typeof body.skill === 'string' ? body.skill : undefined,
+        maxSteps: typeof body.maxSteps === 'number' ? body.maxSteps : undefined,
+        candidates: typeof body.candidates === 'number' ? body.candidates : undefined,
+        resume: body.resume === true,
+        approvalTools: Array.isArray(body.approvalTools)
+          ? body.approvalTools.map(String)
+          : undefined,
+      });
+      json(response, 202, { batch });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const cancelMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)\/cancel$/);
+  if (method === 'POST' && cancelMatch) {
+    try {
+      json(response, 200, { batch: agent.cancel(cancelMatch[1]) });
+    } catch (error) {
+      json(response, 404, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const applyMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)\/apply$/);
+  if (method === 'POST' && applyMatch) {
+    try {
+      const body = (await readJson(request)) as { runId?: unknown };
+      const batch = agent.get(applyMatch[1]);
+      if (!batch) {
+        json(response, 404, { error: 'agent batch not found' });
+        return;
+      }
+      const runId = typeof body.runId === 'string' ? body.runId : batch.selectedRunId;
+      if (!runId) {
+        json(response, 400, { error: 'runId is required' });
+        return;
+      }
+      json(response, 200, { batch: agent.apply(applyMatch[1], runId) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const approvalMatch = pathname.match(
+    /^\/api\/agent\/batches\/([^/]+)\/runs\/([^/]+)\/approval$/,
+  );
+  if (method === 'POST' && approvalMatch) {
+    try {
+      const body = (await readJson(request)) as {
+        approvalId?: unknown;
+        allowed?: unknown;
+        reason?: unknown;
+      };
+      if (typeof body.approvalId !== 'string') {
+        json(response, 400, { error: 'approvalId is required' });
+        return;
+      }
+      const approval = agent.approve(
+        approvalMatch[1],
+        approvalMatch[2],
+        body.approvalId,
+        body.allowed === true,
+        typeof body.reason === 'string' ? body.reason : undefined,
+      );
+      json(response, 200, { approval });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
 
   if (method === 'GET' && pathname === '/api/state') {
     const canvas = loadCanvas(root);

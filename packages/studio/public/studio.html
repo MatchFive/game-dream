@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>GameDream Studio</title>
 <link rel="stylesheet" href="/styles.css?v=2">
-<link rel="stylesheet" href="/studio.css?v=2">
+<link rel="stylesheet" href="/studio.css?v=4">
 </head>
 <body data-screen="preview">
 <svg class="sprite" aria-hidden="true">
@@ -46,7 +46,36 @@
 </header>
 
 <main class="studio-workspace">
-  <aside class="studio-left" aria-label="项目与构建历史">
+  <aside class="studio-left" aria-label="Agent 与项目构建">
+    <section class="studio-agent" id="agentPanel">
+      <div class="studio-agent-head">
+        <span class="eyebrow" data-i18n="studio.agent">AGENT</span>
+        <span class="studio-agent-state" id="agentState">空闲</span>
+      </div>
+      <div class="studio-agent-candidates" id="agentCandidates" hidden></div>
+      <div class="studio-agent-thread" id="agentThread">
+        <div class="studio-agent-empty" data-i18n="studio.agentNoSession">还没有 Agent 会话。输入目标并启动。</div>
+      </div>
+      <div class="studio-approval" id="agentApproval" hidden>
+        <div class="studio-approval-head"><span data-i18n="studio.agentApproval">需要审批</span><strong id="agentApprovalTool">tool</strong></div>
+        <pre id="agentApprovalArgs"></pre>
+        <div class="studio-approval-actions">
+          <button class="button primary" type="button" id="agentAllow" data-i18n="studio.agentAllow">允许</button>
+          <button class="button secondary" type="button" id="agentDeny" data-i18n="studio.agentDeny">拒绝</button>
+        </div>
+      </div>
+      <div class="studio-agent-compose">
+        <textarea id="agentPrompt" rows="2" placeholder="描述要完成的游戏目标…" aria-label="Agent 目标" data-i18n-placeholder="studio.agentPromptPlaceholder" data-i18n-aria="studio.agentPrompt"></textarea>
+        <div class="studio-agent-options">
+          <label class="studio-check"><input type="checkbox" id="agentResume"> <span data-i18n="studio.agentResume">续跑</span></label>
+          <label class="studio-agent-count"><span data-i18n="studio.agentCandidates">候选</span>
+            <select id="agentCandidateCount" aria-label="候选数量"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+          </label>
+          <button class="button primary" id="agentStart" type="button"><svg class="icon"><use href="#i-play"></use></svg> <span data-i18n="studio.agentStart">启动</span></button>
+        </div>
+        <div class="studio-agent-foot"><span id="agentMeta" data-i18n="studio.agentIdle">空闲 · auto provider</span><button class="button secondary" id="agentCancel" type="button" hidden data-i18n="studio.agentStop">停止</button></div>
+      </div>
+    </section>
     <div class="studio-head">
       <div class="eyebrow"><span data-i18n="studio.projectBuild">PROJECT / BUILD</span></div>
       <h1 id="projectTitle">Project</h1>
@@ -123,6 +152,6 @@
 </nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="/studio.js?v=3"></script>
+<script type="module" src="/studio.js?v=7"></script>
 </body>
 </html>

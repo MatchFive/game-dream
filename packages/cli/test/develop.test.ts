@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
@@ -71,5 +71,60 @@ describe('development case', () => {
     expect(report.selected.score).toBeGreaterThanOrEqual(report.candidates[1].score);
     expect(report.selected.report.finished).toBe(true);
     expect(existsSync(report.selected.report.sessionPath)).toBe(true);
+  }, 30_000);
+
+  it('streams structured events and resolves Studio approvals', async () => {
+    const developmentCase = loadDevelopmentCase(
+      join(root, 'cases/development/survivor-demo.json'),
+    );
+    const outDir = join(makeTempDir('gamedream events '), 'survivor-demo');
+    const eventsFile = join(outDir, 'events.jsonl');
+    const approvalDir = join(outDir, 'approvals');
+    const running = developCommand({
+      prompt: developmentCase.prompt,
+      outDir,
+      skillsDir: join(root, 'skills'),
+      skill: developmentCase.skill,
+      providerKind: 'fake',
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      maxSteps: 4,
+      eventsFile,
+      approvalDir,
+      runId: 'events-test',
+      askTools: ['scaffold'],
+    });
+    let requestFile = '';
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (existsSync(approvalDir)) {
+        const name = readdirSync(approvalDir).find((entry) => entry.endsWith('.request.json'));
+        if (name) {
+          requestFile = join(approvalDir, name);
+          break;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    expect(requestFile).not.toBe('');
+    const request = JSON.parse(readFileSync(requestFile, 'utf8')) as { id: string };
+    writeFileSync(
+      join(approvalDir, `${request.id}.decision.json`),
+      JSON.stringify({ allowed: true }),
+      'utf8',
+    );
+    const report = await running;
+    expect(report.finished).toBe(true);
+    const events = readFileSync(eventsFile, 'utf8')
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as { type: string });
+    const types = events.map((event) => event.type);
+    expect(types).toContain('run/start');
+    expect(types).toContain('approval/request');
+    expect(types).toContain('approval/decision');
+    expect(types).toContain('tool/start');
+    expect(types).toContain('tool/end');
+    expect(types).toContain('session/event');
+    expect(types).toContain('run/end');
   }, 30_000);
 });

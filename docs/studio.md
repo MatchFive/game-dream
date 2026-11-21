@@ -52,6 +52,29 @@ their progress. Up to four variants can be requested in one batch; each variant
 gets its own seed, image, and metadata name. Jobs are in memory, so restarting
 the server cancels the UI's view of an in-flight job.
 
+## Agent
+
+The Studio Agent panel starts the same `dream develop` loop used by the CLI as a
+child process. The child writes append-only JSONL events, so the browser can
+show the session transcript, tool trace, running state, and approvals without
+scraping terminal output.
+
+The CLI flags used by the Studio are:
+
+- `--events-file <file>` writes `run/start`, session events, `tool/start`,
+  `tool/end`, `approval/request`, `approval/decision`, `run/end`, and
+  `run/error`.
+- `--approval-dir <dir>` exchanges approval request and decision JSON files.
+  The studio writes a decision when the user clicks Allow or Deny.
+- `--run-id <id>` attaches the batch/run id to every event.
+
+Each Agent batch is persisted under `.gamedream/studio/agent/<batch-id>/`.
+Candidates run in separate `<candidate-N>/project` directories; applying a
+candidate copies its generated top-level project files into the Studio root
+while excluding `.gamedream`, `.env`, and build caches. Interrupted child
+processes become failed history entries after a server restart rather than being
+silently reported as running.
+
 ## HTTP API
 
 | Route | Purpose |
@@ -66,6 +89,11 @@ the server cancels the UI's view of an in-flight job.
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
 | `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
+| `GET /api/agent` | Active/latest Agent batch and history |
+| `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
+| `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
+| `POST /api/agent/batches/:id/runs/:runId/approval` | Allow or deny a pending tool approval |
+| `POST /api/agent/batches/:id/apply` | Copy a finished candidate into the Studio project |
 | `GET /api/health` | ComfyUI and workflow health |
 
 Verification uses the same CLI entry that launched `dream studio` (or
@@ -80,4 +108,9 @@ expose it on a public interface.
 - Build selection is metadata for the composer; it does not copy files into a
   module yet.
 - Generated jobs are not resumed after a server restart.
+- Agent children are not restarted after a server restart; they become failed
+  history entries.
+- Agent UI updates are file-backed polling (700ms), not a WebSocket/SSE stream.
+- Candidate apply overwrites matching top-level project files without an
+  automatic backup.
 - Animation generation is not implemented; animation nodes remain a placeholder.

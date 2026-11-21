@@ -234,6 +234,9 @@ export function createProgram(): Command {
     .option('--yes', 'auto-approve ask permissions')
     .option('--read-only', 'deny mutating tools (scaffold/compose/write/mcp)')
     .option('--visual', 'run G6 screenshot gate')
+    .option('--events-file <file>', 'append structured agent events as JSONL')
+    .option('--approval-dir <dir>', 'exchange tool approval requests and decisions')
+    .option('--run-id <id>', 'identifier attached to structured events')
     .option('--json', 'print JSON')
     .action(
       async (
@@ -257,6 +260,9 @@ export function createProgram(): Command {
           yes?: boolean;
           readOnly?: boolean;
           visual?: boolean;
+          eventsFile?: string;
+          approvalDir?: string;
+          runId?: string;
           json?: boolean;
         },
       ) => {
@@ -288,6 +294,9 @@ export function createProgram(): Command {
             askTools: options.askTool?.split(',').map((value) => value.trim()).filter(Boolean),
             yes: options.yes,
             readOnly: options.readOnly,
+            eventsFile: options.eventsFile,
+            approvalDir: options.approvalDir,
+            runId: options.runId,
           };
           const candidates = candidateCount > 1
             ? await developCandidates({
