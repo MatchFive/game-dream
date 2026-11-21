@@ -14,6 +14,7 @@ import {
 import { dirname, join, resolve } from 'node:path';
 
 export type AgentRunStatus =
+  | 'queued'
   | 'running'
   | 'awaiting-approval'
   | 'finished'
@@ -225,6 +226,7 @@ function approvalsFromEvents(events: AgentEvent[]): AgentApproval[] {
 }
 
 function batchStatus(candidates: AgentRun[]): AgentRunStatus {
+  if (candidates.length > 0 && candidates.every((run) => run.status === 'queued')) return 'queued';
   if (candidates.some((run) => run.status === 'awaiting-approval')) return 'awaiting-approval';
   if (candidates.some((run) => run.status === 'running')) return 'running';
   if (candidates.length > 0 && candidates.every((run) => run.status === 'finished')) return 'finished';
@@ -263,6 +265,7 @@ export class AgentManager {
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly batches = new Map<string, AgentBatch>();
   private readonly listeners = new Set<() => void>();
+  private readonly queue: string[] = [];
   private activeBatchId?: string;
 
   subscribe(listener: () => void): () => void {
@@ -281,12 +284,15 @@ export class AgentManager {
     this.recoverInterrupted();
   }
 
-  list(): { active?: AgentBatch; batches: AgentBatch[] } {
+  list(): { active?: AgentBatch; queued: AgentBatch[]; batches: AgentBatch[] } {
     const batches = [...this.batches.values()].sort((left, right) =>
       right.createdAt.localeCompare(left.createdAt),
     );
     return {
       active: this.activeBatchId ? this.batches.get(this.activeBatchId) : undefined,
+      queued: this.queue
+        .map((id) => this.batches.get(id))
+        .filter((batch): batch is AgentBatch => batch !== undefined),
       batches,
     };
   }
@@ -325,10 +331,6 @@ export class AgentManager {
     if (!prompt) throw new Error('prompt is required');
     if (prompt.length > 6000) throw new Error('prompt is limited to 6000 characters');
     if (!this.cliEntry) throw new Error('agent CLI entry is not configured');
-    const active = this.activeBatchId ? this.batches.get(this.activeBatchId) : undefined;
-    if (active && (active.status === 'running' || active.status === 'awaiting-approval')) {
-      throw new Error('an agent run is already active');
-    }
     const count = clampCandidates(input.candidates);
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || 12));
     const maxTokens = optionalTokenLimit(input.maxTokens);
@@ -351,7 +353,7 @@ export class AgentManager {
         eventsFile: join(runDir, 'events.jsonl'),
         approvalDir: join(runDir, 'approvals'),
         startedAt: new Date().toISOString(),
-        status: 'running',
+        status: 'queued',
         events: [],
         approvals: [],
       };
@@ -365,7 +367,7 @@ export class AgentManager {
       provider: input.provider === 'fake' ? 'fake' : 'auto',
       skill: input.skill?.trim() || 'survivor-demo',
       createdAt: new Date().toISOString(),
-      status: 'running',
+      status: 'queued',
       candidates,
       maxSteps,
       maxTokens,
@@ -375,9 +377,9 @@ export class AgentManager {
       permissions: hasPolicy ? policyPath : undefined,
     };
     this.batches.set(id, batch);
-    this.activeBatchId = id;
+    this.queue.push(id);
     this.persist(batch);
-    for (const run of candidates) this.spawn(batch, run, input);
+    this.pumpQueue();
     this.notify();
     return batch;
   }
@@ -411,10 +413,17 @@ export class AgentManager {
   cancel(batchId: string): AgentBatch {
     const batch = this.batches.get(batchId);
     if (!batch) throw new Error('agent batch not found');
+    const queuedIndex = this.queue.indexOf(batchId);
+    if (queuedIndex >= 0) this.queue.splice(queuedIndex, 1);
+    const wasActive = this.activeBatchId === batchId;
     for (const run of batch.candidates) {
       const child = this.children.get(run.id);
       if (child) this.kill(child);
-      if (run.status === 'running' || run.status === 'awaiting-approval') {
+      if (
+        run.status === 'queued'
+        || run.status === 'running'
+        || run.status === 'awaiting-approval'
+      ) {
         run.status = 'canceled';
         run.finishedAt = new Date().toISOString();
         run.events.push({
@@ -426,9 +435,10 @@ export class AgentManager {
     }
     batch.status = 'canceled';
     batch.finishedAt = new Date().toISOString();
-    this.activeBatchId = undefined;
+    if (wasActive) this.activeBatchId = undefined;
     this.persist(batch);
     this.notify();
+    if (wasActive) this.pumpQueue();
     return batch;
   }
 
@@ -515,6 +525,7 @@ export class AgentManager {
     this.timers.clear();
     for (const child of this.children.values()) this.kill(child);
     this.children.clear();
+    this.queue.length = 0;
   }
 
   private createBackup(batch: AgentBatch, run: AgentRun): AgentBackup {
@@ -672,14 +683,65 @@ export class AgentManager {
 
   private reconcile(batch: AgentBatch): void {
     batch.status = batchStatus(batch.candidates);
-    if (batch.status === 'finished' || batch.status === 'failed' || batch.status === 'canceled') {
+    const terminal = batch.status === 'finished'
+      || batch.status === 'failed'
+      || batch.status === 'budget-exceeded'
+      || batch.status === 'canceled';
+    if (terminal) {
       batch.finishedAt ??= new Date().toISOString();
-      if (batch.candidates.every((run) => run.status !== 'running' && run.status !== 'awaiting-approval')) {
+      if (
+        this.activeBatchId === batch.id
+        && batch.candidates.every((run) => run.status !== 'running' && run.status !== 'awaiting-approval')
+      ) {
         this.activeBatchId = undefined;
       }
     }
     this.persist(batch);
     this.notify();
+    if (terminal && this.activeBatchId === undefined) this.pumpQueue();
+  }
+
+  private pumpQueue(): void {
+    if (!this.cliEntry) return;
+    if (this.activeBatchId) {
+      const active = this.batches.get(this.activeBatchId);
+      if (
+        active
+        && (active.status === 'running'
+          || active.status === 'awaiting-approval'
+          || active.status === 'queued')
+      ) {
+        return;
+      }
+      this.activeBatchId = undefined;
+    }
+    while (this.queue.length > 0) {
+      const id = this.queue.shift();
+      if (!id) return;
+      const batch = this.batches.get(id);
+      if (!batch || batch.status !== 'queued' || batch.candidates.length === 0) continue;
+      this.activeBatchId = id;
+      batch.status = 'running';
+      for (const run of batch.candidates) {
+        run.status = 'running';
+        run.startedAt = new Date().toISOString();
+        run.error = undefined;
+        run.finishedAt = undefined;
+        this.spawn(batch, run, {
+          prompt: batch.prompt,
+          provider: batch.provider,
+          skill: batch.skill,
+          maxSteps: batch.maxSteps,
+          maxTokens: batch.maxTokens,
+          maxPromptTokens: batch.maxPromptTokens,
+          approvalTools: batch.approvalTools,
+          resume: batch.resume,
+        });
+      }
+      this.persist(batch);
+      this.notify();
+      return;
+    }
   }
 
   private batchRoot(id: string): string {
@@ -806,6 +868,13 @@ export class AgentManager {
       this.persist(batch);
       this.notify();
     }
+    const queued = [...this.batches.values()]
+      .filter((batch) => batch.status === 'queued')
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+    for (const batch of queued) {
+      if (!this.queue.includes(batch.id)) this.queue.push(batch.id);
+    }
+    this.pumpQueue();
   }
 
   private stopTimer(runId: string): void {

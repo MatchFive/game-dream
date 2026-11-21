@@ -15,9 +15,15 @@
 .studio-agent-state { color: var(--dim); font: 8px/1 var(--mono); }
 .studio-agent-state.running { color: var(--amber); }
 .studio-agent-state.awaiting { color: var(--coral); }
+.studio-agent-state.queued { color: var(--dim); }
 .studio-agent-state.budget { color: var(--amber); }
 .studio-agent-state.finished { color: var(--lime); }
 .studio-agent-state.failed { color: var(--coral); }
+.studio-agent-queue { display: flex; flex-direction: column; gap: 4px; padding: 0 12px 7px; }
+.studio-agent-queue[hidden] { display: none; }
+.studio-agent-queue-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--dim); font: 7px/1.2 var(--mono); }
+.studio-agent-queue-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-agent-queue-row button { flex-shrink: 0; border: 0; color: var(--coral); background: transparent; font: inherit; cursor: pointer; }
 .studio-agent-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 12px 7px; }
 .studio-candidate { min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: var(--panel); text-align: start; }
 .studio-candidate[aria-selected="true"] { border-color: var(--lime); color: var(--lime); background: var(--lime-soft); }

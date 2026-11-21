@@ -158,6 +158,8 @@ Playable prototype or structured repair loop
 - `--candidates N` to generate several projects and select by verification score.
 - `--max-tokens N` for a hard stop on provider-reported total token usage, plus
   `--max-prompt-tokens N` for prompt usage.
+- Studio queues new Agent batches while one is active; queued runs appear in
+  `/api/agent` and can be canceled before they start.
 - Replaceable plugin tree with tool overrides and step/tool/finish hooks.
 - Explicit `prompt_cache_key` boundaries when the provider supports them.
 - MCP bridge for Godot editor tools, discoverable through `mcp.json`.

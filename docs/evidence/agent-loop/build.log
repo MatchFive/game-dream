@@ -8,9 +8,9 @@ packages/studio build: Done
 packages/core build$ tsc -b
 packages/unity build$ tsc -b
 packages/web build$ tsc -b
-packages/core build: Done
 packages/unity build: Done
 packages/web build: Done
+packages/core build: Done
 packages/agent build$ tsc -b
 packages/godot build$ tsc -b
 packages/godot build: Done

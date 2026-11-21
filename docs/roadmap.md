@@ -10,8 +10,8 @@
 
 | 领域 | 已完成 |
 |---|---|
-| Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止 |
-| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算和 usage 展示 |
+| Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止、批次队列 |
+| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
 | Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
@@ -21,8 +21,8 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**226 passed / 9 skipped**
-- Agent focused tests：**10 passed**
+- 全量测试：**227 passed / 9 skipped**
+- Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
 
@@ -58,7 +58,7 @@
 |---|---|---|---|---|
 | A1 | Token 硬预算 | 已实现总 token 和 prompt token 停止；provider 不返回 usage 时无法约束 | 达预算前停止、`run/budget` 事件、`budget-exceeded` 状态、CLI/Studio 测试 | Done |
 | A1b | 费用/金额预算 | 尚无模型价格表和货币预算 | 按模型价格估算成本，达到预算前停止；未知价格显式标记 | Backlog |
-| A2 | Agent 队列与并发 | 同一时间只允许一个 active batch | 支持排队、取消排队、并发上限；SSE 显示 queued/running | Next |
+| A2 | Agent 队列与并发 | 已支持 FIFO 批次队列、取消排队、自动接续；批级别并发上限为 1 | 连续提交不阻塞、queued 状态进入 SSE/UI、取消队列、当前批次结束后自动启动下一项 | Done |
 | A3 | 完整审批策略编辑器 | 目前 UI 只有 Always allow，API 支持单工具模式 | 可按工具编辑 allow/ask/deny，查看策略来源，参数范围可扩展 | Next |
 | A4 | 硬崩溃子进程回收 | graceful restart 可恢复，hard crash 遗留进程不回收 | 持久化 PID/启动标识；重启时安全判断并回收旧进程 | Backlog |
 | A5 | 运行历史 UI | API 有 batch history，Studio 主要显示 latest | 历史列表、切换查看、清理旧 batch | Backlog |
@@ -129,12 +129,11 @@
 
 ## 10. 建议的下一步顺序
 
-1. **A2 Agent 队列**：支持连续提交多个任务，避免 UI 只能等待单次运行。
-2. **A3 审批策略编辑器**：把单工具 allow/ask/deny 做成可查看、可编辑的完整策略面。
-3. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
-4. **AS5 Build selection 落地**：让素材选择真正进入 composer。
-5. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
-6. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **A3 审批策略编辑器**：把单工具 allow/ask/deny 做成可查看、可编辑的完整策略面。
+2. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
+3. **AS5 Build selection 落地**：让素材选择真正进入 composer。
+4. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
+5. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
 
 ## 11. Definition of Done
 

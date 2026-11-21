@@ -9,6 +9,7 @@ const state = {
   right: 'runs',
   verifying: false,
   agent: null,
+  agentQueue: [],
   agentRunId: null,
   agentPoll: null,
   agentSource: null,
@@ -90,11 +91,12 @@ function agentStatusLabel(status) {
   return t(`studio.agent${
     status === 'running' ? 'Running'
       : status === 'awaiting-approval' ? 'Awaiting'
-        : status === 'budget-exceeded' ? 'BudgetExceeded'
-          : status === 'finished' ? 'Finished'
-            : status === 'failed' ? 'Failed'
-              : status === 'canceled' ? 'Canceled'
-                : 'Idle'
+        : status === 'queued' ? 'Queued'
+          : status === 'budget-exceeded' ? 'BudgetExceeded'
+            : status === 'finished' ? 'Finished'
+              : status === 'failed' ? 'Failed'
+                : status === 'canceled' ? 'Canceled'
+                  : 'Idle'
   }`);
 }
 
@@ -128,7 +130,9 @@ function agentEventDetails(summary, body) {
 function agentThreadMarkup(run) {
   if (!run?.events?.length) {
     return `<div class="studio-agent-empty">${t(
-      run?.status === 'running' ? 'studio.agentStarting' : 'studio.agentEmpty',
+      run?.status === 'running'
+        ? 'studio.agentStarting'
+        : run?.status === 'queued' ? 'studio.agentQueuedHint' : 'studio.agentEmpty',
     )}</div>`;
   }
   const items = [];
@@ -238,15 +242,27 @@ function renderAgent() {
   stateElement.textContent = agentStatusLabel(status);
   stateElement.className = `studio-agent-state ${
     status === 'awaiting-approval' ? 'awaiting'
-      : status === 'budget-exceeded' ? 'budget'
-        : status === 'finished' ? 'finished'
-          : status === 'failed' || status === 'canceled' ? 'failed'
-            : status === 'running' ? 'running' : ''
+      : status === 'queued' ? 'queued'
+        : status === 'budget-exceeded' ? 'budget'
+          : status === 'finished' ? 'finished'
+            : status === 'failed' || status === 'canceled' ? 'failed'
+              : status === 'running' ? 'running' : ''
   }`;
-  $('#agentStart').disabled = status === 'running' || status === 'awaiting-approval';
+  $('#agentStart').disabled = false;
   $('#agentCancel').hidden = !(status === 'running' || status === 'awaiting-approval');
   const candidateCount = Number($('#agentCandidateCount').value) || 1;
   $('#agentResume').disabled = candidateCount > 1;
+  const queued = state.agentQueue ?? [];
+  $('#agentQueue').hidden = queued.length === 0;
+  $('#agentQueue').innerHTML = queued.map((item, index) => `
+    <div class="studio-agent-queue-row">
+      <span>${escapeHtml(t('studio.agentQueueItem', {
+        position: index + 1,
+        prompt: String(item.prompt ?? '').slice(0, 80),
+      }))}</span>
+      <button type="button" data-agent-queue-cancel="${escapeHtml(item.id)}">${t('studio.agentCancelQueued')}</button>
+    </div>
+  `).join('');
 
   if (!batch) {
     $('#agentCandidates').hidden = true;
@@ -313,6 +329,9 @@ function renderAgent() {
         candidates: candidates.length,
       })
     : t('studio.agentMetaSingle', { provider: batch.provider, skill: batch.skill });
+  if (queued.length > 0) {
+    $('#agentMeta').textContent += ` · ${t('studio.agentQueue', { count: queued.length })}`;
+  }
   if (run) {
     const usage = agentUsageText(run.report);
     if (usage) $('#agentMeta').textContent += ` · ${usage}`;
@@ -328,6 +347,9 @@ function renderAgent() {
   $('[data-agent-diff]')?.addEventListener('click', () => loadAgentDiff(batch, run));
   $('[data-agent-apply]')?.addEventListener('click', () => applyAgentCandidate(batch, run));
   $('[data-agent-rollback]')?.addEventListener('click', () => rollbackAgent(batch));
+  $$('[data-agent-queue-cancel]', $('#agentQueue')).forEach((button) => {
+    button.addEventListener('click', () => cancelQueuedBatch(button.dataset.agentQueueCancel));
+  });
   renderAgentDiff(run);
 }
 
@@ -382,6 +404,7 @@ async function applyAgentData(data) {
   const previousStatus = state.agentLastStatus;
   const batch = data.active ?? data.batches?.[0] ?? null;
   state.agent = batch;
+  state.agentQueue = data.queued ?? [];
   state.agentLastStatus = batch?.status ?? null;
   if (batch) {
     if (!batch.candidates?.some((run) => run.id === state.agentRunId)) {
@@ -529,6 +552,20 @@ async function cancelAgent() {
       method: 'POST',
       body: JSON.stringify({}),
     });
+    await loadAgent(true);
+  } catch (error) {
+    toast(t('studio.agentCancelFailed', { message: error.message }));
+  }
+}
+
+async function cancelQueuedBatch(batchId) {
+  if (!batchId) return;
+  try {
+    await request(`/api/agent/batches/${encodeURIComponent(batchId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    toast(t('studio.agentQueueCanceled'));
     await loadAgent(true);
   } catch (error) {
     toast(t('studio.agentCancelFailed', { message: error.message }));

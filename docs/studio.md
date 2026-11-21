@@ -81,6 +81,12 @@ Candidates run in separate `<candidate-N>/project` directories; applying a
 candidate copies its generated top-level project files into the Studio root
 while excluding `.gamedream`, `.env`, and build caches.
 
+Starting a new batch while another is running queues it instead of rejecting the
+request. The batch-level concurrency cap is one, so queued batches start FIFO
+when the active batch finishes or is canceled. `/api/agent` returns `active`,
+`queued`, and the persisted `batches` history; queued batches can be canceled
+before they start. Candidate fan-out inside one batch still runs in parallel.
+
 Approval policy is persisted at `.gamedream/studio/agent-policy.json`.
 The approval card's **Always allow** action writes
 `{ "tools": { "<tool>": "allow" } }` there and applies the current decision.
@@ -129,7 +135,7 @@ binding.
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
 | `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
-| `GET /api/agent` | Active/latest Agent batch and history |
+| `GET /api/agent` | Active, queued, and historical Agent batches |
 | `GET /api/agent/policy` | Read the Studio approval policy |
 | `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) |
 | `GET /api/agent/events` | Server-Sent Events snapshots of Agent state |
@@ -160,6 +166,9 @@ expose it on a public interface.
 - Agent children are resumed with `--resume` after a Studio restart; a child
   left behind by a hard crash is not reaped automatically.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
+- Agent batches are capped at one active batch; additional submissions queue in
+  memory and as persisted `batch.json` records. Candidate fan-out inside one
+  batch is not capped separately.
 - Token budgets are enforced only when the provider reports usage. A provider
   that returns zero or no usage cannot be hard-capped; the Studio does not
   pretend the budget was enforced. There is no currency/pricing budget yet.

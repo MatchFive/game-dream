@@ -67,6 +67,7 @@ async function getAgent(url: string): Promise<{
     events: Array<{ type: string }>;
   }> };
   batches: Array<{ id: string; status: string; candidates: Array<{ id: string; status: string; score?: number; approvals: Array<{ id: string; status: string }>; events: Array<{ type: string }> }> }>;
+  queued?: Array<{ id: string; status: string }>;
 }> {
   const response = await fetch(`${url}/api/agent`);
   return response.json() as Promise<never>;
@@ -276,6 +277,78 @@ it('marks a run stopped by the token budget', async () => {
   expect(batch?.candidates[0]?.status).toBe('budget-exceeded');
   expect(batch?.candidates[0]?.events.some((event) => event.type === 'run/budget')).toBe(true);
 });
+
+it('queues batches, cancels a queued batch, and starts the next one', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-queue-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const start = (prompt: string) => fetch(`${studio?.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt, candidates: 1 }),
+  });
+
+  expect((await start('first queued fixture')).status).toBe(202);
+  let data = await getAgent(studio.url);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.active?.status === 'awaiting-approval') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const first = data.active;
+  expect(first?.status).toBe('awaiting-approval');
+
+  expect((await start('second queued fixture')).status).toBe(202);
+  data = await getAgent(studio.url);
+  expect(data.active?.id).toBe(first?.id);
+  expect(data.queued).toHaveLength(1);
+  expect(data.queued?.[0]?.status).toBe('queued');
+  const second = data.queued?.[0];
+
+  await fetch(`${studio.url}/api/agent/batches/${second?.id}/cancel`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  data = await getAgent(studio.url);
+  expect(data.queued).toHaveLength(0);
+  expect(data.active?.id).toBe(first?.id);
+
+  expect((await start('third queued fixture')).status).toBe(202);
+  data = await getAgent(studio.url);
+  expect(data.queued).toHaveLength(1);
+  const third = data.queued?.[0];
+
+  await fetch(`${studio.url}/api/agent/batches/${first?.id}/cancel`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.active?.id === third?.id && data.active.status === 'awaiting-approval') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(data.active?.id).toBe(third?.id);
+  expect(data.active?.status).toBe('awaiting-approval');
+  await fetch(
+    `${studio.url}/api/agent/batches/${third?.id}/runs/${data.active?.candidates[0]?.id}/approval`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ approvalId: 'approval-1', allowed: true }),
+    },
+  );
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    data = await getAgent(studio.url);
+    const batch = data.batches.find((item) => item.id === third?.id);
+    if (batch?.status === 'finished') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(data.batches.find((item) => item.id === first?.id)?.status).toBe('canceled');
+  expect(data.batches.find((item) => item.id === second?.id)?.status).toBe('canceled');
+  expect(data.batches.find((item) => item.id === third?.id)?.status).toBe('finished');
+}, 30_000);
 
 it('resumes an interrupted run after a Studio restart', async () => {
   const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-resume-'));
