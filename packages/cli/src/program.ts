@@ -168,7 +168,7 @@ export function createProgram(): Command {
 
   program
     .command('studio')
-    .description('Open the local Asset Canvas and ComfyUI generation studio')
+    .description('Open the local project studio and Asset Canvas')
     .option('--path <dir>', 'project root', '.')
     .option('--host <host>', 'HTTP bind host', '127.0.0.1')
     .option('--port <port>', 'HTTP port', '4173')
@@ -187,10 +187,11 @@ export function createProgram(): Command {
             projectDir: options.path,
             host: options.host,
             port,
+            cliEntry: process.argv[1],
           });
           if (options.json) printJson({ url: studio.url, port: studio.port });
           else {
-            printLine(`Asset Canvas: ${studio.url}`);
+            printLine(`GameDream Studio: ${studio.url}`);
             printLine('Press Ctrl+C to stop.');
           }
           if (options.open) openBrowser(studio.url);

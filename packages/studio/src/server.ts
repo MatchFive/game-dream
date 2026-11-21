@@ -1,9 +1,17 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, toggleInBuild } from './assets.js';
 import { ComfyRunner } from './comfyui.js';
+import {
+  appendRun,
+  loadProjectSnapshot,
+  runId,
+  uploadFile,
+  type VerifyRun,
+} from './project.js';
 import type { ComfyUiConfig, StudioState } from './types.js';
 
 export interface StudioServerOptions {
@@ -11,6 +19,7 @@ export interface StudioServerOptions {
   host?: string;
   port?: number;
   comfyui?: Partial<ComfyUiConfig>;
+  cliEntry?: string;
 }
 
 export interface StudioServerHandle {
@@ -23,6 +32,7 @@ const DEFAULT_COMFY_URL = 'http://192.168.124.56:8000';
 const DEFAULT_WORKFLOW = 'D:/QQ/image_qwen_image_2_1_t2i.json';
 const PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MAX_BODY_BYTES = 1024 * 1024;
+const MAX_UPLOAD_BYTES = 16 * 1024 * 1024;
 
 function json(response: ServerResponse, status: number, value: unknown): void {
   const body = `${JSON.stringify(value)}\n`;
@@ -34,13 +44,13 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(body);
 }
 
-async function readJson(request: IncomingMessage): Promise<unknown> {
+async function readJson(request: IncomingMessage, limit = MAX_BODY_BYTES): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > MAX_BODY_BYTES) throw new Error('request body is too large');
+    if (size > limit) throw new Error('request body is too large');
     chunks.push(buffer);
   }
   if (chunks.length === 0) return {};
@@ -112,6 +122,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     workflow: options.comfyui?.workflow ?? process.env.COMFYUI_WORKFLOW ?? DEFAULT_WORKFLOW,
   };
   const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
+  const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
 
   const server = createServer(async (request, response) => {
     try {
@@ -119,7 +130,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       const pathname = decodeURIComponent(url.pathname);
 
       if (pathname.startsWith('/api/')) {
-        await handleApi(request, response, pathname, root, runner, comfyui);
+        await handleApi(request, response, pathname, root, runner, comfyui, cliEntry);
         return;
       }
 
@@ -128,7 +139,13 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         response.end('Method not allowed');
         return;
       }
-      const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+      const relativePath = pathname === '/'
+        ? 'studio.html'
+        : pathname === '/assets' || pathname === '/assets/'
+          ? 'index.html'
+          : pathname === '/studio'
+            ? 'studio.html'
+            : pathname.replace(/^\/+/, '');
       const file = resolve(PUBLIC_DIR, relativePath);
       if (!file.startsWith(resolve(PUBLIC_DIR)) || !existsSync(file) || !statSync(file).isFile()) {
         response.writeHead(404);
@@ -162,6 +179,62 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
 }
 
+async function executeVerify(
+  root: string,
+  cliEntry: string | undefined,
+  visual: boolean,
+): Promise<VerifyRun> {
+  if (!cliEntry) throw new Error('verification CLI entry is not configured');
+  const started = Date.now();
+  const run = await new Promise<VerifyRun>((resolveRun, rejectRun) => {
+    const args = [resolve(cliEntry), 'verify', '--path', root, '--json'];
+    if (visual) args.push('--visual');
+    const child = spawn(process.execPath, args, {
+      cwd: root,
+      env: process.env,
+      windowsHide: true,
+    });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill();
+      rejectRun(new Error('verification timed out after 120s'));
+    }, 120_000);
+    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+    child.once('error', (error) => {
+      clearTimeout(timer);
+      rejectRun(error);
+    });
+    child.once('close', (code) => {
+      clearTimeout(timer);
+      let report: {
+        gates?: Record<string, { status: 'pass' | 'fail' | 'skip'; message?: string }>;
+        engine?: 'present' | 'missing';
+      } = {};
+      try {
+        report = JSON.parse(stdout.trim()) as typeof report;
+      } catch {
+        // The report may be empty when the CLI failed before producing JSON.
+      }
+      const gates = report.gates ?? {};
+      const result: VerifyRun = {
+        id: runId(),
+        createdAt: new Date().toISOString(),
+        durationMs: Date.now() - started,
+        engine: report.engine ?? 'missing',
+        gates,
+        ok: Boolean(report.gates)
+          && Object.values(gates).every((gate) => gate.status === 'pass'),
+        output: `${stdout}\n${stderr}`.trim().slice(-4000) || `exit ${code ?? 'unknown'}`,
+      };
+      resolveRun(result);
+    });
+  });
+  appendRun(root, run);
+  return run;
+}
+
 async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -169,6 +242,7 @@ async function handleApi(
   root: string,
   runner: ComfyRunner,
   comfyui: ComfyUiConfig,
+  cliEntry: string | undefined,
 ): Promise<void> {
   const method = request.method ?? 'GET';
 
@@ -195,6 +269,71 @@ async function handleApi(
       comfyui: (await runner.health()) ? 'online' : 'offline',
       workflowExists: runner.workflowExists(),
     });
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/project') {
+    const canvas = loadCanvas(root);
+    const snapshot = loadProjectSnapshot(root, canvas, {
+      url: comfyui.url,
+      workflow: comfyui.workflow,
+      workflowExists: runner.workflowExists(),
+      online: await runner.health(),
+    });
+    json(response, 200, snapshot);
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/project/screenshot') {
+    const canvas = loadCanvas(root);
+    const snapshot = loadProjectSnapshot(root, canvas, {
+      url: comfyui.url,
+      workflow: comfyui.workflow,
+      workflowExists: runner.workflowExists(),
+      online: false,
+    });
+    const requested = new URL(request.url ?? '/', 'http://local').searchParams.get('file');
+    const relativeFile = requested ?? snapshot.build.screenshot?.file;
+    const file = relativeFile ? safeProjectFile(root, relativeFile) : undefined;
+    if (!file) {
+      json(response, 404, { error: 'screenshot not found' });
+      return;
+    }
+    serveFile(request, response, file, false);
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/verify') {
+    let visual = false;
+    try {
+      const body = (await readJson(request)) as { visual?: unknown };
+      visual = body.visual === true;
+    } catch {
+      // Optional body.
+    }
+    try {
+      const run = await executeVerify(root, cliEntry, visual);
+      json(response, 200, { run });
+    } catch (error) {
+      json(response, 503, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/upload') {
+    try {
+      const body = (await readJson(request, MAX_UPLOAD_BYTES)) as { name?: unknown; data?: unknown };
+      const name = typeof body.name === 'string' ? body.name : '';
+      const data = typeof body.data === 'string' ? body.data : '';
+      if (!name || !data) {
+        json(response, 400, { error: 'name and data are required' });
+        return;
+      }
+      const file = uploadFile(root, name, data.replace(/^data:[^;]+;base64,/, ''));
+      json(response, 201, { file });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
     return;
   }
 

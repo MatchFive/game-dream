@@ -1,8 +1,8 @@
-# Studio Asset Canvas
+# Studio
 
-`dream studio` starts a local-only web studio for browsing, arranging, and
-generating game art. It is the first UI surface for the asset pipeline, not a
-cloud service.
+`dream studio` starts a local-only web studio for project verification, asset
+browsing, and game art generation. It is the first UI surface for the asset and
+verification pipelines, not a cloud service.
 
 ```bash
 corepack pnpm build
@@ -11,6 +11,10 @@ node packages/cli/dist/index.js studio --path . --open
 
 The command prints a URL such as `http://127.0.0.1:4173`. Stop it with
 `Ctrl+C`.
+
+- `/` is the project studio: preview, verification gates, run history, session
+  summary, assets, and evidence.
+- `/assets` is the infinite Asset Canvas.
 
 ## Asset discovery
 
@@ -52,12 +56,19 @@ an in-flight job.
 | Route | Purpose |
 |---|---|
 | `GET /api/state` | Project, assets, canvas, ComfyUI status |
+| `GET /api/project` | Build metadata, screenshot, verification runs, session |
+| `GET /api/project/screenshot?file=...` | Serve the latest build screenshot |
+| `POST /api/verify` | Spawn `dream verify` and record a durable run |
+| `POST /api/upload` | Import a base64 image/audio file into `assets/uploads/` |
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
 | `POST /api/generate` | Start a ComfyUI job |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/health` | ComfyUI and workflow health |
+
+Verification uses the same CLI entry that launched `dream studio` (or
+`GAMEDREAM_CLI`). Set `GODOT_BIN` to a console executable for G2/G3.
 
 The server binds to `127.0.0.1` by default and has no authentication. Do not
 expose it on a public interface.

@@ -110,6 +110,10 @@ async function load() {
     renderAll();
     setSaveState('Saved');
     updateComfyStatus();
+    const focusId = new URLSearchParams(window.location.search).get('focus');
+    if (focusId && assetById(focusId)) {
+      setTimeout(() => activateAsset(focusId), 80);
+    }
   } catch (error) {
     setSaveState('Error', true);
     toast(`Could not load studio: ${error.message}`);
@@ -772,6 +776,35 @@ async function pollJob(node, jobId) {
 $('#assetSearch').addEventListener('input', (event) => {
   state.search = event.target.value;
   renderLibrary();
+});
+$('#uploadBtn').addEventListener('click', () => $('#uploadInput').click());
+$('#uploadInput').addEventListener('change', async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 12 * 1024 * 1024) {
+    toast('Asset is larger than the 12 MB upload limit.');
+    return;
+  }
+  try {
+    const data = await new Promise((resolveRead, rejectRead) => {
+      const reader = new FileReader();
+      reader.onload = () => resolveRead(String(reader.result ?? ''));
+      reader.onerror = () => rejectRead(reader.error ?? new Error('could not read file'));
+      reader.readAsDataURL(file);
+    });
+    const result = await request('/api/upload', {
+      method: 'POST',
+      body: JSON.stringify({ name: file.name, data }),
+    });
+    await load();
+    const uploaded = state.assets.find((asset) => asset.file === result.file);
+    if (uploaded) activateAsset(uploaded.id);
+    toast(`Imported ${file.name}.`);
+  } catch (error) {
+    toast(`Import failed: ${error.message}`);
+  } finally {
+    event.target.value = '';
+  }
 });
 $$('.filter').forEach((filter) => filter.addEventListener('click', () => {
   state.filter = filter.dataset.filter;

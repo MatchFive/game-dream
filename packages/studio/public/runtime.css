@@ -1,5 +1,7 @@
 .connection { display: inline-flex; align-items: center; gap: 5px; color: var(--dim); font: 8px/1 var(--mono); letter-spacing: .03em; }
 .library, .inspector { background: #141712; }
+.library-actions { display: flex; gap: 4px; margin-top: 8px; }
+.library-actions .button { min-height: 27px; padding-inline: 7px; font-size: 8px; }
 .connection .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
 .connection.online { color: var(--lime); }
 .connection.online .dot { background: var(--lime); box-shadow: 0 0 0 3px var(--lime-soft); }

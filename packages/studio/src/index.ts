@@ -9,6 +9,15 @@ export {
   findAsset,
 } from './assets.js';
 export { ComfyRunner } from './comfyui.js';
+export {
+  appendRun,
+  detectEngine,
+  findScreenshot,
+  loadProjectSnapshot,
+  loadRuns,
+  type ProjectSnapshot,
+  type VerifyRun,
+} from './project.js';
 export type {
   CanvasNode,
   CanvasState,

@@ -42,6 +42,7 @@
   <div class="top-actions">
     <span class="saved"><span class="dot" id="saveDot"></span><span id="saveState">Loading</span></span>
     <span class="connection" id="comfyState"><span class="dot"></span>ComfyUI checking</span>
+    <a class="button secondary" href="/" style="text-decoration:none">Mission</a>
     <button class="button secondary" id="libraryToggle" type="button"><svg class="icon"><use href="#i-folder"></use></svg> Library</button>
     <button class="button secondary" id="inspectorToggle" type="button"><svg class="icon"><use href="#i-layers"></use></svg> Inspect</button>
     <button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh assets"><svg class="icon"><use href="#i-refresh"></use></svg></button>
@@ -56,6 +57,10 @@
       <div class="eyebrow">PROJECT <span class="accent">/</span> <span id="projectLabel">ASSETS</span></div>
       <div class="library-title"><h1>Assets</h1><span class="library-count" id="libraryCount">0 ITEMS</span></div>
       <label class="search"><svg class="icon"><use href="#i-search"></use></svg><input id="assetSearch" type="search" placeholder="Search assets" aria-label="Search assets"></label>
+      <div class="library-actions">
+        <button class="button secondary" id="uploadBtn" type="button"><svg class="icon"><use href="#i-folder"></use></svg> Import asset</button>
+        <input id="uploadInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.mp3,.wav,.ogg" hidden>
+      </div>
       <div class="filters" role="group" aria-label="Asset type">
         <button class="filter" type="button" data-filter="all" aria-pressed="true">ALL</button>
         <button class="filter" type="button" data-filter="concept" aria-pressed="false">CONCEPTS</button>

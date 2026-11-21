@@ -1,8 +1,9 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadCanvas, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
+import { loadProjectSnapshot, loadRuns } from '../src/project.js';
 import { startStudioServer } from '../src/server.js';
 
 let root: string;
@@ -54,10 +55,29 @@ describe('studio assets', () => {
     expect(toggleInBuild(root, asset.id).inBuild).toEqual([]);
   });
 
-  it('serves state, files, canvas saves, and rejects missing workflow generation', async () => {
+  it('builds a project snapshot with screenshot and durable runs', () => {
+    const canvas = saveCanvas(root, { nodes: [], inBuild: [] });
+    const snapshot = loadProjectSnapshot(root, canvas, {
+      url: 'http://127.0.0.1:1',
+      workflow: 'missing.json',
+      workflowExists: false,
+      online: false,
+    });
+    expect(snapshot.build.screenshot?.file).toContain('real-v2-screenshot.png');
+    expect(snapshot.build.engine).toBe('unknown');
+    expect(snapshot.build.runs).toEqual([]);
+  });
+
+  it('serves state, project, uploads, verification, files, and canvas saves', async () => {
+    const fakeCli = join(root, 'fake-verify.mjs');
+    writeFileSync(
+      fakeCli,
+      'console.log(JSON.stringify({ gates: { G1: { status: "pass" }, G2: { status: "pass" }, G3: { status: "pass" } }, engine: "present" }));\n',
+    );
     const studio = await startStudioServer({
       projectDir: root,
       port: 0,
+      cliEntry: fakeCli,
       comfyui: { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
     });
     try {
@@ -70,9 +90,38 @@ describe('studio assets', () => {
       expect(state.canvas.nodes).toEqual([]);
       expect(state.comfyui.workflowExists).toBe(false);
 
+      const project = await fetch(`${studio.url}/api/project`).then((response) => response.json()) as {
+        build: { screenshot?: { file: string }; runs: unknown[] };
+      };
+      expect(project.build.screenshot?.file).toContain('real-v2-screenshot.png');
+      expect(project.build.runs).toEqual([]);
+
+      const screenshot = await fetch(`${studio.url}/api/project/screenshot`);
+      expect(screenshot.status).toBe(200);
+
       const asset = state.assets.find((entry) => entry.name === 'Forest Warden')!;
       const raw = await fetch(`${studio.url}/api/assets/${asset.id}/raw`);
       expect(raw.status).toBe(200);
+
+      const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64');
+      const uploaded = await fetch(`${studio.url}/api/upload`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'imported.svg', data: svg }),
+      }).then((response) => response.json()) as { file: string };
+      expect(uploaded.file).toContain('assets/uploads/');
+      expect(existsSync(join(root, uploaded.file))).toBe(true);
+
+      const verify = await fetch(`${studio.url}/api/verify`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      }).then((response) => response.json()) as {
+        run: { ok: boolean; gates: Record<string, { status: string }> };
+      };
+      expect(verify.run.ok).toBe(true);
+      expect(verify.run.gates.G1.status).toBe('pass');
+      expect(loadRuns(root)).toHaveLength(1);
 
       const save = await fetch(`${studio.url}/api/canvas`, {
         method: 'PUT',
