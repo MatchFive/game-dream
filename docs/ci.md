@@ -10,6 +10,9 @@
   save a scene, and verify the scene file exists
 - a real Godot runtime job: download Godot 4.4.1, compose the M1 fixture, and
   run `pnpm smoke:godot` with G1/G2/G3 against the actual engine
+- a real Godot export job: install the 4.4.1 export templates, compose the M1
+  fixture, run `pnpm smoke:godot-export -- --require`, and upload the exported
+  Linux player artifact
 
 The fixture MCP server is `fixtures/mcp/fake-godot.mjs`. It exercises the same
 stdio protocol and scene-save path as the real Godot MCP server, so CI catches

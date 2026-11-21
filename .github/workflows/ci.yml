@@ -58,6 +58,49 @@ jobs:
           GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
         run: pnpm smoke:godot --out dist/godot-runtime
 
+  godot-export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install Godot 4.4.1 and export templates
+        run: |
+          mkdir -p .tools/godot
+          curl -L --fail --retry 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -o /tmp/godot.zip -d .tools/godot
+          chmod +x .tools/godot/Godot_v4.4.1-stable_linux.x86_64
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          curl -L --fail --retry 3 \
+            -o /tmp/godot-templates.tpz \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          unzip -j -o /tmp/godot-templates.tpz 'templates/*' \
+            -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Check templates
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
+        run: |
+          node packages/cli/dist/index.js godot templates --platform linux --json
+      - name: Real Linux export
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
+        run: pnpm smoke:godot-export -- --require --out dist/godot-export
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-godot-export
+          path: dist/godot-export/build
+          if-no-files-found: error
+
+
   unity-runtime:
     # Optional: set UNITY_RUNTIME_ENABLED=true and UNITY_BIN as repository
     # variables. Requires a self-hosted Windows runner with the `unity` label.

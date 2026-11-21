@@ -40,3 +40,11 @@ self-hosted runner is required for the same check. The optional `unity-runtime`
 job in `.github/workflows/ci.yml` skips unless `UNITY_RUNTIME_ENABLED=true` and
 `UNITY_BIN` are configured as repository variables. Studio can launch an
 existing `Builds/Windows/*.exe` player but does not build Unity itself.
+
+## Godot native export
+
+`godot-export-skip.log` records the current local state: Godot 4.4.1 is present
+but export templates are missing, so `smoke:godot-export --require` exits 3 with
+`GODOT_EXPORT_SKIP=1`. The CI `godot-export` job installs the official 4.4.1
+templates and runs the same script with `--require`; missing templates fail that
+job instead of producing a false pass.

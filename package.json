@@ -13,6 +13,7 @@
     "test:agent": "vitest run packages/cli/test/develop.test.ts packages/studio/test/agent.test.ts",
     "smoke:agent": "node scripts/studio-agent-smoke.mjs",
     "smoke:godot": "node scripts/godot-runtime-smoke.mjs",
+    "smoke:godot-export": "node scripts/godot-export-smoke.mjs",
     "typecheck": "corepack pnpm -r typecheck",
     "release:accept": "node scripts/release-acceptance.mjs"
   },

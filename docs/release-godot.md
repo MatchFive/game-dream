@@ -17,7 +17,17 @@ Use `--force` to replace an existing package.
 
 ## Native export
 
-Install the matching Godot 4.4 export templates first. Then:
+Install the matching Godot 4.4 export templates first. The local smoke is:
+
+```bash
+GODOT_BIN=/path/to/godot pnpm smoke:godot-export -- --out dist/godot-export
+```
+
+Without templates it prints `GODOT_EXPORT_SKIP=1` and exits 0. Add `--require`
+to make missing templates a failure (CI uses this). The script composes the M1
+fixture and exports the host platform player.
+
+Manual export:
 
 ```bash
 dream godot export --path ./game --preset "Windows Desktop" --out ./build/game.exe

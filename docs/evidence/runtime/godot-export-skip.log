@@ -1,0 +1,4 @@
+﻿GODOT_EXPORT_SKIP=1
+reason=export templates missing for 4.4.1.stable (windows)
+expected=C:\Users\25793\AppData\Roaming\Godot\export_templates\4.4.1.stable
+EXIT=3
