@@ -237,6 +237,7 @@ export function createProgram(): Command {
     .option('--events-file <file>', 'append structured agent events as JSONL')
     .option('--approval-dir <dir>', 'exchange tool approval requests and decisions')
     .option('--run-id <id>', 'identifier attached to structured events')
+    .option('--event-seq-start <n>', 'start structured event sequence at this number')
     .option('--json', 'print JSON')
     .action(
       async (
@@ -263,6 +264,7 @@ export function createProgram(): Command {
           eventsFile?: string;
           approvalDir?: string;
           runId?: string;
+          eventSeqStart?: string;
           json?: boolean;
         },
       ) => {
@@ -297,6 +299,9 @@ export function createProgram(): Command {
             eventsFile: options.eventsFile,
             approvalDir: options.approvalDir,
             runId: options.runId,
+            eventSeqStart: options.eventSeqStart === undefined
+              ? undefined
+              : Number(options.eventSeqStart),
           };
           const candidates = candidateCount > 1
             ? await developCandidates({

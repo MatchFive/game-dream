@@ -68,6 +68,7 @@ export interface DevelopOptions {
   eventsFile?: string;
   approvalDir?: string;
   runId?: string;
+  eventSeqStart?: number;
   onChunk?: (chunk: string) => void;
 }
 
@@ -646,7 +647,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     );
   }
   mkdirSync(dirname(sessionPath), { recursive: true });
-  let eventSeq = 0;
+  let eventSeq = options.eventSeqStart ?? 0;
   const emitEvent = (event: Record<string, unknown>) => {
     if (!options.eventsFile) return;
     mkdirSync(dirname(options.eventsFile), { recursive: true });

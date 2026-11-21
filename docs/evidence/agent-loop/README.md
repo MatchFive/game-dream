@@ -1,6 +1,6 @@
 # Studio / Agent loop evidence
 
-Commit: `d2bb120` on `master`, synced to `D:\project\game_dream`.
+Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits following on `master`; synced to `D:\project\game_dream`.
 
 ## Validation commands
 
@@ -8,8 +8,8 @@ Commit: `d2bb120` on `master`, synced to `D:\project\game_dream`.
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **218 tests passed**, 9 skipped; exit `0` |
-| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval tests and Studio AgentManager tests; **5 passed**; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **220 tests passed**, 9 skipped; exit `0` |
+| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, SSE, recovery, and Studio AgentManager tests; **7 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
 ## Structured event and approval smoke
@@ -34,6 +34,17 @@ requiring a local Godot installation. The captured successful run proves:
 The fixture Godot is not an engine test; it deliberately makes the marker-based
 G2/G3 gates pass so the Studio/Agent orchestration can be verified without
 depending on an installed editor. Real-engine validation remains separate.
+
+## Transport and restart recovery
+
+- `packages/studio/test/agent.test.ts` opens `/api/agent/events`, asserts the
+  `text/event-stream` response, consumes the initial snapshot, starts a run, and
+  asserts that a pushed snapshot contains the active candidate.
+- The same test file interrupts an awaiting-approval run by closing the first
+  server, starts a new server on the same root, and verifies the persisted batch
+  is resumed to `finished` with the pending approval expired and `run/end`
+  present.
+- `agent-tests.log` records all 7 focused tests passing.
 
 ## UI evidence
 

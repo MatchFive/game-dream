@@ -11,6 +11,8 @@ const state = {
   agent: null,
   agentRunId: null,
   agentPoll: null,
+  agentSource: null,
+  agentStreamOpened: false,
   agentLastStatus: null,
 };
 
@@ -286,6 +288,7 @@ function renderAgent() {
 }
 
 function scheduleAgentPoll() {
+  if (state.agentSource) return;
   clearTimeout(state.agentPoll);
   const status = state.agent?.status;
   if (status === 'running' || status === 'awaiting-approval') {
@@ -293,34 +296,69 @@ function scheduleAgentPoll() {
   }
 }
 
+async function applyAgentData(data) {
+  const previousStatus = state.agentLastStatus;
+  const batch = data.active ?? data.batches?.[0] ?? null;
+  state.agent = batch;
+  state.agentLastStatus = batch?.status ?? null;
+  if (batch) {
+    if (!batch.candidates?.some((run) => run.id === state.agentRunId)) {
+      state.agentRunId = batch.selectedRunId
+        ?? batch.candidates.find((run) => run.status === 'finished')?.id
+        ?? batch.candidates[0]?.id
+        ?? null;
+    }
+  } else {
+    state.agentRunId = null;
+  }
+  renderAgent();
+  scheduleAgentPoll();
+  if (
+    batch
+    && previousStatus
+    && previousStatus !== batch.status
+    && batch.status === 'finished'
+    && batch.candidates.length === 1
+  ) {
+    await load();
+  }
+}
+
+function connectAgentStream() {
+  if (typeof EventSource === 'undefined') {
+    loadAgent(true);
+    return;
+  }
+  const source = new EventSource('/api/agent/events');
+  state.agentSource = source;
+  source.onopen = () => {
+    state.agentStreamOpened = true;
+    clearTimeout(state.agentPoll);
+  };
+  source.addEventListener('snapshot', (event) => {
+    try {
+      applyAgentData(JSON.parse(event.data));
+    } catch {
+      // Ignore a malformed frame; the next snapshot replaces it.
+    }
+  });
+  source.onerror = () => {
+    if (source.readyState === EventSource.CLOSED) {
+      state.agentSource = null;
+      source.close();
+      loadAgent(true);
+    } else if (!state.agentStreamOpened) {
+      state.agentSource = null;
+      source.close();
+      loadAgent(true);
+    }
+  };
+}
+
 async function loadAgent(quiet = false) {
   try {
     const data = await request('/api/agent');
-    const previousStatus = state.agentLastStatus;
-    const batch = data.active ?? data.batches?.[0] ?? null;
-    state.agent = batch;
-    state.agentLastStatus = batch?.status ?? null;
-    if (batch) {
-      if (!batch.candidates.some((run) => run.id === state.agentRunId)) {
-        state.agentRunId = batch.selectedRunId
-          ?? batch.candidates.find((run) => run.status === 'finished')?.id
-          ?? batch.candidates[0]?.id
-          ?? null;
-      }
-    } else {
-      state.agentRunId = null;
-    }
-    renderAgent();
-    scheduleAgentPoll();
-    if (
-      batch
-      && previousStatus
-      && previousStatus !== batch.status
-      && batch.status === 'finished'
-      && batch.candidates.length === 1
-    ) {
-      await load();
-    }
+    await applyAgentData(data);
   } catch (error) {
     if (!quiet) toast(t('studio.agentApi', { message: error.message }));
     $('#agentState').textContent = t('studio.agentFailed');
@@ -678,4 +716,5 @@ window.addEventListener('localechange', () => {
 });
 
 load();
-loadAgent(true);
+connectAgentStream();
+window.addEventListener('beforeunload', () => state.agentSource?.close());

@@ -125,6 +125,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
   const agent = new AgentManager({ root, cliEntry });
+  const sseClients = new Set<ServerResponse>();
 
   const server = createServer(async (request, response) => {
     try {
@@ -132,7 +133,17 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       const pathname = decodeURIComponent(url.pathname);
 
       if (pathname.startsWith('/api/')) {
-        await handleApi(request, response, pathname, root, runner, comfyui, cliEntry, agent);
+        await handleApi(
+          request,
+          response,
+          pathname,
+          root,
+          runner,
+          comfyui,
+          cliEntry,
+          agent,
+          sseClients,
+        );
         return;
       }
 
@@ -177,6 +188,10 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     port: actualPort,
     close: () => new Promise((resolveClose, rejectClose) => {
       agent.close();
+      for (const client of sseClients) {
+        if (!client.writableEnded) client.end();
+      }
+      sseClients.clear();
       server.close((error) => (error ? rejectClose(error) : resolveClose()));
     }),
   };
@@ -247,8 +262,37 @@ async function handleApi(
   comfyui: ComfyUiConfig,
   cliEntry: string | undefined,
   agent: AgentManager,
+  sseClients: Set<ServerResponse>,
 ): Promise<void> {
   const method = request.method ?? 'GET';
+
+  if (method === 'GET' && pathname === '/api/agent/events') {
+    response.writeHead(200, {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'x-accel-buffering': 'no',
+    });
+    const send = () => {
+      if (response.writableEnded) return;
+      response.write(`event: snapshot\ndata: ${JSON.stringify(agent.list())}\n\n`);
+    };
+    send();
+    const unsubscribe = agent.subscribe(send);
+    const heartbeat = setInterval(() => {
+      if (!response.writableEnded) response.write(': ping\n\n');
+    }, 15_000);
+    sseClients.add(response);
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      sseClients.delete(response);
+    };
+    request.once('close', cleanup);
+    request.once('aborted', cleanup);
+    response.once('close', cleanup);
+    return;
+  }
 
   if (method === 'GET' && pathname === '/api/agent') {
     json(response, 200, agent.list());

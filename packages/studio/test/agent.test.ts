@@ -20,9 +20,15 @@ const eventsFile = arg('events-file');
 const approvalDir = arg('approval-dir');
 const runId = arg('run-id');
 const outDir = arg('out');
-let seq = 0;
+const resume = process.argv.includes('--resume');
+let seq = Number(arg('event-seq-start', '0')) || 0;
 const write = (event) => appendFileSync(eventsFile, JSON.stringify({ seq: ++seq, at: new Date().toISOString(), runId, ...event }) + '\\n', 'utf8');
 write({ type: 'run/start', prompt: 'fixture' });
+if (resume) {
+  write({ type: 'session/event', event: { type: 'assistant/message', content: 'fixture resumed' } });
+  write({ type: 'run/end', report: { finished: true, steps: 1, actions: ['finish'], missingMarkers: [], verify: { gates: { G1: { status: 'pass' }, G2: { status: 'pass' }, G3: { status: 'pass' } } } } });
+  process.exit(0);
+}
 write({ type: 'approval/request', id: 'approval-1', tool: 'scaffold', args: { outDir } });
 if (approvalDir) {
   const decision = join(approvalDir, 'approval-1.decision.json');
@@ -149,4 +155,83 @@ it('runs candidates and applies the selected candidate', async () => {
   });
   expect(apply.status).toBe(200);
   expect(readFileSync(join(root, 'game', 'fixture.txt'), 'utf8')).toBe('fixture');
+});
+
+it('pushes agent snapshots over SSE', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-sse-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const controller = new AbortController();
+  const response = await fetch(`${studio.url}/api/agent/events`, {
+    signal: controller.signal,
+  });
+  expect(response.headers.get('content-type')).toContain('text/event-stream');
+  const reader = response.body?.getReader();
+  expect(reader).toBeDefined();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const nextFrame = async (): Promise<Record<string, unknown>> => {
+    const deadline = Date.now() + 5000;
+    while (!buffer.includes('\n\n') && Date.now() < deadline) {
+      const chunk = await reader?.read();
+      if (!chunk || chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+    }
+    const boundary = buffer.indexOf('\n\n');
+    if (boundary < 0) throw new Error(`SSE frame timeout: ${buffer}`);
+    const frame = buffer.slice(0, boundary);
+    buffer = buffer.slice(boundary + 2);
+    const data = frame.split(/\r?\n/).find((line) => line.startsWith('data: '));
+    if (!data) throw new Error(`SSE frame has no data: ${frame}`);
+    return JSON.parse(data.slice(6)) as Record<string, unknown>;
+  };
+
+  const initial = await nextFrame();
+  expect(Array.isArray(initial.batches)).toBe(true);
+
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: 'SSE fixture', candidates: 1 }),
+  });
+  expect(started.status).toBe(202);
+  const pushed = await nextFrame() as {
+    active?: { status: string; candidates: Array<{ id: string }> };
+  };
+  expect(pushed.active?.candidates).toHaveLength(1);
+
+  await reader?.cancel();
+  controller.abort();
+});
+
+it('resumes an interrupted run after a Studio restart', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-resume-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: 'resume fixture', candidates: 1 }),
+  });
+  expect(started.status).toBe(202);
+  let data = await getAgent(studio.url);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.active?.status === 'awaiting-approval') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(data.active?.status).toBe('awaiting-approval');
+  await studio.close();
+  studio = undefined;
+
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.batches[0]?.status === 'finished') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(data.batches[0]?.status).toBe('finished');
+  expect(data.batches[0]?.candidates[0]?.approvals.every((item) => item.status !== 'pending')).toBe(true);
+  expect(data.batches[0]?.candidates[0]?.events.some((event) => event.type === 'run/end')).toBe(true);
+  expect(data.batches[0]?.candidates[0]?.events.some((event) => event.type === 'approval/decision')).toBe(true);
 });

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -73,6 +74,9 @@ export interface AgentBatch {
   candidates: AgentRun[];
   selectedRunId?: string;
   appliedRunId?: string;
+  maxSteps?: number;
+  approvalTools?: string[];
+  resume?: boolean;
 }
 
 interface AgentStartInput {
@@ -178,12 +182,23 @@ export class AgentManager {
   private readonly children = new Map<string, ChildProcess>();
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly batches = new Map<string, AgentBatch>();
+  private readonly listeners = new Set<() => void>();
   private activeBatchId?: string;
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) listener();
+  }
 
   constructor(options: AgentManagerOptions) {
     this.root = resolve(options.root);
     this.cliEntry = options.cliEntry;
     this.loadBatches();
+    this.recoverInterrupted();
   }
 
   list(): { active?: AgentBatch; batches: AgentBatch[] } {
@@ -210,6 +225,8 @@ export class AgentManager {
       throw new Error('an agent run is already active');
     }
     const count = clampCandidates(input.candidates);
+    const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || 12));
+    const approvalTools = input.approvalTools ?? ['scaffold', 'mcp'];
     const id = `agent-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`;
     const batchRoot = this.batchRoot(id);
     mkdirSync(batchRoot, { recursive: true });
@@ -241,11 +258,15 @@ export class AgentManager {
       createdAt: new Date().toISOString(),
       status: 'running',
       candidates,
+      maxSteps,
+      approvalTools,
+      resume: input.resume === true,
     };
     this.batches.set(id, batch);
     this.activeBatchId = id;
     this.persist(batch);
     for (const run of candidates) this.spawn(batch, run, input);
+    this.notify();
     return batch;
   }
 
@@ -271,6 +292,7 @@ export class AgentManager {
     approval.status = allowed ? 'allowed' : 'denied';
     if (reason) approval.reason = reason;
     this.persist(batch);
+    this.notify();
     return approval;
   }
 
@@ -294,6 +316,7 @@ export class AgentManager {
     batch.finishedAt = new Date().toISOString();
     this.activeBatchId = undefined;
     this.persist(batch);
+    this.notify();
     return batch;
   }
 
@@ -314,6 +337,7 @@ export class AgentManager {
     batch.selectedRunId = run.id;
     batch.appliedRunId = run.id;
     this.persist(batch);
+    this.notify();
     return batch;
   }
 
@@ -324,11 +348,18 @@ export class AgentManager {
     this.children.clear();
   }
 
-  private spawn(batch: AgentBatch, run: AgentRun, input: AgentStartInput): void {
+  private spawn(
+    batch: AgentBatch,
+    run: AgentRun,
+    input: AgentStartInput,
+    eventSeqStart = 0,
+  ): void {
     const rootSkills = join(this.root, 'skills');
     const skillsDir = existsSync(rootSkills)
       ? rootSkills
       : join(dirname(this.cliEntry as string), '..', '..', '..', 'skills');
+    const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || batch.maxSteps || 12));
+    const approvalTools = input.approvalTools ?? batch.approvalTools ?? ['scaffold', 'mcp'];
     const args = [
       this.cliEntry as string,
       'develop',
@@ -341,7 +372,7 @@ export class AgentManager {
       '--provider',
       batch.provider,
       '--max-steps',
-      String(Math.max(1, Math.min(48, Number(input.maxSteps) || 12))),
+      String(maxSteps),
       '--events-file',
       run.eventsFile,
       '--approval-dir',
@@ -349,10 +380,11 @@ export class AgentManager {
       '--run-id',
       run.id,
       '--ask-tool',
-      (input.approvalTools ?? ['scaffold', 'mcp']).join(','),
-      batch.prompt,
+      approvalTools.join(','),
     ];
-    if (batch.candidates.length === 1 && input.resume) args.push('--resume');
+    if (eventSeqStart > 0) args.push('--event-seq-start', String(eventSeqStart));
+    if (input.resume) args.push('--resume');
+    args.push(batch.prompt);
     let child: ChildProcess;
     try {
       child = spawn(process.execPath, args, {
@@ -407,7 +439,7 @@ export class AgentManager {
 
   private readRun(batch: AgentBatch, run: AgentRun): void {
     const events = readEvents(run.eventsFile);
-    if (events.length === run.events.length && run.approvals.length > 0) return;
+    if (events.length === run.events.length) return;
     run.events = events;
     run.approvals = approvalsFromEvents(events);
     for (const event of events) {
@@ -446,6 +478,7 @@ export class AgentManager {
       }
     }
     this.persist(batch);
+    this.notify();
   }
 
   private batchRoot(id: string): string {
@@ -499,8 +532,9 @@ export class AgentManager {
           run.events = readEvents(run.eventsFile);
           run.approvals = approvalsFromEvents(run.events);
           if (run.status === 'running' || run.status === 'awaiting-approval') {
-            run.status = 'failed';
-            run.error = run.error ?? 'agent process was interrupted when the studio restarted';
+            run.status = 'running';
+            run.error = undefined;
+            run.finishedAt = undefined;
           }
           run.score = run.score ?? scoreReport(run.report);
         }
@@ -509,6 +543,63 @@ export class AgentManager {
       } catch {
         // Ignore malformed history entries.
       }
+    }
+  }
+
+  private recoverInterrupted(): void {
+    if (!this.cliEntry) return;
+    for (const batch of this.batches.values()) {
+      const interrupted = batch.candidates.filter(
+        (run) => run.status === 'running' || run.status === 'awaiting-approval',
+      );
+      if (interrupted.length === 0) continue;
+      this.activeBatchId = batch.id;
+      batch.status = 'running';
+      batch.finishedAt = undefined;
+      for (const run of interrupted) {
+        const events = readEvents(run.eventsFile);
+        let maxSeq = events.reduce((max, event) => Math.max(max, event.seq), 0);
+        const pending = approvalsFromEvents(events).filter(
+          (approval) => approval.status === 'pending',
+        );
+        for (const approval of pending) {
+          maxSeq += 1;
+          appendFileSync(
+            run.eventsFile,
+            `${JSON.stringify({
+              seq: maxSeq,
+              at: new Date().toISOString(),
+              runId: run.id,
+              type: 'approval/decision',
+              id: approval.id,
+              tool: approval.tool,
+              allowed: false,
+              reason: 'agent interrupted; approval expired',
+            })}\n`,
+            'utf8',
+          );
+        }
+        run.events = readEvents(run.eventsFile);
+        run.approvals = approvalsFromEvents(run.events);
+        run.status = 'running';
+        run.error = undefined;
+        run.finishedAt = undefined;
+        this.spawn(
+          batch,
+          run,
+          {
+            prompt: batch.prompt,
+            provider: batch.provider,
+            skill: batch.skill,
+            maxSteps: batch.maxSteps,
+            approvalTools: batch.approvalTools,
+            resume: true,
+          },
+          maxSeq + 1,
+        );
+      }
+      this.persist(batch);
+      this.notify();
     }
   }
 

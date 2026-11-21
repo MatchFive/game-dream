@@ -55,9 +55,10 @@ the server cancels the UI's view of an in-flight job.
 ## Agent
 
 The Studio Agent panel starts the same `dream develop` loop used by the CLI as a
-child process. The child writes append-only JSONL events, so the browser can
-show the session transcript, tool trace, running state, and approvals without
-scraping terminal output.
+child process. The child writes append-only JSONL events, and the browser
+subscribes to `/api/agent/events` with Server-Sent Events. Each snapshot contains
+the active/latest batch, candidates, transcript events, and approvals; polling
+remains as a fallback when `EventSource` is unavailable.
 
 The CLI flags used by the Studio are:
 
@@ -67,13 +68,19 @@ The CLI flags used by the Studio are:
 - `--approval-dir <dir>` exchanges approval request and decision JSON files.
   The studio writes a decision when the user clicks Allow or Deny.
 - `--run-id <id>` attaches the batch/run id to every event.
+- `--event-seq-start <n>` continues event sequencing when a persisted run is
+  resumed.
 
 Each Agent batch is persisted under `.gamedream/studio/agent/<batch-id>/`.
 Candidates run in separate `<candidate-N>/project` directories; applying a
 candidate copies its generated top-level project files into the Studio root
-while excluding `.gamedream`, `.env`, and build caches. Interrupted child
-processes become failed history entries after a server restart rather than being
-silently reported as running.
+while excluding `.gamedream`, `.env`, and build caches.
+
+If the Studio server restarts while a run is active, it loads the persisted
+batch, expires any old pending approvals, and starts the interrupted run again
+with `dream develop --resume`. The event sequence continues rather than
+restarting at one. This recovery is process-level; a stale child left by a hard
+crash is not reaped automatically.
 
 ## HTTP API
 
@@ -90,6 +97,7 @@ silently reported as running.
 | `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active/latest Agent batch and history |
+| `GET /api/agent/events` | Server-Sent Events snapshots of Agent state |
 | `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
 | `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
 | `POST /api/agent/batches/:id/runs/:runId/approval` | Allow or deny a pending tool approval |
@@ -108,9 +116,9 @@ expose it on a public interface.
 - Build selection is metadata for the composer; it does not copy files into a
   module yet.
 - Generated jobs are not resumed after a server restart.
-- Agent children are not restarted after a server restart; they become failed
-  history entries.
-- Agent UI updates are file-backed polling (700ms), not a WebSocket/SSE stream.
+- Agent children are resumed with `--resume` after a Studio restart; a child
+  left behind by a hard crash is not reaped automatically.
+- Agent UI uses SSE snapshots with HTTP polling as a fallback.
 - Candidate apply overwrites matching top-level project files without an
   automatic backup.
 - Animation generation is not implemented; animation nodes remain a placeholder.
