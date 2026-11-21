@@ -38,6 +38,7 @@ public sealed class GameBootstrap : MonoBehaviour
             Debug.Log("UNITY_SAVE_LOADED");
         }
         Debug.Log("UNITY_BOOT_OK");
+        StartCoroutine(BgmPlayer.Load(gameObject));
         _mapRoot = new GameObject("MapRoot");
         SetupCamera();
         _player = CreateSquare("Player", new Color(0.35f, 0.75f, 1f), 0.32f, 0);

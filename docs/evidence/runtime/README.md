@@ -63,3 +63,11 @@ The test composes M1, stages a transparent 2-frame atlas plus `.tres`, keeps the
 normal content sprite configs, and verifies G3 with
 `GAMEDREAM_ANIMATION_OK`, proving the generated resource takes precedence and
 plays.
+
+## Unity genre BGM
+
+`unity-runtime-bgm-genre.log` records the same staged-BGM check against the
+platformer template. The shared `BgmPlayer.cs` is injected by
+`composeUnityProject`, starts a looping audio source, and the player smoke logs
+`UNITY_BGM_OK`; this test passes with `EXIT=0`. The genre templates now declare
+the audio, UnityWebRequest, and UnityWebRequestAudio modules.

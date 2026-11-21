@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
@@ -56,5 +57,23 @@ describe('Web survivor', () => {
       width: 32,
       height: 32,
     });
+  });
+
+  it('wires the staged BGM loader into every Web genre template', () => {
+    for (const template of [
+      'web-platformer',
+      'web-roguelike',
+      'web-puzzle',
+      'web-shooter',
+      'web-tower-defense',
+    ]) {
+      const dir = join(root, 'templates', template);
+      expect(existsSync(join(dir, 'audio.mjs'))).toBe(true);
+      const game = readFileSync(join(dir, 'game.js'), 'utf8');
+      expect(game).toContain("from './audio.mjs'");
+      expect(game).toContain('findBgmTrack');
+      expect(game).toContain('game/build-assets/manifest.json');
+      expect(game).toContain("addEventListener('pointerdown', playBgm");
+    }
   });
 });

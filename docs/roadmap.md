@@ -108,7 +108,7 @@
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
 | AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity survivor 已从 StreamingAssets 加载并循环；其他模板未接 | Web/Unity survivor 统一接入 | In progress |
 | AS4b | Unity BGM 接入 | 已同步到 StreamingAssets，真实 Unity player smoke 打出 `UNITY_BGM_OK` | StreamingAssets 打包与音量/循环 | Done |
-| AS4c | 其他模板 BGM | 其他 Web/Unity 模板尚未接入 | 按模板接入音量/循环与暂停 | Backlog |
+| AS4c | 其他模板 BGM | 5 个 Web 模板接入 staged BGM；Unity 6 个模板通过共享 `BgmPlayer` 接入并真实 smoke 打印 `UNITY_BGM_OK`；暂停/独立音量仍简化 | 按模板接入音量/循环与暂停 | Done |
 | AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
 | AS5b | 素材自动绑定模板 | 暂存文件不会自动改写 sprite/content 配置 | 按素材类型生成引用配置或提供可视化绑定 | Backlog |
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
-2. **AS2b SFX**：补文本音效生成与降级。
-3. **AS5b 素材自动绑定模板**：在动画已能自动发现后，补齐音频/图集到内容配置。
+1. **AS2b SFX**：补文本音效生成与降级。
+2. **AS5b 素材自动绑定模板**：把音频/图集写入内容配置，而不是只靠运行时发现。
+3. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
 
 ## 11. Definition of Done
 

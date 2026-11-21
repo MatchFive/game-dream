@@ -30,6 +30,7 @@ public sealed class GameBootstrap : MonoBehaviour
     {
         _sim = new GenreSim(Mode);
         Debug.Log("UNITY_BOOT_OK");
+        StartCoroutine(BgmPlayer.Load(gameObject));
         SetupCamera();
         Transform floor = CreateSquare("Arena", new Color(0.035f, 0.07f, 0.11f), 1f, -2);
         floor.localScale = new Vector3(

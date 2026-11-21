@@ -1,4 +1,5 @@
 import { ARENA, PLAYER_RADIUS, TOTAL_WAVES, createSim, step } from './sim.mjs';
+import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
 
 const root = document.querySelector('#game');
 root.replaceChildren();
@@ -12,6 +13,41 @@ root.appendChild(canvas);
 const ctx = canvas.getContext('2d');
 let state = createSim();
 const keys = new Set();
+const musicInput = document.querySelector('#music');
+let bgm;
+let musicVolume = DEFAULT_MUSIC_VOLUME;
+
+async function loadBgm() {
+  try {
+    const response = await fetch(
+      new URL('./game/build-assets/manifest.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return;
+    const track = findBgmTrack(await response.json());
+    if (!track) return;
+    bgm = new Audio(new URL(track.file, import.meta.url).href);
+    bgm.loop = true;
+    bgm.volume = musicVolume;
+  } catch {
+    // A template without a staged BGM keeps the silent fallback.
+  }
+}
+
+function playBgm() {
+  if (bgm) void bgm.play().catch(() => {});
+}
+
+if (musicInput) {
+  musicInput.value = String(musicVolume);
+  musicInput.addEventListener('input', () => {
+    musicVolume = clampMusicVolume(musicInput.value);
+    if (bgm) bgm.volume = musicVolume;
+  });
+}
+window.addEventListener('pointerdown', playBgm, { once: true });
+window.addEventListener('keydown', playBgm, { once: true });
+void loadBgm();
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   keys.add(key);

@@ -10,6 +10,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SHARED_BGM_PLAYER = fileURLToPath(new URL('../assets/BgmPlayer.cs', import.meta.url));
 
 export const UNITY_PROJECT_FILES = [
   'ProjectSettings/ProjectVersion.txt',
@@ -19,6 +22,7 @@ export const UNITY_PROJECT_FILES = [
   'Assets/Scenes/Main.unity.meta',
   'Assets/Scripts/GameConfig.cs',
   'Assets/Scripts/GameSim.cs',
+  'Assets/Scripts/BgmPlayer.cs',
   'Assets/Scripts/GameBootstrap.cs',
   'Assets/Scripts/ScreenshotRunner.cs',
   'Assets/Scripts/SmokeRunner.cs',
@@ -302,6 +306,8 @@ export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityR
   try {
     mkdirSync(stage, { recursive: true });
     cpSync(templatesDir, stage, { recursive: true });
+    cpSync(SHARED_BGM_PLAYER, join(stage, 'Assets/Scripts/BgmPlayer.cs'));
+    cpSync(`${SHARED_BGM_PLAYER}.meta`, join(stage, 'Assets/Scripts/BgmPlayer.cs.meta'));
     const missing = UNITY_PROJECT_FILES.filter(
       (file) => file !== 'Assets/Resources/GameConfig.json' && !existsSync(join(stage, file)),
     );

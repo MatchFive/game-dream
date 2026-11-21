@@ -6,3 +6,5 @@ A Unity 6 cross-engine smoke slice that reuses the shared Unity verification she
 - Runtime bootstrap draws the arena/player and HUD.
 - Headless verifier emits `UNITY_SIM_OK`, `UNITY_PLATFORMER_START`, `UNITY_PLATFORMER_JUMP`, and `UNITY_WIN`.
 - Old `GameSim`/`SaveStore` remain for the shared static contract.
+- Staged audio in `Assets/StreamingAssets/game/build-assets` is loaded by the
+  shared `BgmPlayer` as a looping track and logs `UNITY_BGM_OK`.

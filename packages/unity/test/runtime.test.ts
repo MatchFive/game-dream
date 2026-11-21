@@ -91,6 +91,44 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(readFileSync(smoke.logPath, 'utf8')).toContain('UNITY_BGM_OK');
   }, 400_000);
 
+  it('loads a staged BGM from StreamingAssets in a genre runtime', () => {
+    const outDir = join(makeTempDir('gamedream unity genre bgm '), 'unity game');
+    composeUnityProject({
+      outDir,
+      templatesDir: join(root, 'templates/unity-platformer'),
+      name: 'platformer-bgm-runtime',
+    });
+    const target = join(outDir, 'Assets/StreamingAssets/game/build-assets');
+    mkdirSync(join(target, 'studio'), { recursive: true });
+    cpSync(join(root, 'modules/system.survivor/assets/bgm.mp3'), join(target, 'studio/bgm.mp3'));
+    writeFileSync(
+      join(target, 'manifest.json'),
+      JSON.stringify({
+        version: 1,
+        assets: [{
+          id: 'bgm',
+          name: 'Fixture BGM',
+          file: 'game/build-assets/studio/bgm.mp3',
+          source: 'module',
+          kind: 'audio',
+          mime: 'audio/mpeg',
+        }],
+      }),
+      'utf8',
+    );
+    const unity = detectUnity({ bin: unityBin });
+    expect(unity).not.toBeNull();
+    const build = runUnityBuild({
+      projectDir: outDir,
+      unityBin: unity!.bin,
+      timeoutMs: 300_000,
+    });
+    expect(build.passed).toBe(true);
+    const smoke = runUnitySmoke({ projectDir: outDir, exePath: build.outputPath });
+    expect(smoke.passed).toBe(true);
+    expect(readFileSync(smoke.logPath, 'utf8')).toContain('UNITY_BGM_OK');
+  }, 400_000);
+
   it('builds and screenshots fresh artifacts', () => {
     const outDir = buildDir();
     composeUnityProject({
