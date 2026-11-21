@@ -160,6 +160,8 @@ Playable prototype or structured repair loop
   `--max-prompt-tokens N` for prompt usage.
 - Studio queues new Agent batches while one is active; queued runs appear in
   `/api/agent` and can be canceled before they start.
+- Studio Policy editor sets per-tool `allow` / `ask` / `deny` rules and a default
+  mode for future Agent runs.
 - Replaceable plugin tree with tool overrides and step/tool/finish hooks.
 - Explicit `prompt_cache_key` boundaries when the provider supports them.
 - MCP bridge for Godot editor tools, discoverable through `mcp.json`.

@@ -203,9 +203,26 @@ it('persists an always-allow approval policy', async () => {
   expect(JSON.parse(readFileSync(policyFile, 'utf8')).tools.scaffold).toBe('allow');
 
   const fetched = await fetch(`${studio.url}/api/agent/policy`).then((response) => response.json()) as {
-    policy: { tools: Record<string, string> };
+    policy: { default?: string; tools: Record<string, string> };
+    availableTools: string[];
+    source: string;
   };
   expect(fetched.policy.tools.scaffold).toBe('allow');
+  expect(fetched.availableTools).toContain('write_file');
+  expect(fetched.source).toBe('.gamedream/studio/agent-policy.json');
+
+  const defaulted = await fetch(`${studio.url}/api/agent/policy`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ default: true, mode: 'deny' }),
+  });
+  expect(defaulted.status).toBe(200);
+  const withDefault = (await defaulted.json()) as {
+    policy: { default: string; tools: Record<string, string> };
+  };
+  expect(withDefault.policy.default).toBe('deny');
+  expect(withDefault.policy.tools.scaffold).toBe('allow');
+  expect(JSON.parse(readFileSync(policyFile, 'utf8')).default).toBe('deny');
 });
 
 it('pushes agent snapshots over SSE', async () => {

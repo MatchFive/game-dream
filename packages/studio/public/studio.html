@@ -50,8 +50,12 @@
     <section class="studio-agent" id="agentPanel">
       <div class="studio-agent-head">
         <span class="eyebrow" data-i18n="studio.agent">AGENT</span>
-        <span class="studio-agent-state" id="agentState">空闲</span>
+        <div class="studio-agent-head-actions">
+          <span class="studio-agent-state" id="agentState">空闲</span>
+          <button class="studio-agent-policy-toggle" id="agentPolicyToggle" type="button" data-i18n="studio.agentPolicy">策略</button>
+        </div>
       </div>
+      <div class="studio-agent-policy" id="agentPolicyPanel" hidden></div>
       <div class="studio-agent-queue" id="agentQueue" hidden></div>
       <div class="studio-agent-candidates" id="agentCandidates" hidden></div>
       <div class="studio-agent-diff" id="agentDiff" hidden>

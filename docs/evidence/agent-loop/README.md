@@ -76,8 +76,13 @@ depending on an installed editor. Real-engine validation remains separate.
   `.gamedream/studio/agent-policy.json`.
 - The focused test reads the file back and verifies the policy is returned by
   `GET /api/agent/policy`.
+- The same test asserts `availableTools` and `source`, switches the default mode
+  to `deny`, and verifies the per-tool override survives.
+- The Studio Policy editor exposes the default plus every known tool with
+  `allow` / `ask` / `deny`; see `agent-policy-editor.png`.
 - The Studio “Always allow” button applies the current approval and records the
   policy for subsequent runs; the current child keeps its loaded gate.
+- Parameter/argument-scoped rules are not implemented; that remains A3b.
 
 ## Token budget
 
@@ -115,6 +120,7 @@ depending on an installed editor. Real-engine validation remains separate.
 - `agent-final-empty.png`: final localized Studio with the Agent panel loaded.
 - `agent-budget-form.png`: Agent composer with the optional Token 预算 field.
 - `agent-queue.png`: active approval plus queued batches and cancel controls.
+- `agent-policy-editor.png`: per-tool and default approval policy editor.
 
 The screenshots were taken against the Studio server using a fixture agent CLI
 for deterministic approval/candidate UI. The real CLI path is separately covered

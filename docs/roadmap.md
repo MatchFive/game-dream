@@ -11,7 +11,7 @@
 | 领域 | 已完成 |
 |---|---|
 | Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止、批次队列 |
-| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队 |
+| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队、按工具审批编辑器 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
 | Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
@@ -59,7 +59,8 @@
 | A1 | Token 硬预算 | 已实现总 token 和 prompt token 停止；provider 不返回 usage 时无法约束 | 达预算前停止、`run/budget` 事件、`budget-exceeded` 状态、CLI/Studio 测试 | Done |
 | A1b | 费用/金额预算 | 尚无模型价格表和货币预算 | 按模型价格估算成本，达到预算前停止；未知价格显式标记 | Backlog |
 | A2 | Agent 队列与并发 | 已支持 FIFO 批次队列、取消排队、自动接续；批级别并发上限为 1 | 连续提交不阻塞、queued 状态进入 SSE/UI、取消队列、当前批次结束后自动启动下一项 | Done |
-| A3 | 完整审批策略编辑器 | 目前 UI 只有 Always allow，API 支持单工具模式 | 可按工具编辑 allow/ask/deny，查看策略来源，参数范围可扩展 | Next |
+| A3 | 审批策略编辑器 | 已支持按工具和默认模式的 allow/ask/deny 编辑、来源展示；参数级规则未实现 | 可按工具编辑、保存到 policy 文件、来源可见、未来 run 生效 | Done |
+| A3b | 参数级审批规则 | 目前规则粒度只有工具名和默认模式 | 可按参数/路径范围匹配；越界操作仍走 ask/deny；审计记录 | Backlog |
 | A4 | 硬崩溃子进程回收 | graceful restart 可恢复，hard crash 遗留进程不回收 | 持久化 PID/启动标识；重启时安全判断并回收旧进程 | Backlog |
 | A5 | 运行历史 UI | API 有 batch history，Studio 主要显示 latest | 历史列表、切换查看、清理旧 batch | Backlog |
 | A6 | Agent 失败重试 | 失败后需重新发起 | 支持 retry 当前 prompt、保留旧事件、明确新 generation | Backlog |
@@ -129,11 +130,10 @@
 
 ## 10. 建议的下一步顺序
 
-1. **A3 审批策略编辑器**：把单工具 allow/ask/deny 做成可查看、可编辑的完整策略面。
-2. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
-3. **AS5 Build selection 落地**：让素材选择真正进入 composer。
-4. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
-5. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
+2. **AS5 Build selection 落地**：让素材选择真正进入 composer。
+3. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
+4. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
 
 ## 11. Definition of Done
 

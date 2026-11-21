@@ -88,6 +88,13 @@ when the active batch finishes or is canceled. `/api/agent` returns `active`,
 before they start. Candidate fan-out inside one batch still runs in parallel.
 
 Approval policy is persisted at `.gamedream/studio/agent-policy.json`.
+The Agent header's **Policy** button opens an editor listing the available Agent
+tools with `allow` / `ask` / `deny` selectors and a default mode. Changes are
+saved through `POST /api/agent/policy` and apply to future runs; a child process
+that is already running keeps the policy it loaded. `GET /api/agent/policy`
+also returns `availableTools` and `source` so the UI can show what is editable
+and where the policy lives.
+
 The approval card's **Always allow** action writes
 `{ "tools": { "<tool>": "allow" } }` there and applies the current decision.
 Future runs pass the file through `dream develop --permissions`; the server does
@@ -136,8 +143,8 @@ binding.
 | `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active, queued, and historical Agent batches |
-| `GET /api/agent/policy` | Read the Studio approval policy |
-| `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) |
+| `GET /api/agent/policy` | Read the Studio approval policy, available tools, and source path |
+| `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) or the default mode |
 | `GET /api/agent/events` | Server-Sent Events snapshots of Agent state |
 | `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
 | `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
@@ -172,8 +179,11 @@ expose it on a public interface.
 - Token budgets are enforced only when the provider reports usage. A provider
   that returns zero or no usage cannot be hard-capped; the Studio does not
   pretend the budget was enforced. There is no currency/pricing budget yet.
-- “Always allow” writes policy for future runs; it does not retroactively change
-  the permission gate already loaded by the current child process.
+- “Always allow” and the Policy editor write policy for future runs; neither
+  retroactively changes the permission gate already loaded by the current child
+  process.
+- Policy is per tool plus a default; argument/parameter-scoped rules are not
+  implemented yet.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
 - Web playtest serves the project root directly; generated apps that assume an

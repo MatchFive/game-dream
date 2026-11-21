@@ -16,6 +16,9 @@ const state = {
   agentStreamOpened: false,
   agentLastStatus: null,
   agentDiff: null,
+  agentPolicy: null,
+  agentPolicyTools: [],
+  agentPolicyOpen: false,
 };
 
 function escapeHtml(value) {
@@ -125,6 +128,102 @@ function agentUsageText(report) {
 
 function agentEventDetails(summary, body) {
   return `<details class="studio-agent-tool"><summary>${summary}</summary><pre>${body}</pre></details>`;
+}
+
+function agentPolicyModeLabel(mode) {
+  return t(
+    mode === 'ask'
+      ? 'studio.agentPolicyAsk'
+      : mode === 'deny' ? 'studio.agentPolicyDeny' : 'studio.agentPolicyAllow',
+  );
+}
+
+function agentPolicyOptions(selected) {
+  return ['allow', 'ask', 'deny'].map((mode) => (
+    `<option value="${mode}"${mode === selected ? ' selected' : ''}>${agentPolicyModeLabel(mode)}</option>`
+  )).join('');
+}
+
+async function loadAgentPolicy(force = false) {
+  if (state.agentPolicy && !force) {
+    renderAgentPolicy();
+    return;
+  }
+  try {
+    const data = await request('/api/agent/policy');
+    state.agentPolicy = data.policy ?? {};
+    state.agentPolicyTools = data.availableTools ?? [];
+    state.agentPolicySource = data.source ?? '.gamedream/studio/agent-policy.json';
+    renderAgentPolicy();
+  } catch (error) {
+    toast(t('studio.agentPolicyFailed', { message: error.message }));
+  }
+}
+
+function renderAgentPolicy() {
+  const panel = $('#agentPolicyPanel');
+  const toggle = $('#agentPolicyToggle');
+  toggle.setAttribute('aria-expanded', String(state.agentPolicyOpen));
+  if (!state.agentPolicyOpen) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const policy = state.agentPolicy ?? {};
+  const tools = [...new Set([
+    ...(state.agentPolicyTools ?? []),
+    ...Object.keys(policy.tools ?? {}),
+  ])].sort();
+  const defaultMode = policy.default ?? 'allow';
+  panel.innerHTML = `
+    <div class="studio-agent-policy-source">${escapeHtml(
+      t('studio.agentPolicySource', { path: state.agentPolicySource ?? '.gamedream/studio/agent-policy.json' }),
+    )}</div>
+    <div class="studio-agent-policy-row">
+      <span>${escapeHtml(t('studio.agentPolicyDefault'))}</span>
+      <select data-agent-policy-default aria-label="${escapeHtml(t('studio.agentPolicyDefault'))}">${agentPolicyOptions(defaultMode)}</select>
+    </div>
+    ${tools.map((tool) => `
+      <div class="studio-agent-policy-row">
+        <span>${escapeHtml(tool)}</span>
+        <select data-agent-policy-tool="${escapeHtml(tool)}" aria-label="${escapeHtml(tool)}">${agentPolicyOptions(policy.tools?.[tool] ?? defaultMode)}</select>
+      </div>
+    `).join('')}
+    <div class="studio-agent-policy-note">${escapeHtml(t('studio.agentPolicyNote'))}</div>
+  `;
+  $('[data-agent-policy-default]', panel)?.addEventListener('change', (event) => {
+    saveAgentPolicy('', event.target.value, true);
+  });
+  $$('[data-agent-policy-tool]', panel).forEach((select) => {
+    select.addEventListener('change', () => {
+      saveAgentPolicy(select.dataset.agentPolicyTool, select.value, false);
+    });
+  });
+}
+
+async function toggleAgentPolicy() {
+  state.agentPolicyOpen = !state.agentPolicyOpen;
+  if (!state.agentPolicyOpen) {
+    renderAgentPolicy();
+    return;
+  }
+  await loadAgentPolicy();
+}
+
+async function saveAgentPolicy(tool, mode, isDefault) {
+  try {
+    const data = await request('/api/agent/policy', {
+      method: 'POST',
+      body: JSON.stringify(isDefault ? { default: true, mode } : { tool, mode }),
+    });
+    state.agentPolicy = data.policy ?? state.agentPolicy;
+    state.agentPolicyTools = data.availableTools ?? state.agentPolicyTools;
+    renderAgentPolicy();
+    toast(t('studio.agentPolicySaved'));
+  } catch (error) {
+    toast(t('studio.agentPolicyFailed', { message: error.message }));
+    await loadAgentPolicy(true);
+  }
 }
 
 function agentThreadMarkup(run) {
@@ -876,6 +975,7 @@ $('#playBtn').addEventListener('click', startPlaytest);
 $('#playClose').addEventListener('click', stopPlaytest);
 $('#agentStart').addEventListener('click', startAgent);
 $('#agentCancel').addEventListener('click', cancelAgent);
+$('#agentPolicyToggle').addEventListener('click', toggleAgentPolicy);
 $('#agentAllow').addEventListener('click', () => decideAgentApproval(true));
 $('#agentAllowAlways').addEventListener('click', () => decideAgentApproval(true, true));
 $('#agentDeny').addEventListener('click', () => decideAgentApproval(false));
@@ -910,6 +1010,7 @@ initLocale();
 document.title = t('studio.title');
 window.addEventListener('localechange', () => {
   document.title = t('studio.title');
+  renderAgentPolicy();
   if (state.snapshot) renderAll();
   renderAgent();
 });

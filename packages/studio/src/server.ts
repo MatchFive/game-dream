@@ -3,7 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AgentManager } from './agent.js';
+import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, toggleInBuild } from './assets.js';
 import { ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
@@ -410,20 +410,34 @@ async function handleApi(
   }
 
   if (method === 'GET' && pathname === '/api/agent/policy') {
-    json(response, 200, { policy: agent.getPolicy() });
+    json(response, 200, {
+      policy: agent.getPolicy(),
+      availableTools: AGENT_POLICY_TOOLS,
+      source: '.gamedream/studio/agent-policy.json',
+    });
     return;
   }
 
   if (method === 'POST' && pathname === '/api/agent/policy') {
     try {
-      const body = (await readJson(request)) as { tool?: unknown; mode?: unknown };
+      const body = (await readJson(request)) as {
+        tool?: unknown;
+        mode?: unknown;
+        default?: unknown;
+      };
       const tool = typeof body.tool === 'string' ? body.tool.trim() : '';
       const mode = body.mode;
-      if (!tool || (mode !== 'allow' && mode !== 'ask' && mode !== 'deny')) {
-        json(response, 400, { error: 'tool and mode allow|ask|deny are required' });
+      if ((!tool && body.default !== true) || (mode !== 'allow' && mode !== 'ask' && mode !== 'deny')) {
+        json(response, 400, { error: 'tool (or default) and mode allow|ask|deny are required' });
         return;
       }
-      json(response, 200, { policy: agent.updatePolicy(tool, mode) });
+      json(response, 200, {
+        policy: body.default === true
+          ? agent.updateDefaultPolicy(mode)
+          : agent.updatePolicy(tool, mode),
+        availableTools: AGENT_POLICY_TOOLS,
+        source: '.gamedream/studio/agent-policy.json',
+      });
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }

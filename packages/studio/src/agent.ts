@@ -24,6 +24,20 @@ export type AgentRunStatus =
 export type AgentApprovalStatus = 'pending' | 'allowed' | 'denied';
 export type AgentToolMode = 'allow' | 'ask' | 'deny';
 
+export const AGENT_POLICY_TOOLS = [
+  'scaffold',
+  'compose',
+  'read_skill',
+  'read_file',
+  'write_file',
+  'list_files',
+  'check_script',
+  'mcp',
+  'verify',
+  'playtest',
+  'finish',
+] as const;
+
 export interface AgentPolicy {
   default?: AgentToolMode;
   tools?: Record<string, AgentToolMode>;
@@ -319,11 +333,25 @@ export class AgentManager {
     const policy = this.getPolicy();
     policy.tools = { ...(policy.tools ?? {}), [tool]: mode };
     policy.default ??= 'allow';
+    this.writePolicy(policy);
+    return policy;
+  }
+
+  updateDefaultPolicy(mode: AgentToolMode): AgentPolicy {
+    if (!['allow', 'ask', 'deny'].includes(mode)) {
+      throw new Error('invalid permission policy update');
+    }
+    const policy = this.getPolicy();
+    policy.default = mode;
+    this.writePolicy(policy);
+    return policy;
+  }
+
+  private writePolicy(policy: AgentPolicy): void {
     const path = this.policyPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, `${JSON.stringify(policy, null, 2)}\n`, 'utf8');
     this.notify();
-    return policy;
   }
 
   async start(input: AgentStartInput): Promise<AgentBatch> {
