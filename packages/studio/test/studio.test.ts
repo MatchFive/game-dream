@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -54,6 +54,26 @@ describe('studio assets', () => {
     expect(loadCanvas(root).nodes[0]).toMatchObject({ id: 'hero', assetId: asset.id });
     expect(setInBuild(root, asset.id, true).inBuild).toEqual([asset.id]);
     expect(toggleInBuild(root, asset.id).inBuild).toEqual([]);
+  });
+
+  it('stages selected assets into the project build and removes them on unselect', () => {
+    const asset = scanAssets(root).find((entry) => entry.kind === 'concept')!;
+    setInBuild(root, asset.id, true);
+    const manifestFile = join(root, 'game', 'build-assets', 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as {
+      assets: Array<{ id: string; file: string }>;
+    };
+    expect(manifest.assets).toHaveLength(1);
+    expect(manifest.assets[0]?.id).toBe(asset.id);
+    expect(manifest.assets[0]?.file).toMatch(/^game\/build-assets\/studio\//);
+    expect(existsSync(join(root, manifest.assets[0]!.file))).toBe(true);
+
+    setInBuild(root, asset.id, false);
+    const cleared = JSON.parse(readFileSync(manifestFile, 'utf8')) as {
+      assets: Array<{ file: string }>;
+    };
+    expect(cleared.assets).toEqual([]);
+    expect(existsSync(join(root, manifest.assets[0]!.file))).toBe(false);
   });
 
   it('builds a project snapshot with screenshot and durable runs', () => {
@@ -148,6 +168,11 @@ describe('studio assets', () => {
         }),
       }).then((response) => response.json()) as { canvas: { inBuild: string[] } };
       expect(save.canvas.inBuild).toEqual([asset.id]);
+      const staged = JSON.parse(
+        readFileSync(join(root, 'game', 'build-assets', 'manifest.json'), 'utf8'),
+      ) as { assets: Array<{ id: string; file: string }> };
+      expect(staged.assets[0]?.id).toBe(asset.id);
+      expect(existsSync(join(root, staged.assets[0]!.file))).toBe(true);
 
       const generation = await fetch(`${studio.url}/api/generate`, {
         method: 'POST',

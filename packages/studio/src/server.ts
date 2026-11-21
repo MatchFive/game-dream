@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
-import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, toggleInBuild } from './assets.js';
+import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
 import { ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
 import {
@@ -14,7 +14,7 @@ import {
   uploadFile,
   type VerifyRun,
 } from './project.js';
-import type { ComfyUiConfig, StudioState } from './types.js';
+import type { CanvasNode, ComfyUiConfig, StudioState } from './types.js';
 
 export interface StudioServerOptions {
   projectDir: string;
@@ -193,6 +193,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
   const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
+  syncBuildAssets(root);
   const agent = new AgentManager({ root, cliEntry });
   const sseClients = new Set<ServerResponse>();
   let playtestChild: ReturnType<typeof spawn> | undefined;
@@ -828,9 +829,10 @@ async function handleApi(
       return;
     }
     const canvas = saveCanvas(root, {
-      nodes: body.nodes as never,
+      nodes: Array.isArray(body.nodes) ? (body.nodes as CanvasNode[]) : [],
       inBuild: Array.isArray(body.inBuild) ? (body.inBuild as string[]) : [],
     });
+    syncBuildAssets(root);
     json(response, 200, { canvas });
     return;
   }

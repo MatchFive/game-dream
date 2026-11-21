@@ -33,6 +33,16 @@ describe('composeProject', () => {
     expect(lockfile.modules.every((module: { hash: string }) => module.hash.startsWith('sha256:'))).toBe(true);
   });
 
+  it('preserves staged Studio build assets on recompose', async () => {
+    const opts = options();
+    await composeProject(opts);
+    const asset = join(opts.outDir, 'game/build-assets/studio/hero.png');
+    mkdirSync(join(opts.outDir, 'game/build-assets/studio'), { recursive: true });
+    writeFileSync(asset, 'staged', 'utf8');
+    await composeProject(opts);
+    expect(readFileSync(asset, 'utf8')).toBe('staged');
+  });
+
   it('preserves user files on a second compose', async () => {
     const opts = options();
     await composeProject(opts);

@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget/queue 
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **227 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **229 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -73,6 +73,18 @@ depending on an installed editor. Real-engine validation remains separate.
   and verifies the original file content is restored.
 - `studio-agent-smoke.log` still verifies the complete actual-CLI approval and
   finish path after these changes.
+
+## Build selection
+
+- Selecting an asset copies it under `game/build-assets/studio/` and writes
+  `game/build-assets/manifest.json` with the original id, name, source, kind,
+  MIME type, and staged path.
+- `packages/studio/test/studio.test.ts` asserts the staged file and manifest,
+  then unselects the asset and verifies the managed copy is removed.
+- `packages/core/test/composer.test.ts` writes a `game/build-assets/` file,
+  recomposes, and asserts the staged asset survives.
+- Staged files are project assets; templates do not automatically reference them
+  yet (AS5b).
 
 ## Approval policy
 

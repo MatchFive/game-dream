@@ -609,6 +609,7 @@ function renderInspector() {
     ${preview}
     <h2 class="inspect-name">${escapeHtml(asset.name)}</h2>
     <div class="inspect-sub">${escapeHtml(asset.file)}</div>
+    ${asset.inBuild ? `<div class="inspect-sub">${t('assets.buildStageHint')}</div>` : ''}
     <div class="inspect-tags">${asset.inBuild ? `<span class="tag good">${t('common.inBuild')}</span>` : ''}<span class="tag">${t(`common.${asset.kind}`)}</span><span class="tag">${t(`common.${asset.source}`)}</span></div>
     <div class="meta-grid">
       <div class="meta-cell"><div class="k">${t('common.type')}</div><div class="v">${t(`common.${asset.kind}`)}</div></div>

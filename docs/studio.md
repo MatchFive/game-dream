@@ -31,6 +31,16 @@ Images (PNG, JPG, WebP, GIF, SVG) and audio (MP3, WAV, OGG, M4A) are indexed.
 Canvas layout and build selections are stored in
 `.gamedream/studio/canvas.json`.
 
+## Build selection
+
+Selecting **Use in build** copies the asset to
+`game/build-assets/studio/<name>-<id>.<ext>` and writes
+`game/build-assets/manifest.json` with the original id, name, source, kind, MIME
+type, and staged path. Unselecting removes only files listed by the previous
+manifest. The composer preserves `game/build-assets/` on recompose, so staged
+assets travel with the project; templates still need to reference them from
+their content or sprite configuration.
+
 ## Generation
 
 Generation uses a local ComfyUI server and the configured Qwen image workflow.
@@ -170,8 +180,8 @@ expose it on a public interface.
 ## Current limits
 
 - One image per generation job; request up to four jobs per batch for variants.
-- Build selection is metadata for the composer; it does not copy files into a
-  module yet.
+- Build selection stages assets under `game/build-assets/`; it does not
+  automatically rewrite sprite configs or template content to reference them.
 - Generated jobs are not resumed after a server restart.
 - Agent children are resumed with `--resume` after a Studio restart; a child
   left behind by a hard crash is not reaped automatically.

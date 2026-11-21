@@ -21,7 +21,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**227 passed / 9 skipped**
+- 全量测试：**229 passed / 9 skipped**
 - Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -97,7 +97,8 @@
 | AS2 | Asset Canvas 音频生成 | 只能索引/试听已有音频 | UI 内生成 BGM/SFX、试听、重命名、加入构建 | Next |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
 | AS4 | BGM 全模板覆盖 | 生成的 MiniMax BGM 只接 Godot survivor | Web/Unity survivor 及其他需要音频的模板统一接入音量和循环设置 | Next |
-| AS5 | Build selection 落地 | `Use in build` 仍是画布元数据 | 选择素材会复制到模块/项目并参与 compose；保留来源和撤销 | Next |
+| AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
+| AS5b | 素材自动绑定模板 | 暂存文件不会自动改写 sprite/content 配置 | 按素材类型生成引用配置或提供可视化绑定 | Backlog |
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
 
 动画路线参考 `docs/comfyui-audio-animation.md`：优先透明关键帧和 atlas；AnimateDiff 需要额外安装节点和 motion module，不能假定已有。
@@ -131,9 +132,8 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS5 Build selection 落地**：让素材选择真正进入 composer。
-2. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
-3. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
+2. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
 
 ## 11. Definition of Done
 

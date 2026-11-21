@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto';
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -183,7 +185,9 @@ export function toggleInBuild(root: string, assetId: string): CanvasState {
   const selected = new Set(canvas.inBuild);
   if (selected.has(assetId)) selected.delete(assetId);
   else selected.add(assetId);
-  return saveCanvas(root, { ...canvas, inBuild: [...selected] });
+  const next = saveCanvas(root, { ...canvas, inBuild: [...selected] });
+  syncBuildAssets(root);
+  return next;
 }
 
 export function setInBuild(root: string, assetId: string, value: boolean): CanvasState {
@@ -191,7 +195,9 @@ export function setInBuild(root: string, assetId: string, value: boolean): Canva
   const selected = new Set(canvas.inBuild);
   if (value) selected.add(assetId);
   else selected.delete(assetId);
-  return saveCanvas(root, { ...canvas, inBuild: [...selected] });
+  const next = saveCanvas(root, { ...canvas, inBuild: [...selected] });
+  syncBuildAssets(root);
+  return next;
 }
 
 export function projectName(root: string): string {
@@ -218,6 +224,80 @@ export function projectName(root: string): string {
 
 export function loadProject(root: string): StudioProject {
   return { name: projectName(root), root };
+}
+
+export interface BuildAssetManifest {
+  version: 1;
+  updatedAt: string;
+  assets: Array<{
+    id: string;
+    name: string;
+    file: string;
+    source: StudioAssetSource;
+    kind: StudioAssetKind;
+    mime: string;
+  }>;
+}
+
+const BUILD_ASSET_ROOT = 'game/build-assets';
+const BUILD_ASSET_MANIFEST = `${BUILD_ASSET_ROOT}/manifest.json`;
+
+function safeBuildAssetFile(asset: StudioAsset): string {
+  const extension = extname(asset.file).toLowerCase();
+  const stem = basename(asset.file, extension)
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || asset.kind;
+  return `${BUILD_ASSET_ROOT}/studio/${stem}-${asset.id.slice(0, 8)}${extension}`;
+}
+
+function readBuildAssetManifest(root: string): BuildAssetManifest | undefined {
+  const file = join(root, BUILD_ASSET_MANIFEST);
+  if (!existsSync(file)) return undefined;
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as BuildAssetManifest;
+    return parsed && Array.isArray(parsed.assets) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function syncBuildAssets(root: string): BuildAssetManifest {
+  const canvas = loadCanvas(root);
+  const selected = scanAssets(root, canvas.inBuild).filter((asset) => asset.inBuild);
+  const previous = readBuildAssetManifest(root);
+  const manifestPath = join(root, BUILD_ASSET_MANIFEST);
+  if (selected.length === 0 && !previous) {
+    return { version: 1, updatedAt: new Date().toISOString(), assets: [] };
+  }
+
+  for (const entry of previous?.assets ?? []) {
+    if (!entry.file.startsWith(`${BUILD_ASSET_ROOT}/`)) continue;
+    rmSync(join(root, entry.file), { force: true });
+  }
+
+  const assets = selected.map((asset) => {
+    const file = safeBuildAssetFile(asset);
+    const target = join(root, file);
+    mkdirSync(dirname(target), { recursive: true });
+    cpSync(join(root, asset.file), target);
+    return {
+      id: asset.id,
+      name: asset.name,
+      file,
+      source: asset.source,
+      kind: asset.kind,
+      mime: asset.mime,
+    };
+  });
+  const manifest: BuildAssetManifest = {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    assets,
+  };
+  mkdirSync(dirname(manifestPath), { recursive: true });
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  return manifest;
 }
 
 export function scanAssets(root: string, inBuild: string[] = []): StudioAsset[] {
