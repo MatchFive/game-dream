@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget/queue 
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **230 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **231 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -93,7 +93,11 @@ depending on an installed editor. Real-engine validation remains separate.
 - `packages/studio/test/studio.test.ts` asserts animation job metadata and that
   animation canvas nodes persist through `saveCanvas`/`loadCanvas`.
 - `agent-animation-node.png` shows a rendered 3-frame animation node.
-- No sprite sheet/atlas packer or engine animation metadata yet (AS1b).
+- `POST /api/animation/atlas` packs equal-sized PNG frames into a horizontal
+  transparent atlas; `createAnimationAtlas` writes a sidecar with frame size,
+  count, FPS, loop, and source frame ids.
+- The studio test decodes the generated atlas and asserts 4×2 dimensions for two
+  2×2 frames.
 
 ## Build selection
 

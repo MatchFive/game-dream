@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
+import { createAnimationAtlas } from './animation-atlas.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
 import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
@@ -737,6 +738,30 @@ async function handleApi(
       }
       const file = uploadFile(root, name, data.replace(/^data:[^;]+;base64,/, ''));
       json(response, 201, { file });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/animation/atlas') {
+    try {
+      const body = (await readJson(request)) as {
+        assetIds?: unknown;
+        name?: unknown;
+        fps?: unknown;
+        loop?: unknown;
+      };
+      const assetIds = Array.isArray(body.assetIds)
+        ? body.assetIds.filter((id): id is string => typeof id === 'string').slice(0, 8)
+        : [];
+      const atlas = createAnimationAtlas(root, {
+        assetIds,
+        name: typeof body.name === 'string' ? body.name : undefined,
+        fps: typeof body.fps === 'number' ? body.fps : undefined,
+        loop: typeof body.loop === 'boolean' ? body.loop : undefined,
+      });
+      json(response, 201, { atlas });
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }

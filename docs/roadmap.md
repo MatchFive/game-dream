@@ -13,7 +13,7 @@
 | Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止、批次队列 |
 | Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队、按工具审批编辑器 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
-| Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG、2–4 帧动画序列 |
+| Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG、2–4 帧动画序列、PNG 图集 |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
 | CI | MCP fixture smoke、真实 Godot 4.4.1 runtime smoke、typecheck/build/full tests |
 | UI | 中文默认、中英切换、桌面/移动布局 |
@@ -21,7 +21,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**230 passed / 9 skipped**
+- 全量测试：**231 passed / 9 skipped**
 - Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -93,8 +93,9 @@
 
 | ID | 事项 | 当前缺口 | 验收标准 | 状态 |
 |---|---|---|---|---|
-| AS1 | 动画关键帧序列 | 已支持 2–4 帧透明关键帧、动画节点播放/重生成；没有 atlas | 生成序列、节点预览、可重生成 | Done |
-| AS1b | 动画图集/引擎资源 | 没有 sprite sheet 打包和引擎动画元数据 | 横向/网格 atlas、frame_size/FPS/loop、Godot/Web 引用 | Backlog |
+| AS1 | 动画关键帧序列 | 已支持 2–4 帧透明关键帧、动画节点播放/重生成；图集见 AS1b | 生成序列、节点预览、可重生成 | Done |
+| AS1b | 动画图集 | 已支持 2–8 个同尺寸 PNG 横向打包、透明通道、frame/FPS/loop 元数据 | 图集文件、元数据、素材索引 | Done |
+| AS1c | 引擎动画资源 | 图集不会自动生成 SpriteFrames/Web 描述 | 按引擎生成动画资源并接入模板 | Backlog |
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听；SFX/重命名未做 | UI 内生成、显示进度、试听、加入构建 | Done |
 | AS2b | 音频 SFX/重命名 | 固定 30 秒 BGM，无文本 SFX、无素材重命名 | 自定义时长、SFX 生成、重命名和元数据编辑 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
@@ -135,7 +136,7 @@
 ## 10. 建议的下一步顺序
 
 1. **V1 Unity runtime**：本机无 Unity，先补 self-hosted/本地可执行 job，不能伪造通过。
-2. **AS1b 动画图集**：给现有帧序列加 atlas 打包和引擎动画元数据。
+2. **AS1c 引擎动画资源**：把 atlas 元数据生成 Godot/Web 动画描述。
 3. **AS4 BGM 全模板覆盖**：把现有 BGM 接入 Web/Unity survivor 及音量/循环设置。
 
 ## 11. Definition of Done

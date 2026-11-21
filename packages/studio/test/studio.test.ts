@@ -3,6 +3,8 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PNG } from 'pngjs';
+import { createAnimationAtlas } from '../src/animation-atlas.js';
 import { loadCanvas, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
 import { ComfyAudioRunner, ComfyRunner } from '../src/comfyui.js';
 import { loadProjectSnapshot, loadRuns } from '../src/project.js';
@@ -66,6 +68,43 @@ describe('studio assets', () => {
     expect(loadCanvas(root).nodes[1]).toMatchObject({ id: 'walk', kind: 'animation' });
     expect(setInBuild(root, asset.id, true).inBuild).toEqual([asset.id]);
     expect(toggleInBuild(root, asset.id).inBuild).toEqual([]);
+  });
+
+  it('packs equal-sized animation frames into a transparent PNG atlas', () => {
+    const frame = (red: number, green: number, blue: number) => {
+      const png = new PNG({ width: 2, height: 2 });
+      for (let index = 0; index < 4; index += 1) {
+        png.data[index * 4] = red;
+        png.data[index * 4 + 1] = green;
+        png.data[index * 4 + 2] = blue;
+        png.data[index * 4 + 3] = index === 3 ? 0 : 255;
+      }
+      return PNG.sync.write(png);
+    };
+    mkdirSync(join(root, 'assets'), { recursive: true });
+    writeFileSync(join(root, 'assets', 'atlas-a.png'), frame(255, 0, 0));
+    writeFileSync(join(root, 'assets', 'atlas-b.png'), frame(0, 255, 0));
+    const frames = scanAssets(root)
+      .filter((asset) => asset.file.includes('atlas-'))
+      .map((asset) => asset.id);
+    const result = createAnimationAtlas(root, {
+      assetIds: frames,
+      name: 'Walk atlas',
+      fps: 10,
+      loop: true,
+    });
+    const sheet = PNG.sync.read(readFileSync(join(root, result.file)));
+    expect(sheet.width).toBe(4);
+    expect(sheet.height).toBe(2);
+    expect(result).toMatchObject({
+      frameWidth: 2,
+      frameHeight: 2,
+      frameCount: 2,
+      fps: 10,
+      loop: true,
+    });
+    const metadata = JSON.parse(readFileSync(join(root, result.manifest), 'utf8'));
+    expect(metadata).toMatchObject({ kind: 'animation-atlas', frameCount: 2, fps: 10 });
   });
 
   it('stages selected assets into the project build and removes them on unselect', () => {

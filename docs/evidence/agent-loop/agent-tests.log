@@ -5,19 +5,20 @@
 
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/studio/test/agent.test.ts (7 tests) 3194ms
-   ✓ streams approval and completion for a Studio agent run 543ms
-   ✓ runs candidates and applies the selected candidate 594ms
-   ✓ queues batches, cancels a queued batch, and starts the next one 922ms
-   ✓ resumes an interrupted run after a Studio restart 797ms
- ✓ packages/cli/test/develop.test.ts (4 tests) 2025ms
-   ✓ development case > loads a case and develops a project through tools 719ms
-   ✓ development case > generates and selects among candidates 736ms
-   ✓ development case > streams structured events and resolves Studio approvals 503ms
+ ✓ packages/studio/test/agent.test.ts (7 tests) 3137ms
+   ✓ streams approval and completion for a Studio agent run 506ms
+   ✓ runs candidates and applies the selected candidate 574ms
+   ✓ marks a run stopped by the token budget 334ms
+   ✓ queues batches, cancels a queued batch, and starts the next one 901ms
+   ✓ resumes an interrupted run after a Studio restart 729ms
+ ✓ packages/cli/test/develop.test.ts (4 tests) 2403ms
+   ✓ development case > loads a case and develops a project through tools 857ms
+   ✓ development case > generates and selects among candidates 942ms
+   ✓ development case > streams structured events and resolves Studio approvals 531ms
 
  Test Files  2 passed (2)
       Tests  11 passed (11)
-   Start at  19:59:20
-   Duration  6.14s (transform 2.15s, setup 0ms, collect 3.62s, tests 5.22s, environment 1ms, prepare 449ms)
+   Start at  20:03:02
+   Duration  7.18s (transform 2.64s, setup 0ms, collect 4.38s, tests 5.54s, environment 1ms, prepare 648ms)
 
 EXIT=0

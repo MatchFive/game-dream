@@ -33,11 +33,13 @@ Implemented in Studio:
   workflow, one seed per frame.
 - The frames are ordinary PNG assets and are grouped into an animation canvas
   node with playback and regenerate controls.
-- Build selection can stage the frames under `game/build-assets/`.
+- **Pack atlas** creates a horizontal transparent PNG with frame dimensions,
+  count, FPS, and loop metadata.
+- Build selection can stage the frames or atlas under `game/build-assets/`.
 
 Still pending:
 
-1. Pack frames into a horizontal sprite sheet/atlas.
-2. Emit engine animation metadata (frame size, frame count, FPS, loop).
-3. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
+1. Emit engine-specific animation config (for example Godot `SpriteFrames` or
+   Web sprite-sheet descriptors).
+2. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
    motion module; video output still needs alpha cleanup and frame extraction.

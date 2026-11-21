@@ -361,7 +361,7 @@ function nodeMarkup(node) {
     return `${nodeHead(t('assets.nodesAnimation'), t('assets.frameCount', { count: frames.length }))}
       <div class="node-media node-art animation-frame"><img data-animation-frame src="${escapeHtml(first.url)}" alt="${escapeHtml(node.title ?? first.name)}"><span class="animation-badge">${frames.length}F</span></div>
       <div class="node-body"><div class="node-title">${escapeHtml(node.title ?? first.name)}</div><div class="node-sub">${t('assets.animationHint')}</div></div>
-      <div class="node-foot"><span class="node-tag">${t('assets.frameCount', { count: frames.length })}</span><button class="button secondary" type="button" data-animation-play>${t('assets.playAnimation')}</button><button class="button secondary" type="button" data-animation-regenerate>${t('assets.regenerateAnimation')}</button></div>`;
+      <div class="node-foot"><span class="node-tag">${t('assets.frameCount', { count: frames.length })}</span><button class="button secondary" type="button" data-animation-play>${t('assets.playAnimation')}</button><button class="button secondary" type="button" data-animation-atlas>${t('assets.packAtlas')}</button><button class="button secondary" type="button" data-animation-regenerate>${t('assets.regenerateAnimation')}</button></div>`;
   }
   if (node.generating) {
     return `${nodeHead(t('assets.nodesGenerating'), t('assets.job'))}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">${t('assets.generatingAsset')}</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}${node.batchSize > 1 ? ` · ${node.batchIndex}/${node.batchSize}` : ''}</div></div>`;
@@ -458,6 +458,12 @@ function bindNode(element, node) {
       regenerateAnimation(node);
     });
   });
+  $$('[data-animation-atlas]', element).forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      packAnimation(node);
+    });
+  });
   $$('[data-menu]', element).forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -496,6 +502,43 @@ function regenerateAnimation(node) {
   state.animate = true;
   updateAnimationChip();
   generateAsset();
+}
+
+async function packAnimation(node) {
+  const frames = (node.assetIds ?? []).filter(Boolean);
+  if (frames.length < 2) return;
+  try {
+    const result = await request('/api/animation/atlas', {
+      method: 'POST',
+      body: JSON.stringify({
+        assetIds: frames,
+        name: node.title ?? 'Animation atlas',
+        fps: 8,
+        loop: true,
+      }),
+    });
+    await load();
+    const asset = result.atlas?.assetId ? assetById(result.atlas.assetId) : undefined;
+    if (asset) {
+      state.canvas.nodes.push({
+        id: `atlas-${Date.now()}`,
+        kind: 'asset',
+        assetId: asset.id,
+        x: node.x + 300,
+        y: node.y,
+        width: 286,
+      });
+      scheduleSave();
+      renderCanvas();
+    }
+    toast(t('assets.atlasReady', {
+      width: result.atlas?.frameWidth ?? 0,
+      height: result.atlas?.frameHeight ?? 0,
+      count: result.atlas?.frameCount ?? frames.length,
+    }));
+  } catch (error) {
+    toast(t('assets.atlasFailed', { message: error.message }));
+  }
 }
 
 function renderWires() {
