@@ -5,6 +5,8 @@ dist/
 .superpowers/
 .tools/
 tmp/
+build/
+.commandcode/
 *.log
 !docs/evidence/**/*.log
 *.tsbuildinfo

@@ -23,18 +23,6 @@ window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase())
 function draw() {
   ctx.fillStyle = '#071018';
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
-  const rows = { ...state };
-  const level = rows.solution ? rows : state;
-  const gridRows = [
-    '#######',
-    '#     #',
-    '# .$@ #',
-    '#  $  #',
-    '#     #',
-    '#######',
-  ];
-  // The active grid is mirrored from the level index in the sim; draw walls
-  // from the visible cells so both small chambers render correctly.
   const width = state.levelIndex === 0 ? 7 : 5;
   const height = state.levelIndex === 0 ? 6 : 5;
   for (let y = 0; y < height; y += 1) {

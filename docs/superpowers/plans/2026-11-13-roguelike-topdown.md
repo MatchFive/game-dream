@@ -23,7 +23,7 @@ seeded dungeon, turn-based combat, permadeath, and an exit.
 
 ## Evidence
 
-- Real Godot: G1/G2/G3 pass, G6 pass (1280×720, 26 colors).
+- Real Godot: G1/G2/G3 pass, G6 pass (1280脳720, 26 colors).
 - Markers observed: `GAMEDREAM_DUNGEON`, `GAMEDREAM_KILL`, `GAMEDREAM_WIN`.
 - Benchmark: `4 playable / 2 fallback / 0 failed`.
 - Existing action-rpg, platformer, shooter, and cross-engine paths unchanged.
@@ -31,5 +31,5 @@ seeded dungeon, turn-based combat, permadeath, and an exit.
 
 ## Limits
 
-- Godot-only slice; Web/Unity roguelike parity is not claimed.
+- Godot reference slice; Web and Unity roguelike smoke slices exist. Full engine parity is not claimed.
 - One deterministic dungeon layout for benchmark reproducibility; no meta-progression.

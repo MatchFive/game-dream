@@ -27,12 +27,12 @@ XP gems, and a 60-second survival goal.
 
 ## Evidence
 
-- Real Godot: G1/G2/G3 pass, G6 pass (1280×720, 27 colors).
+- Real Godot: G1/G2/G3 pass, G6 pass (1280脳720, 27 colors).
 - Benchmark remains 7 playable / 0 fallback / 0 failed, exit 0.
 - The HUD shows time, HP/XP bars, level, kills, and weapon levels.
 
 ## Limits
 
-- Godot-only; no Web/Unity survivor demo parity.
+- Godot reference slice; Web and Unity survivor smoke slices exist. Full engine parity is not claimed.
 - Content is still code-driven, not authored through an external content pack.
 - No weapon evolution tree, shop/meta progression, or save between runs.

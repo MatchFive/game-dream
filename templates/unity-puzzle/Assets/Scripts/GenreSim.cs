@@ -81,6 +81,32 @@ namespace GameDream
                         }
                     }
                     break;
+                case "platformer":
+                    if (Time >= 0.6f * (Progress + 1))
+                    {
+                        Progress += 1;
+                        Milestone = 1;
+                        Status = "PLATFORM " + Progress;
+                        if (Progress >= 4)
+                        {
+                            Won = true;
+                            Status = "COURSE CLEAR";
+                        }
+                    }
+                    break;
+                case "shooter":
+                    if (Time >= 0.7f * (Progress + 1))
+                    {
+                        Progress += 1;
+                        Milestone = 1;
+                        Status = "WAVE " + Progress;
+                        if (Progress >= 3)
+                        {
+                            Won = true;
+                            Status = "SECTOR CLEAR";
+                        }
+                    }
+                    break;
                 default:
                     if (Time >= 0.1f * (Progress + 1))
                     {

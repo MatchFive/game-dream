@@ -25,7 +25,7 @@ real path, waves, buildable towers, upgrades, and base defense.
 
 ## Evidence
 
-- Real Godot: G1/G2/G3 pass, G6 pass (1280×720, 32 colors).
+- Real Godot: G1/G2/G3 pass, G6 pass (1280脳720, 32 colors).
 - Markers observed: `GAMEDREAM_WAVE`, `GAMEDREAM_WIN`.
 - Benchmark: `5 playable / 1 fallback / 0 failed`.
 - Existing action-rpg, platformer, shooter, roguelike paths unchanged.
@@ -33,5 +33,5 @@ real path, waves, buildable towers, upgrades, and base defense.
 
 ## Limits
 
-- Godot-only slice; Web/Unity tower-defense parity is not claimed.
+- Godot reference slice; Web and Unity tower-defense smoke slices exist. Full engine parity is not claimed.
 - Twenty waves now match the prompt; tower placement remains slot-based.

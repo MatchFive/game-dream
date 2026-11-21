@@ -5,7 +5,13 @@ import { makeTempDir } from '@gamedream/testing';
 import { unityComposeCommand, unityVerifyCommand } from '../src/commands/unity.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
-const templates = ['unity-roguelike', 'unity-tower-defense', 'unity-puzzle'];
+const templates = [
+  'unity-roguelike',
+  'unity-tower-defense',
+  'unity-puzzle',
+  'unity-platformer',
+  'unity-shooter',
+];
 
 describe('Unity genre coverage', () => {
   for (const template of templates) {

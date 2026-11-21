@@ -23,7 +23,7 @@ a real `platformer-2d` Godot template and `system.platformer` module.
 
 ## Evidence
 
-- `GODOT_BIN` real runtime: G1/G2/G3 pass, G6 pass (1280×720, 22 colors).
+- `GODOT_BIN` real runtime: G1/G2/G3 pass, G6 pass (1280脳720, 22 colors).
 - Benchmark: `2 playable / 4 fallback / 0 failed`.
   - playable: action-rpg, platformer.
   - fallback: shooter, roguelike, tower-defense, puzzle.
@@ -32,6 +32,6 @@ a real `platformer-2d` Godot template and `system.platformer` module.
 
 ## Limits
 
-- This slice is Godot-only. Web/Unity platformer parity is not claimed.
+- Godot reference slice; Web and Unity platformer smoke slices exist. Full engine parity is not claimed.
 - Coins are on the main ground path; platform jumps are optional for the
   automated victory, not required to finish.

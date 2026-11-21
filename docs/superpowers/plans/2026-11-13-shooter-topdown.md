@@ -23,7 +23,7 @@ Move the `shooter` benchmark case from `fallback` to `playable` with a real
 
 ## Evidence
 
-- Real Godot: G1/G2/G3 pass, G6 pass (1280×720, 22 colors).
+- Real Godot: G1/G2/G3 pass, G6 pass (1280脳720, 22 colors).
 - Markers observed: `GAMEDREAM_BOOT_OK`, `GAMEDREAM_KILL`, `GAMEDREAM_WIN`.
 - Benchmark: `3 playable / 3 fallback / 0 failed`.
 - Existing action-rpg, platformer, and cross-engine paths unchanged.
@@ -31,5 +31,5 @@ Move the `shooter` benchmark case from `fallback` to `playable` with a real
 
 ## Limits
 
-- Godot-only slice; Web/Unity shooter parity is not claimed.
+- Godot reference slice; Web and Unity shooter smoke slices exist. Full engine parity is not claimed.
 - Enemies use simple chase AI and primitive visuals.
