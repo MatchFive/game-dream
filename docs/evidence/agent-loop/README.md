@@ -1,0 +1,41 @@
+# Studio / Agent loop evidence
+
+Commit: `d2bb120` on `master`, synced to `D:\project\game_dream`.
+
+## Validation commands
+
+| Evidence | Result |
+|---|---|
+| `typecheck.log` | `corepack pnpm typecheck` exit `0` |
+| `build.log` | `corepack pnpm build` exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **218 tests passed**, 9 skipped; exit `0` |
+| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval tests and Studio AgentManager tests; **5 passed**; exit `0` |
+| `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
+
+## Structured event and approval smoke
+
+`scripts/studio-agent-smoke.mjs` starts the real CLI as a child of the Studio
+server, waits for `approval/request`, writes an allow decision, and then reads
+the final batch. The captured run proves:
+
+- `AGENT_APPROVAL_STATUS=awaiting-approval`
+- `AGENT_APPROVAL_TOOL=scaffold`
+- required events include `run/start`, `session/event`, `tool/start`,
+  `approval/request`, `approval/decision`, `tool/end`, and `run/end`
+- `AGENT_APPROVAL_FLOW_OK=1`
+
+The smoke intentionally does not fake a Godot installation. In this environment
+G2/G3 are skipped and the report is `finished=false`, so the Studio correctly
+shows the run as failed rather than claiming a playable build. The Agent flow
+(events, approval, persistence) is still fully exercised.
+
+## UI evidence
+
+- `agent-awaiting.png`: pending approval card, tool trace, running state.
+- `agent-candidates.png`: candidate A/B cards while awaiting approval.
+- `agent-candidates-done.png`: both candidates scored and Apply enabled.
+- `agent-final-empty.png`: final localized Studio with the Agent panel loaded.
+
+The screenshots were taken against the Studio server using a fixture agent CLI
+for deterministic approval/candidate UI. The real CLI path is separately covered
+by `studio-agent-smoke.log` and the tests above.

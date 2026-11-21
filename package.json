@@ -10,6 +10,8 @@
   "scripts": {
     "build": "corepack pnpm -r build",
     "test": "vitest run",
+    "test:agent": "vitest run packages/cli/test/develop.test.ts packages/studio/test/agent.test.ts",
+    "smoke:agent": "node scripts/studio-agent-smoke.mjs",
     "typecheck": "corepack pnpm -r typecheck",
     "release:accept": "node scripts/release-acceptance.mjs"
   },
