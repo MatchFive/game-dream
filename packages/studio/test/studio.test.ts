@@ -139,6 +139,8 @@ describe('studio assets', () => {
   });
 
   it('stages selected assets into the project build and removes them on unselect', () => {
+    mkdirSync(join(root, 'ProjectSettings'), { recursive: true });
+    writeFileSync(join(root, 'ProjectSettings', 'ProjectVersion.txt'), 'm_EditorVersion: 6000.6.9f1\n');
     const asset = scanAssets(root).find((entry) => entry.kind === 'concept')!;
     setInBuild(root, asset.id, true);
     const manifestFile = join(root, 'game', 'build-assets', 'manifest.json');
@@ -149,6 +151,12 @@ describe('studio assets', () => {
     expect(manifest.assets[0]?.id).toBe(asset.id);
     expect(manifest.assets[0]?.file).toMatch(/^game\/build-assets\/studio\//);
     expect(existsSync(join(root, manifest.assets[0]!.file))).toBe(true);
+    expect(existsSync(join(
+      root,
+      'Assets',
+      'StreamingAssets',
+      manifest.assets[0]!.file,
+    ))).toBe(true);
 
     setInBuild(root, asset.id, false);
     const cleared = JSON.parse(readFileSync(manifestFile, 'utf8')) as {

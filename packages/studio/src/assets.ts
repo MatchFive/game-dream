@@ -298,6 +298,13 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
   };
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+
+  if (existsSync(join(root, 'ProjectSettings', 'ProjectVersion.txt'))) {
+    const streaming = join(root, 'Assets', 'StreamingAssets', 'game', 'build-assets');
+    rmSync(streaming, { recursive: true, force: true });
+    mkdirSync(dirname(streaming), { recursive: true });
+    cpSync(join(root, BUILD_ASSET_ROOT), streaming, { recursive: true });
+  }
   return manifest;
 }
 

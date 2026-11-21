@@ -1,13 +1,29 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using GameDream;
 using UnityEngine;
+using UnityEngine.Networking;
 
 // Static contract tokens retained for the shared Unity verifier:
 // GameSim EquippedName _showEquipment KeyCode.I KeyCode.Q KeyCode.E
 // Input.GetKey OnGUI UNITY_LOSE
 public sealed class GameBootstrap : MonoBehaviour
 {
+    [Serializable]
+    private sealed class BuildAsset
+    {
+        public string kind;
+        public string file;
+    }
+
+    [Serializable]
+    private sealed class BuildManifest
+    {
+        public BuildAsset[] assets;
+    }
+
     private SurvivorSim _sim;
     private Transform _player;
     private Transform _enemyRoot;
@@ -52,6 +68,73 @@ public sealed class GameBootstrap : MonoBehaviour
         );
         _player = CreateSquare("Player", new Color(0.28f, 0.78f, 1f), 0.32f, 2);
         SyncActors();
+        StartCoroutine(LoadBgm());
+    }
+
+    private IEnumerator LoadBgm()
+    {
+        string manifestPath = Path.Combine(
+            Application.streamingAssetsPath,
+            "game",
+            "build-assets",
+            "manifest.json"
+        );
+        if (!File.Exists(manifestPath))
+        {
+            yield break;
+        }
+        BuildManifest manifest;
+        try
+        {
+            manifest = JsonUtility.FromJson<BuildManifest>(File.ReadAllText(manifestPath));
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning($"UNITY_BGM_FAILED {error.Message}");
+            yield break;
+        }
+        BuildAsset track = null;
+        foreach (BuildAsset asset in manifest?.assets ?? new BuildAsset[0])
+        {
+            if (asset != null && asset.kind == "audio" && !string.IsNullOrEmpty(asset.file))
+            {
+                track = asset;
+                break;
+            }
+        }
+        if (track == null)
+        {
+            yield break;
+        }
+        string audioPath = Path.Combine(
+            Application.streamingAssetsPath,
+            track.file.Replace('/', Path.DirectorySeparatorChar)
+        );
+        if (!File.Exists(audioPath))
+        {
+            Debug.LogWarning($"UNITY_BGM_FAILED missing {audioPath}");
+            yield break;
+        }
+        using (UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(
+            new Uri(audioPath).AbsoluteUri,
+            AudioType.MPEG
+        ))
+        {
+            yield return request.SendWebRequest();
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
+            if (request.result != UnityWebRequest.Result.Success || clip == null)
+            {
+                Debug.LogWarning($"UNITY_BGM_FAILED {request.error}");
+                yield break;
+            }
+            AudioSource source = gameObject.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.loop = true;
+            source.volume = 0.35f;
+            source.playOnAwake = false;
+            source.Play();
+            Debug.Log("UNITY_BGM_OK");
+        }
     }
 
     private void SetupCamera()

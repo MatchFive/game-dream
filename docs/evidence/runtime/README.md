@@ -30,7 +30,12 @@ The run passed all three runtime tests in 128s:
 - Windows player build plus `UNITY_SMOKE_OK` runtime smoke.
 - Unity screenshot generation.
 
-The log records `3 passed` and `EXIT=0`. GitHub-hosted CI has no Unity; a
+The log records `3 passed` and `EXIT=0`. A separate BGM player smoke is recorded
+in `unity-runtime-bgm.log`: the survivor build stages
+`Assets/StreamingAssets/game/build-assets`, loads the first audio asset, loops it,
+and logs `UNITY_BGM_OK`; that test passes with `EXIT=0`.
+
+GitHub-hosted CI has no Unity; a
 self-hosted runner is required for the same check. The optional `unity-runtime`
 job in `.github/workflows/ci.yml` skips unless `UNITY_RUNTIME_ENABLED=true` and
 `UNITY_BIN` are configured as repository variables. Studio can launch an

@@ -7,4 +7,7 @@ shared Unity M0 verification shell while running `SurvivorSim` for gameplay.
 - Crawlers and a boss; XP level-ups and 20-second survival.
 - `UNITY_SIM_OK`, `UNITY_SURVIVOR_SPAWN`, `UNITY_SURVIVOR_LEVEL`,
   `UNITY_BOSS`, `UNITY_BOSS_PHASE`, `UNITY_WIN`.
+- Staged Studio audio is mirrored to `Assets/StreamingAssets/game/build-assets`;
+  the survivor loads the first audio asset as a looping BGM and logs
+  `UNITY_BGM_OK`.
 - `EditorVerifier` runs headlessly; the scene HUD is built in `GameBootstrap`.

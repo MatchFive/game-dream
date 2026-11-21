@@ -8,8 +8,8 @@ packages/studio typecheck: Done
 packages/core typecheck$ tsc -b --pretty false
 packages/unity typecheck$ tsc -b --pretty false
 packages/web typecheck$ tsc -b --pretty false
-packages/unity typecheck: Done
 packages/web typecheck: Done
+packages/unity typecheck: Done
 packages/core typecheck: Done
 packages/agent typecheck$ tsc -b --pretty false
 packages/godot typecheck$ tsc -b --pretty false

@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 57 files passed, 6 skipped; **246 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 57 files passed, 6 skipped; **246 tests passed**, 10 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; Agent CLI/Studio budgets, queue, policy/rules, recovery, history, retry, and reaping; **17 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, prompt-token, and cost budget tests; **4 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -112,7 +112,8 @@ depending on an installed editor. Real-engine validation remains separate.
 
 - Real Unity 6000.6.9f1 evidence is separate:
   `docs/evidence/runtime/unity-runtime.log` records EditorVerifier, Windows
-  player build, runtime smoke, and screenshot (3 tests passed).
+  player build, runtime smoke, and screenshot. `unity-runtime-bgm.log` records
+  the survivor BGM player smoke (`UNITY_BGM_OK`).
 - Studio reports `unity.available` only when a built player exists under
   `Builds/Windows/*.exe` (or `Builds`/`Build`) and launches it externally;
   otherwise playtest returns 503.

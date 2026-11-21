@@ -5,23 +5,22 @@
 
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/cli/test/develop.test.ts (6 tests) 1935ms
-   ✓ development case > loads a case and develops a project through tools 597ms
-   ✓ development case > generates and selects among candidates 637ms
-   ✓ development case > streams structured events and resolves Studio approvals 544ms
- ✓ packages/studio/test/agent.test.ts (11 tests) 8869ms
-   ✓ streams approval and completion for a Studio agent run 499ms
-   ✓ runs candidates and applies the selected candidate 613ms
-   ✓ marks a run stopped by the cost budget 380ms
-   ✓ retries a terminal batch into a linked new generation 370ms
-   ✓ queues batches, cancels a queued batch, and starts the next one 1055ms
-   ✓ reaps a persisted stale agent process after restart 2116ms
-   ✓ does not kill a reused pid whose command line does not match 1442ms
-   ✓ resumes an interrupted run after a Studio restart 2003ms
+ ✓ packages/cli/test/develop.test.ts (6 tests) 2773ms
+   ✓ development case > loads a case and develops a project through tools 896ms
+   ✓ development case > generates and selects among candidates 979ms
+   ✓ development case > streams structured events and resolves Studio approvals 686ms
+ ✓ packages/studio/test/agent.test.ts (11 tests) 9819ms
+   ✓ streams approval and completion for a Studio agent run 524ms
+   ✓ runs candidates and applies the selected candidate 506ms
+   ✓ marks a run stopped by the cost budget 346ms
+   ✓ queues batches, cancels a queued batch, and starts the next one 1855ms
+   ✓ reaps a persisted stale agent process after restart 2098ms
+   ✓ does not kill a reused pid whose command line does not match 1638ms
+   ✓ resumes an interrupted run after a Studio restart 2269ms
 
  Test Files  2 passed (2)
       Tests  17 passed (17)
-   Start at  21:58:20
-   Duration  10.22s (transform 3.84s, setup 0ms, collect 5.56s, tests 10.80s, environment 1ms, prepare 631ms)
+   Start at  22:33:12
+   Duration  11.22s (transform 2.23s, setup 0ms, collect 7.65s, tests 12.59s, environment 1ms, prepare 904ms)
 
 EXIT=0

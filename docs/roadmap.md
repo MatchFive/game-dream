@@ -22,10 +22,10 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**246 passed / 9 skipped**
+- 全量测试：**246 passed / 10 skipped**
 - Agent focused tests：**17 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
-- 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图 **3/3 pass**
+- 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图、BGM smoke **4/4 pass**
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
 
 证据位置：
@@ -106,8 +106,9 @@
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听、重命名；SFX 未做 | UI 内生成、显示进度、试听、重命名、加入构建 | Done |
 | AS2b | 音频 SFX | 固定 30 秒 BGM，无文本 SFX | 自定义时长、SFX 生成 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
-| AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity 仍未接 | Web/Unity survivor 及其他音频模板统一接入 | In progress |
-| AS4b | Unity BGM 接入 | Unity 构建尚未加载 Studio 暂存音频 | StreamingAssets/Resources 打包与音量/循环 | Backlog |
+| AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity survivor 已从 StreamingAssets 加载并循环；其他模板未接 | Web/Unity survivor 统一接入 | In progress |
+| AS4b | Unity BGM 接入 | 已同步到 StreamingAssets，真实 Unity player smoke 打出 `UNITY_BGM_OK` | StreamingAssets 打包与音量/循环 | Done |
+| AS4c | 其他模板 BGM | 其他 Web/Unity 模板尚未接入 | 按模板接入音量/循环与暂停 | Backlog |
 | AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
 | AS5b | 素材自动绑定模板 | 暂存文件不会自动改写 sprite/content 配置 | 按素材类型生成引用配置或提供可视化绑定 | Backlog |
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
@@ -144,7 +145,7 @@
 ## 10. 建议的下一步顺序
 
 1. **AS1e Godot 模板动画**：让 Godot 模板自动发现 `SpriteFrames` 并播放。
-2. **AS4b Unity BGM**：把 Studio 暂存 BGM 打进 Unity StreamingAssets 并接线。
+2. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
 3. **AS2b SFX**：补文本音效生成与降级。
 
 ## 11. Definition of Done
