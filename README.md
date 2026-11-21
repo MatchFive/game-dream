@@ -183,8 +183,8 @@ node packages/cli/dist/index.js studio --path . --open
 - `/` — preview, G1–G3 gates, run history, live Agent thread, approvals,
   candidates, session, assets, evidence
 - `/assets` — infinite canvas, generation, uploads, build selection
-- Playtest — Web builds open in the preview pane; Godot launches in a separate
-  window when `GODOT_BIN` is configured
+- Playtest — Web builds open in the preview pane with a `/play/` base path;
+  Godot launches in a separate window when `GODOT_BIN` is configured
 
 See [Studio](docs/studio.md) for the API and current limits.
 

@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
@@ -104,6 +104,74 @@ function serveFile(
   createReadStream(file).pipe(response);
 }
 
+function rewritePlaytestUrl(value: string): string {
+  if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/play/')) {
+    return value;
+  }
+  if (value === '/play') return value;
+  return `/play${value}`;
+}
+
+function rewritePlaytestCss(css: string): string {
+  return css
+    .replace(
+      /url\(\s*(['"]?)(\/[^)'"]*)\1\s*\)/gi,
+      (_match, quote: string, value: string) => `url(${quote}${rewritePlaytestUrl(value)}${quote})`,
+    )
+    .replace(
+      /@import\s+(['"])(\/[^'"]*)\1/gi,
+      (_match, quote: string, value: string) => `@import ${quote}${rewritePlaytestUrl(value)}${quote}`,
+    );
+}
+
+function rewritePlaytestHtml(html: string, base: string): string {
+  let output = html.replace(
+    /(\b(?:src|href|poster|data-src)=)(["'])(\/[^"']*)\2/gi,
+    (_match, attribute: string, quote: string, value: string) =>
+      `${attribute}${quote}${rewritePlaytestUrl(value)}${quote}`,
+  );
+  output = rewritePlaytestCss(output);
+  if (!/<base\s/i.test(output)) {
+    output = /<head[^>]*>/i.test(output)
+      ? output.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`)
+      : `<base href="${base}">${output}`;
+  }
+  return output;
+}
+
+function servePlaytestFile(
+  request: IncomingMessage,
+  response: ServerResponse,
+  file: string,
+  relativePath: string,
+): void {
+  const extension = extname(file).toLowerCase();
+  if (extension !== '.html' && extension !== '.css') {
+    serveFile(request, response, file, false);
+    return;
+  }
+  const directory = relativePath.replace(/\\/g, '/').replace(/[^/]+$/, '');
+  const content = extension === '.html'
+    ? rewritePlaytestHtml(
+        readFileSync(file, 'utf8'),
+        `/play/${directory}`,
+      )
+    : rewritePlaytestCss(readFileSync(file, 'utf8'));
+  const type = extension === '.html'
+    ? 'text/html; charset=utf-8'
+    : 'text/css; charset=utf-8';
+  response.writeHead(200, {
+    'content-type': type,
+    'content-length': Buffer.byteLength(content),
+    'cache-control': 'no-store',
+  });
+  if (request.method === 'HEAD') {
+    response.end();
+    return;
+  }
+  response.end(content);
+}
+
 function safeProjectFile(root: string, relativePath: string): string | undefined {
   const file = resolve(root, relativePath);
   const prefix = resolve(root);
@@ -170,7 +238,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           response.end('Playtest build not found');
           return;
         }
-        serveFile(request, response, file, false);
+        servePlaytestFile(request, response, file, relativePath);
         return;
       }
 

@@ -56,6 +56,10 @@ depending on an installed editor. Real-engine validation remains separate.
 - `packages/studio/test/studio.test.ts` starts a Studio server over a generated
   Web project, checks `/api/playtest/capabilities`, starts an iframe playtest,
   serves `/play/` and `/play/game.js`, then stops it.
+- The same test uses root-absolute `/game.js` and `/style.css`, asserts the
+  injected `<base href="/play/">`, the rewritten `src`/`href`, and the rewritten
+  CSS `url("/play/bg.png")`.
+- Dynamic JavaScript URLs are not rewritten yet; that remains V3b.
 - The local runtime reports Godot `4.4.1` availability through
   `/api/playtest/capabilities`; the connected project itself has no
   `project.godot`, so pressing Play correctly reports “No playable Web or Godot

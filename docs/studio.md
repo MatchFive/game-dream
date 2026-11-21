@@ -118,7 +118,10 @@ crash is not reaped automatically.
 The Studio preview has a **Play** action:
 
 - For a generated Web project (`index.html` present), the build is served from
-  `/play/` in the center pane iframe using its relative assets.
+  `/play/` in the center pane iframe. HTML gets an injected `<base href="/play/">`;
+  root-absolute `src`/`href` attributes and CSS `url()`/`@import` paths are
+  rewritten under `/play/` so single-page builds do not fall back to the Studio
+  routes.
 - For a Godot project, the server launches the configured `GODOT_BIN` (or
   `godot`/`godot4`) in a separate window and tracks the process for Stop.
 - Unity playtest is not exposed by the local server yet; the API returns 501.
@@ -186,8 +189,9 @@ expose it on a public interface.
   implemented yet.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
-- Web playtest serves the project root directly; generated apps that assume an
-  absolute deployment URL may need their asset paths adjusted.
+- Web playtest rewrites HTML/CSS asset paths and injects a base path. Runtime
+  URLs constructed dynamically in JavaScript (for example `fetch('/data.json')`)
+  are not rewritten; generated apps should use relative paths.
 - Godot playtest requires a local display and a 4.x `GODOT_BIN`; Unity playtest
   is not available from the Studio server.
 - Animation generation is not implemented; animation nodes remain a placeholder.

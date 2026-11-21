@@ -79,7 +79,8 @@
 |---|---|---|---|---|
 | V1 | Unity runtime/playtest | Studio 对 Unity 返回 501；CI 主要静态验证 | Unity batchmode build + runtime smoke + 截图；CI 可执行或明确 self-hosted 前置条件 | Next |
 | V2 | Godot 内嵌试玩 | 当前打开独立 Godot 窗口 | 可行时提供内嵌/自动关闭和运行日志回传 | Backlog |
-| V3 | Web 绝对路径兼容 | `/play/` 直接服务根目录，绝对 asset URL 会回到 Studio | 支持 base path 重写或启动时注入 preview base | Next |
+| V3 | Web 绝对路径兼容 | 已注入 `/play/` base 并重写 HTML/CSS 根路径；JS 动态路径仍未拦截 | HTML/CSS 绝对资源正确加载；相对路径构建不受影响；测试覆盖 | Done |
+| V3b | JS 动态 URL 兼容 | 运行时 `fetch('/x')`、动态 `img.src` 等仍会落到 Studio 根 | 提供受限 runtime shim 或项目 base URL 注入；不破坏第三方脚本 | Backlog |
 | V4 | G6 视觉门集成 | Playtest 与 G6 是两条路径 | Playtest 前后可触发截图/VLM 评审并记录 | Backlog |
 | V5 | 真实 MCP 回归 | CI 使用 fixture，真实 Godot MCP 仍手工 | CI 或专用 runner 跑真实 MCP 场景操作 | Backlog |
 
@@ -130,10 +131,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
-2. **AS5 Build selection 落地**：让素材选择真正进入 composer。
-3. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
-4. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **AS5 Build selection 落地**：让素材选择真正进入 composer。
+2. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。
+3. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
 
 ## 11. Definition of Done
 
