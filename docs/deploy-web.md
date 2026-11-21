@@ -32,6 +32,8 @@ For static hosts:
 - Any CDN/object store: preserve the directory structure and serve `.mjs` as
   `text/javascript`.
 
-Re-run `dream web package --force` after recomposing or editing the project.
-Do not upload `screenshot.png`, `.profile`, or local browser directories; the
-packager already filters those out.
+Re-run `dream web package --force` after recomposing or editing the project. The
+packager builds in a staging directory and swaps it into place with a backup, so
+a failed copy or rename leaves the previous release intact. Do not upload
+`screenshot.png`, `.profile`, or local browser directories; the packager already
+filters those out.

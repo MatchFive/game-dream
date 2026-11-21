@@ -183,8 +183,22 @@ export function packageWebProject(options: PackageWebOptions): PackageWebResult 
       `${JSON.stringify({ name, entry: 'index.html', files, bytes }, null, 2)}\n`,
       'utf8',
     );
-    if (existsSync(outDir)) rmSync(outDir, { recursive: true, force: true });
-    renameSync(staging, outDir);
+    const backup = `${outDir}.backup-${process.pid}`;
+    rmSync(backup, { recursive: true, force: true });
+    let moved = false;
+    try {
+      if (existsSync(outDir)) {
+        renameSync(outDir, backup);
+        moved = true;
+      }
+      renameSync(staging, outDir);
+      if (moved) rmSync(backup, { recursive: true, force: true });
+    } catch (error) {
+      if (moved && !existsSync(outDir) && existsSync(backup)) {
+        renameSync(backup, outDir);
+      }
+      throw error;
+    }
     return { outDir, name, entry: 'index.html', files, bytes };
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
