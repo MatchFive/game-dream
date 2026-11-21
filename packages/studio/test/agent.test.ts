@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -177,6 +177,28 @@ it('runs candidates and applies the selected candidate', async () => {
   });
   expect(rollback.status).toBe(200);
   expect(readFileSync(join(root, 'game', 'fixture.txt'), 'utf8')).toBe('old');
+});
+
+it('persists an always-allow approval policy', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-policy-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const saved = await fetch(`${studio.url}/api/agent/policy`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tool: 'scaffold', mode: 'allow' }),
+  });
+  expect(saved.status).toBe(200);
+  const policy = (await saved.json()) as { policy: { tools: Record<string, string> } };
+  expect(policy.policy.tools.scaffold).toBe('allow');
+  const policyFile = join(root, '.gamedream', 'studio', 'agent-policy.json');
+  expect(existsSync(policyFile)).toBe(true);
+  expect(JSON.parse(readFileSync(policyFile, 'utf8')).tools.scaffold).toBe('allow');
+
+  const fetched = await fetch(`${studio.url}/api/agent/policy`).then((response) => response.json()) as {
+    policy: { tools: Record<string, string> };
+  };
+  expect(fetched.policy.tools.scaffold).toBe('allow');
 });
 
 it('pushes agent snapshots over SSE', async () => {

@@ -76,6 +76,12 @@ Candidates run in separate `<candidate-N>/project` directories; applying a
 candidate copies its generated top-level project files into the Studio root
 while excluding `.gamedream`, `.env`, and build caches.
 
+Approval policy is persisted at `.gamedream/studio/agent-policy.json`.
+The approval card's **Always allow** action writes
+`{ "tools": { "<tool>": "allow" } }` there and applies the current decision.
+Future runs pass the file through `dream develop --permissions`; the server does
+not inject the default `--ask-tool scaffold,mcp` once the policy file exists.
+
 If the Studio server restarts while a run is active, it loads the persisted
 batch, expires any old pending approvals, and starts the interrupted run again
 with `dream develop --resume`. The event sequence continues rather than
@@ -112,6 +118,8 @@ binding.
 | `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active/latest Agent batch and history |
+| `GET /api/agent/policy` | Read the Studio approval policy |
+| `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) |
 | `GET /api/agent/events` | Server-Sent Events snapshots of Agent state |
 | `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
 | `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
@@ -140,6 +148,8 @@ expose it on a public interface.
 - Agent children are resumed with `--resume` after a Studio restart; a child
   left behind by a hard crash is not reaped automatically.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
+- “Always allow” writes policy for future runs; it does not retroactively change
+  the permission gate already loaded by the current child process.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
 - Web playtest serves the project root directly; generated apps that assume an

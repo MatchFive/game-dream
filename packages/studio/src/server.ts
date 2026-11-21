@@ -409,6 +409,27 @@ async function handleApi(
     return;
   }
 
+  if (method === 'GET' && pathname === '/api/agent/policy') {
+    json(response, 200, { policy: agent.getPolicy() });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/agent/policy') {
+    try {
+      const body = (await readJson(request)) as { tool?: unknown; mode?: unknown };
+      const tool = typeof body.tool === 'string' ? body.tool.trim() : '';
+      const mode = body.mode;
+      if (!tool || (mode !== 'allow' && mode !== 'ask' && mode !== 'deny')) {
+        json(response, 400, { error: 'tool and mode allow|ask|deny are required' });
+        return;
+      }
+      json(response, 200, { policy: agent.updatePolicy(tool, mode) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
   if (method === 'GET' && pathname === '/api/agent') {
     json(response, 200, agent.list());
     return;

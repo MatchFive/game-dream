@@ -15,6 +15,12 @@ import { dirname, join, resolve } from 'node:path';
 
 export type AgentRunStatus = 'running' | 'awaiting-approval' | 'finished' | 'failed' | 'canceled';
 export type AgentApprovalStatus = 'pending' | 'allowed' | 'denied';
+export type AgentToolMode = 'allow' | 'ask' | 'deny';
+
+export interface AgentPolicy {
+  default?: AgentToolMode;
+  tools?: Record<string, AgentToolMode>;
+}
 
 export interface AgentEvent {
   seq: number;
@@ -102,6 +108,7 @@ export interface AgentBatch {
   approvalTools?: string[];
   resume?: boolean;
   lastBackup?: AgentBackup;
+  permissions?: string;
 }
 
 interface AgentStartInput {
@@ -255,6 +262,31 @@ export class AgentManager {
     return this.batches.get(id);
   }
 
+  getPolicy(): AgentPolicy {
+    const path = this.policyPath();
+    if (!existsSync(path)) return { default: 'allow', tools: { scaffold: 'ask', mcp: 'ask' } };
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as AgentPolicy;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  updatePolicy(tool: string, mode: AgentToolMode): AgentPolicy {
+    if (!tool || !['allow', 'ask', 'deny'].includes(mode)) {
+      throw new Error('invalid permission policy update');
+    }
+    const policy = this.getPolicy();
+    policy.tools = { ...(policy.tools ?? {}), [tool]: mode };
+    policy.default ??= 'allow';
+    const path = this.policyPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(policy, null, 2)}\n`, 'utf8');
+    this.notify();
+    return policy;
+  }
+
   async start(input: AgentStartInput): Promise<AgentBatch> {
     const prompt = String(input.prompt ?? '').trim();
     if (!prompt) throw new Error('prompt is required');
@@ -266,7 +298,9 @@ export class AgentManager {
     }
     const count = clampCandidates(input.candidates);
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || 12));
-    const approvalTools = input.approvalTools ?? ['scaffold', 'mcp'];
+    const policyPath = this.policyPath();
+    const hasPolicy = existsSync(policyPath);
+    const approvalTools = input.approvalTools ?? (hasPolicy ? [] : ['scaffold', 'mcp']);
     const id = `agent-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`;
     const batchRoot = this.batchRoot(id);
     mkdirSync(batchRoot, { recursive: true });
@@ -301,6 +335,7 @@ export class AgentManager {
       maxSteps,
       approvalTools,
       resume: input.resume === true,
+      permissions: hasPolicy ? policyPath : undefined,
     };
     this.batches.set(id, batch);
     this.activeBatchId = id;
@@ -478,6 +513,7 @@ export class AgentManager {
       : join(dirname(this.cliEntry as string), '..', '..', '..', 'skills');
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || batch.maxSteps || 12));
     const approvalTools = input.approvalTools ?? batch.approvalTools ?? ['scaffold', 'mcp'];
+    const permissions = batch.permissions;
     const args = [
       this.cliEntry as string,
       'develop',
@@ -500,6 +536,7 @@ export class AgentManager {
       '--ask-tool',
       approvalTools.join(','),
     ];
+    if (permissions) args.push('--permissions', permissions);
     if (eventSeqStart > 0) args.push('--event-seq-start', String(eventSeqStart));
     if (input.resume) args.push('--resume');
     args.push(batch.prompt);
@@ -601,6 +638,10 @@ export class AgentManager {
 
   private batchRoot(id: string): string {
     return join(this.root, '.gamedream', 'studio', 'agent', id);
+  }
+
+  private policyPath(): string {
+    return join(this.root, '.gamedream', 'studio', 'agent-policy.json');
   }
 
   private persistLog(run: AgentRun, lines: string[]): void {

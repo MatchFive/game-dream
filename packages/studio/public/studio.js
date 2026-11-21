@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=7';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=8';
 
 const state = {
   snapshot: null,
@@ -444,12 +444,13 @@ async function startAgent() {
   }
 }
 
-async function decideAgentApproval(allowed) {
+async function decideAgentApproval(allowed, remember = false) {
   const batch = state.agent;
   const run = selectedAgentRun();
   const approval = pendingApproval(run);
   if (!batch || !run || !approval) return;
   $('#agentAllow').disabled = true;
+  $('#agentAllowAlways').disabled = true;
   $('#agentDeny').disabled = true;
   try {
     await request(
@@ -459,11 +460,25 @@ async function decideAgentApproval(allowed) {
         body: JSON.stringify({ approvalId: approval.id, allowed }),
       },
     );
+    if (allowed && remember) {
+      try {
+        const policy = await request('/api/agent/policy', {
+          method: 'POST',
+          body: JSON.stringify({ tool: approval.tool, mode: 'allow' }),
+        });
+        toast(t('studio.agentPolicySaved', { tool: approval.tool, mode: 'allow' }));
+        renderAgent();
+        return;
+      } catch (error) {
+        toast(t('studio.agentPolicyFailed', { message: error.message }));
+      }
+    }
     await loadAgent(true);
   } catch (error) {
     toast(t('studio.agentApprovalFailed', { message: error.message }));
   } finally {
     $('#agentAllow').disabled = false;
+    $('#agentAllowAlways').disabled = false;
     $('#agentDeny').disabled = false;
   }
 }
@@ -786,6 +801,7 @@ $('#playClose').addEventListener('click', stopPlaytest);
 $('#agentStart').addEventListener('click', startAgent);
 $('#agentCancel').addEventListener('click', cancelAgent);
 $('#agentAllow').addEventListener('click', () => decideAgentApproval(true));
+$('#agentAllowAlways').addEventListener('click', () => decideAgentApproval(true, true));
 $('#agentDeny').addEventListener('click', () => decideAgentApproval(false));
 $('#agentCandidateCount').addEventListener('change', renderAgent);
 $('#agentDiffClose').addEventListener('click', () => {

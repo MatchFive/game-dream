@@ -8,8 +8,8 @@ Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits fo
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **221 tests passed**, 9 skipped; exit `0` |
-| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, SSE, recovery, and Studio AgentManager tests; **7 passed**; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **222 tests passed**, 9 skipped; exit `0` |
+| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, and Studio AgentManager tests; **8 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
 Real Godot runtime evidence is separate: `docs/evidence/runtime/README.md` and
@@ -68,6 +68,15 @@ depending on an installed editor. Real-engine validation remains separate.
   and verifies the original file content is restored.
 - `studio-agent-smoke.log` still verifies the complete actual-CLI approval and
   finish path after these changes.
+
+## Approval policy
+
+- `POST /api/agent/policy` persists `{ tools: { scaffold: "allow" } }` into
+  `.gamedream/studio/agent-policy.json`.
+- The focused test reads the file back and verifies the policy is returned by
+  `GET /api/agent/policy`.
+- The Studio “Always allow” button applies the current approval and records the
+  policy for subsequent runs; the current child keeps its loaded gate.
 
 ## UI evidence
 
