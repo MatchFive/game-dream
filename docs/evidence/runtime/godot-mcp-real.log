@@ -1,0 +1,15 @@
+﻿node.exe : (node:22264) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead t
+o security vulnerabilities, as the arguments are not escaped, only concatenated.
+所在位置 行:2 字符: 20
++ ... _COLOR='1'; & node scripts/mcp-scene-smoke.mjs --config "C:\Users\257 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:22264) [D...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)
+MCP_GODOT_VERSION=4.4.1.stable.official.49a5bc7b6
+MCP_TOOL_COUNT=14
+MCP_SCENE_OK=C:\Users\25793\AppData\Local\Temp\commandcode\D--project-game-dream\8e419fc2-6727-4b71-b25f-99c193adbc63\scratchpad\mcp-real\ui\McpHud.tscn
+MCP_SCENE_NODES=root:Control,Backdrop:ColorRect,Title:Label
+MCP_SMOKE_EXIT=0
+EXIT=0

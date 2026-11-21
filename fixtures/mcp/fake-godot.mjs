@@ -67,7 +67,7 @@ function handle(message) {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(
       file,
-      '[gd_scene load_steps=1 format=3]\n\n[node name="root" type="Control"]\n',
+      '[gd_scene load_steps=1 format=3]\n\n[node name="root" type="Control"]\n\n[node name="Backdrop" type="ColorRect" parent="."]\n\n[node name="Title" type="Label" parent="."]\n',
       'utf8',
     );
     respond(id, { content: [{ type: 'text', text: `saved ${scenePath}` }] });

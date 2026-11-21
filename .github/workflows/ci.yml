@@ -100,6 +100,45 @@ jobs:
           path: dist/godot-export/build
           if-no-files-found: error
 
+  godot-mcp:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install Godot 4.4.1
+        run: |
+          mkdir -p .tools/godot
+          curl -L --fail --retry 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -o /tmp/godot.zip -d .tools/godot
+          chmod +x .tools/godot/Godot_v4.4.1-stable_linux.x86_64
+      - name: Real Godot MCP scene smoke
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
+        run: |
+          mkdir -p .tools/mcp dist/mcp-real
+          printf '[application]\n' > dist/mcp-real/project.godot
+          node -e "const fs=require('fs');fs.writeFileSync('.tools/mcp/godot.json',JSON.stringify({mcpServers:{godot:{transport:'stdio',command:'npx',args:['-y','@coding-solo/godot-mcp'],env:{DEBUG:'false',GODOT_PATH:process.env.GODOT_BIN}}}},null,2))"
+          node scripts/mcp-scene-smoke.mjs \
+            --config .tools/mcp/godot.json \
+            --server godot \
+            --project dist/mcp-real \
+            --scene ui/McpHud.tscn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamedream-mcp-scene
+          path: dist/mcp-real/ui/McpHud.tscn
+          if-no-files-found: error
+
 
   unity-runtime:
     # Optional: set UNITY_RUNTIME_ENABLED=true and UNITY_BIN as repository

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { McpClient } from '../packages/cli/dist/commands/mcp.js';
 function arg(name, fallback) {
@@ -50,7 +50,20 @@ try {
     console.error(`MCP scene was not saved: ${saved}`);
     process.exit(4);
   }
+  const content = readFileSync(saved, 'utf8');
+  const nodes = [
+    ['root', 'Control'],
+    ['Backdrop', 'ColorRect'],
+    ['Title', 'Label'],
+  ];
+  for (const [name, type] of nodes) {
+    if (!content.includes(`name="${name}" type="${type}"`)) {
+      console.error(`MCP scene is missing ${name} (${type}): ${saved}`);
+      process.exit(5);
+    }
+  }
   console.log(`MCP_SCENE_OK=${saved}`);
+  console.log(`MCP_SCENE_NODES=${nodes.map(([name, type]) => `${name}:${type}`).join(',')}`);
   console.log('MCP_SMOKE_EXIT=0');
 } finally {
   client.close();

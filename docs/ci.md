@@ -13,6 +13,9 @@
 - a real Godot export job: install the 4.4.1 export templates, compose the M1
   fixture, run `pnpm smoke:godot-export -- --require`, and upload the exported
   Linux player artifact
+- a real Godot MCP job: install Godot 4.4.1 and `@coding-solo/godot-mcp`, then
+  create/add/save a scene and verify the saved Control/ColorRect/Label nodes;
+  upload the scene as `gamedream-mcp-scene`
 
 The fixture MCP server is `fixtures/mcp/fake-godot.mjs`. It exercises the same
 stdio protocol and scene-save path as the real Godot MCP server, so CI catches

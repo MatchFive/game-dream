@@ -79,3 +79,11 @@ now declare the audio, UnityWebRequest, and UnityWebRequestAudio modules.
 content fails G3, a generated atlas overrides content, and a staged
 `bindings.json` player texture is applied without an atlas. The binding test
 includes `GAMEDREAM_SPRITE_BINDING_OK` in the accepted markers and exits `0`.
+
+## Real Godot MCP
+
+`godot-mcp-real.log` records `scripts/mcp-scene-smoke.mjs` against
+`@coding-solo/godot-mcp` with `GODOT_PATH` set to the local 4.4.1 console build.
+It reports 14 tools, saves `ui/McpHud.tscn`, and verifies the
+Control/ColorRect/Label node lines. The CI `godot-mcp` job runs the same script
+and uploads the scene.

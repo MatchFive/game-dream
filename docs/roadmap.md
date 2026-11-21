@@ -87,7 +87,7 @@
 | V3 | Web 绝对路径兼容 | 已注入 `/play/` base 并重写 HTML/CSS 根路径；JS 动态路径由 V3b runtime shim 处理 | HTML/CSS 绝对资源正确加载；相对路径构建不受影响；测试覆盖 | Done |
 | V3b | JS 动态 URL 兼容 | 已注入 runtime shim：`fetch`/`XMLHttpRequest`/`URL`/图片/媒体/script/link 根路径按 `/play/` base 改写；嵌套 `/play/<dir>/` 也已支持 | 提供受限 runtime shim 或项目 base URL 注入；不破坏第三方脚本 | Done |
 | V4 | G6 视觉门集成 | 已加 `/api/playtest/visual` 与 Studio 截图评审按钮：Web 走 browser screenshot，Godot 走 `verify --visual`（有 key 时 openai vision），结果写入同一 run 历史 | Playtest 前后可触发截图/VLM 评审并记录 | Done |
-| V5 | 真实 MCP 回归 | CI 使用 fixture，真实 Godot MCP 仍手工 | CI 或专用 runner 跑真实 MCP 场景操作 | Backlog |
+| V5 | 真实 MCP 回归 | 已由 `godot-mcp` CI job 跑真实 server；场景节点校验 + artifact | CI 或专用 runner 跑真实 MCP 场景操作 | Done |
 
 ### V1 依赖
 
@@ -131,7 +131,7 @@
 |---|---|---|---|
 | R1 | Godot export templates CI | CI job 已下载 4.4.1 模板并执行 `smoke:godot-export --require`；本机当前模板仍缺失 | 安装 4.4.1 模板并真实导出 artifact；本地/CI 状态可区分 | In progress |
 | R2 | Unity release runtime | 已通过真实 Unity build/player smoke/screenshot；本地 artifact 落盘，CI self-hosted job 上传 player | 真实 batchmode build、运行 marker、截图、artifact | Done |
-| R3 | 真实 MCP CI | 真实 Godot MCP 场景保存回归，不再只靠 fixture | Backlog |
+| R3 | 真实 MCP CI | 已加 `godot-mcp` CI job，真实 `@coding-solo/godot-mcp` 创建/添加/保存场景并校验节点；本地证据 `godot-mcp-real.log` | 真实 Godot MCP 场景保存回归，不再只靠 fixture | Done |
 | R4 | 发布回滚/签名 | release artifact 可追溯、hash、失败保留旧包 | Backlog |
 
 ## 9. P2 · 长期方向
@@ -145,8 +145,8 @@
 ## 10. 建议的下一步顺序
 
 1. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
-2. **R3 真实 MCP CI / V5**：把真实 MCP 场景保存回归放进 CI。
-3. **V2 Godot 内嵌试玩**：评估 Web export/内嵌方案，保留外部窗口降级。
+2. **V2 Godot 内嵌试玩**：评估 Web export/内嵌方案，保留外部窗口降级。
+3. **C1/C2 内容深度**：survivor/roguelike 的关卡、房间池和事件。
 
 ## 11. Definition of Done
 
