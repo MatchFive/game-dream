@@ -50,6 +50,12 @@ content configs and prints `GAMEDREAM_SPRITE_BINDING_OK`. Unity templates copy
 the same bindings into StreamingAssets and the shared `AssetBinding` replaces
 the player square with the staged sprite.
 
+Web projects use `dream web verify --visual` and write
+`game/screenshots/screenshot.png`; Godot projects use `dream verify --visual`
+and add the OpenAI vision review when the workspace has an API key. The visual
+button records the result in the same run history as normal verification, so
+the G6 status and screenshot are visible in Studio.
+
 ## Asset discovery
 
 ### SFX
@@ -261,8 +267,9 @@ binding.
 | `POST /api/agent/batches/:id/apply` | Back up touched files and copy a finished candidate into the Studio project |
 | `POST /api/agent/batches/:id/rollback` | Restore the files replaced by the last candidate apply |
 | `GET /api/playtest/capabilities` | Detect Web/Godot/Unity playtest availability |
-| `POST /api/playtest/start` | Serve a Web iframe or launch a Godot window |
+| `POST /api/playtest/start` | Serve a Web iframe or launch a Godot/Unity window |
 | `POST /api/playtest/stop` | Stop the launched playtest process |
+| `POST /api/playtest/visual` | Capture the playtest/build screen, run the engine-appropriate G6 check, and append a run |
 | `GET /play/` | Serve the generated Web build for the Studio playtest frame; nested `/play/<dir>/` serves its `index.html` |
 | `GET /api/health` | ComfyUI and workflow health |
 

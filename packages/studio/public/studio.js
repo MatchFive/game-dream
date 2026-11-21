@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=9';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=10';
 
 const state = {
   snapshot: null,
@@ -1079,6 +1079,28 @@ async function stopPlaytest() {
   $('#playControls').hidden = true;
 }
 
+async function visualReview() {
+  if (state.verifying) return;
+  state.verifying = true;
+  const button = $('#visualBtn');
+  button.disabled = true;
+  toast(t('studio.visualStarted'));
+  try {
+    const result = await request('/api/playtest/visual', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    state.selectedRunId = result.run.id;
+    toast(t(result.run.ok ? 'studio.visualPassed' : 'studio.visualFailed'));
+    await load();
+  } catch (error) {
+    toast(t('studio.verificationFailed', { message: error.message }));
+  } finally {
+    state.verifying = false;
+    button.disabled = false;
+  }
+}
+
 async function verify() {
   if (state.verifying) return;
   state.verifying = true;
@@ -1111,6 +1133,7 @@ $('#refreshBtn').addEventListener('click', () => {
 });
 $('#refreshPreview').addEventListener('click', load);
 $('#playBtn').addEventListener('click', startPlaytest);
+$('#visualBtn').addEventListener('click', visualReview);
 $('#playClose').addEventListener('click', stopPlaytest);
 $('#agentStart').addEventListener('click', startAgent);
 $('#agentCancel').addEventListener('click', cancelAgent);

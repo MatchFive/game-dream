@@ -1,4 +1,4 @@
-import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=1';
+import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=2';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

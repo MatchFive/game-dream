@@ -186,6 +186,45 @@ describe('studio assets', () => {
     expect(bindings.sfx).toEqual([]);
   });
 
+  it('records a visual playtest review through the Web CLI', async () => {
+    writeFileSync(join(root, 'index.html'), '<!doctype html>');
+    const fakeCli = join(root, 'fake-web-visual.mjs');
+    writeFileSync(
+      fakeCli,
+      [
+        'const args = process.argv.slice(2);',
+        "if (args[0] === 'web' && args[1] === 'verify') {",
+        "  console.log(JSON.stringify({ passed: true, visual: { passed: true, imagePath: 'game/screenshots/screenshot.png' } }));",
+        '} else {',
+        "  console.log(JSON.stringify({ gates: { G1: { status: 'pass' }, G2: { status: 'pass' }, G3: { status: 'pass' } } }));",
+        '}',
+      ].join('\n'),
+    );
+    const studio = await startStudioServer({
+      projectDir: root,
+      port: 0,
+      cliEntry: fakeCli,
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
+    });
+    try {
+      const response = await fetch(`${studio.url}/api/playtest/visual`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      expect(response.status).toBe(200);
+      const body = await response.json() as {
+        run: { ok: boolean; gates: Record<string, { status: string }> };
+      };
+      expect(body.run.ok).toBe(true);
+      expect(body.run.gates.G1.status).toBe('pass');
+      expect(body.run.gates.G6.status).toBe('pass');
+      expect(loadRuns(root)[0]?.gates.G6.status).toBe('pass');
+    } finally {
+      await studio.close();
+    }
+  });
+
   it('builds a project snapshot with screenshot and durable runs', () => {
     const canvas = saveCanvas(root, { nodes: [], inBuild: [] });
     const snapshot = loadProjectSnapshot(root, canvas, {

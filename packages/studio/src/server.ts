@@ -459,17 +459,120 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
 }
 
+async function executeWebVisual(
+  root: string,
+  cliEntry: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<VerifyRun> {
+  if (!cliEntry) throw new Error('verification CLI entry is not configured');
+  const started = Date.now();
+  const screenshotOut = join(root, 'game', 'screenshots', 'screenshot.png');
+  const run = await new Promise<VerifyRun>((resolveRun, rejectRun) => {
+    const child = spawn(
+      process.execPath,
+      [
+        resolve(cliEntry),
+        'web',
+        'verify',
+        '--path',
+        root,
+        '--visual',
+        '--screenshot-out',
+        screenshotOut,
+        '--json',
+      ],
+      {
+        cwd: root,
+        env: { ...process.env, ...env },
+        windowsHide: true,
+      },
+    );
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill();
+      rejectRun(new Error('web visual verification timed out after 120s'));
+    }, 120_000);
+    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+    child.once('error', (error) => {
+      clearTimeout(timer);
+      rejectRun(error);
+    });
+    child.once('close', (code) => {
+      clearTimeout(timer);
+      let report: {
+        passed?: boolean;
+        message?: string;
+        visual?: { passed?: boolean; message?: string; imagePath?: string };
+      } = {};
+      try {
+        report = JSON.parse(stdout.trim()) as typeof report;
+      } catch {
+        // The CLI may fail before printing JSON.
+      }
+      const visual = report.visual;
+      const gates = {
+        G1: {
+          status: visual ? 'pass' as const : 'fail' as const,
+          message: visual ? undefined : report.message,
+        },
+        G6: {
+          status: visual?.passed ? 'pass' as const : 'fail' as const,
+          message: visual?.passed
+            ? visual.imagePath
+            : visual?.message ?? report.message ?? `exit ${code ?? 'unknown'}`,
+        },
+      };
+      resolveRun({
+        id: runId(),
+        createdAt: new Date().toISOString(),
+        durationMs: Date.now() - started,
+        engine: 'present',
+        gates,
+        ok: report.passed === true,
+        output: `${stdout}\n${stderr}`.trim().slice(-4000) || `exit ${code ?? 'unknown'}`,
+      });
+    });
+  });
+  appendRun(root, run);
+  return run;
+}
+
+async function executePlaytestVisual(
+  root: string,
+  cliEntry: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<VerifyRun> {
+  const engine = detectEngine(root);
+  if (engine === 'web' && existsSync(join(root, 'index.html'))) {
+    return executeWebVisual(root, cliEntry, env);
+  }
+  if (engine === 'godot') {
+    return executeVerify(
+      root,
+      cliEntry,
+      true,
+      env,
+      env.OPENAI_API_KEY ? 'openai' : undefined,
+    );
+  }
+  throw new Error('Visual playtest review is supported for Web and Godot projects with a CLI entry.');
+}
+
 async function executeVerify(
   root: string,
   cliEntry: string | undefined,
   visual: boolean,
   env: NodeJS.ProcessEnv = process.env,
+  vision?: 'fake' | 'openai',
 ): Promise<VerifyRun> {
   if (!cliEntry) throw new Error('verification CLI entry is not configured');
   const started = Date.now();
   const run = await new Promise<VerifyRun>((resolveRun, rejectRun) => {
     const args = [resolve(cliEntry), 'verify', '--path', root, '--json'];
     if (visual) args.push('--visual');
+    if (vision) args.push('--vision', vision);
     const child = spawn(process.execPath, args, {
       cwd: root,
       env: { ...process.env, ...env },
@@ -804,6 +907,16 @@ async function handleApi(
   if (method === 'POST' && pathname === '/api/playtest/stop') {
     stopPlaytest();
     json(response, 200, { stopped: true });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/playtest/visual') {
+    try {
+      const run = await executePlaytestVisual(root, cliEntry, studioEnvironment);
+      json(response, 200, { run });
+    } catch (error) {
+      json(response, 503, { error: (error as Error).message });
+    }
     return;
   }
 
