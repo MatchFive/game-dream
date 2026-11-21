@@ -6,6 +6,12 @@
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
+- a fixture-backed MCP client smoke: initialize, discover tools, add nodes,
+  save a scene, and verify the scene file exists
+
+The fixture MCP server is `fixtures/mcp/fake-godot.mjs`. It exercises the same
+stdio protocol and scene-save path as the real Godot MCP server, so CI catches
+client regressions without requiring the editor on the Ubuntu runner.
 
 GitHub's Ubuntu runner has no Godot binary or Godot export templates, so the
 real Godot E2E test is skipped there; export tests use fake runners. Run those

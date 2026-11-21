@@ -60,7 +60,7 @@ export class ComfyRunner {
     return existsSync(this.config.workflow);
   }
 
-  start(prompt: string, transparent: boolean): ComfyJob {
+  start(prompt: string, transparent: boolean, variant?: number, batchSize?: number): ComfyJob {
     const now = new Date().toISOString();
     const job: ComfyJob = {
       id: randomUUID(),
@@ -71,10 +71,20 @@ export class ComfyRunner {
       createdAt: now,
       updatedAt: now,
       progress: 'queued',
+      variant,
+      batchSize,
     };
     this.jobs.set(job.id, job);
     void this.run(job);
     return { ...job };
+  }
+
+  startBatch(prompt: string, transparent: boolean, count: number): ComfyJob[] {
+    const requested = Number.isFinite(count) ? Math.trunc(count) : 1;
+    const safeCount = Math.max(1, Math.min(4, requested));
+    return Array.from({ length: safeCount }, (_, index) =>
+      this.start(prompt, transparent, index + 1, safeCount),
+    );
   }
 
   getJob(id: string): ComfyJob | undefined {
@@ -174,14 +184,19 @@ export class ComfyRunner {
       const file = join(this.generatedDir, `${job.id}.png`);
       writeFileSync(file, bytes);
       const name = generatedName(job.prompt);
+      const displayName = job.batchSize && job.batchSize > 1
+        ? `${name} ${job.variant ?? 1}`
+        : name;
       writeFileSync(
         join(this.generatedDir, `${job.id}.json`),
         `${JSON.stringify(
           {
-            name,
+            name: displayName,
             prompt: job.prompt,
             seed: job.seed,
             transparent: job.transparent,
+            variant: job.variant,
+            batchSize: job.batchSize,
             file: basename(file),
             source: image.filename,
             createdAt: job.createdAt,

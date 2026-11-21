@@ -287,6 +287,11 @@ const messages = {
     'assets.loop': '循环',
     'assets.job': '任务',
     'assets.map': '地图',
+    'assets.imageCount': '{count} 张图片',
+    'assets.batchSubmitting': 'COMFYUI · 正在提交 {count} 个任务',
+    'assets.batchReady': '已生成 {count} 个变体。',
+    'assets.batchPartial': '已生成 {ready} 个变体，{failed} 个失败。',
+    'assets.batchHint': '下次生成 {count} 个变体。',
   },
   en: {
     'common.verify': 'Verify',
@@ -575,6 +580,11 @@ const messages = {
     'assets.loop': 'LOOP',
     'assets.job': 'JOB',
     'assets.map': 'MAP',
+    'assets.imageCount': '{count} image{s}',
+    'assets.batchSubmitting': 'COMFYUI · submitting {count} jobs',
+    'assets.batchReady': 'Generated {count} variants.',
+    'assets.batchPartial': 'Generated {ready} variants, {failed} failed.',
+    'assets.batchHint': 'Next generation: {count} variants.',
   },
 };
 

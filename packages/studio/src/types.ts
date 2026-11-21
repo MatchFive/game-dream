@@ -69,4 +69,6 @@ export interface ComfyJob {
   progress: string;
   assetId?: string;
   error?: string;
+  variant?: number;
+  batchSize?: number;
 }

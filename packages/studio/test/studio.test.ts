@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadCanvas, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
+import { ComfyRunner } from '../src/comfyui.js';
 import { loadProjectSnapshot, loadRuns } from '../src/project.js';
 import { startStudioServer } from '../src/server.js';
 
@@ -66,6 +67,21 @@ describe('studio assets', () => {
     expect(snapshot.build.screenshot?.file).toContain('real-v2-screenshot.png');
     expect(snapshot.build.engine).toBe('unknown');
     expect(snapshot.build.runs).toEqual([]);
+  });
+
+  it('starts a bounded batch with one seed per variant', () => {
+    const runner = new ComfyRunner(
+      { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
+      join(root, '.gamedream', 'studio', 'generated'),
+      root,
+    );
+    const jobs = runner.startBatch('a test batch', false, 4);
+    expect(jobs).toHaveLength(4);
+    expect(jobs.map((job) => job.variant)).toEqual([1, 2, 3, 4]);
+    expect(jobs.every((job) => job.batchSize === 4)).toBe(true);
+    expect(new Set(jobs.map((job) => job.seed)).size).toBeGreaterThan(1);
+    expect(runner.startBatch('clamped', false, 99)).toHaveLength(4);
+    expect(runner.startBatch('minimum', false, 0)).toHaveLength(1);
   });
 
   it('serves state, project, uploads, verification, files, and canvas saves', async () => {
@@ -139,6 +155,13 @@ describe('studio assets', () => {
         body: JSON.stringify({ prompt: 'a test asset' }),
       });
       expect(generation.status).toBe(503);
+
+      const rejectedCount = await fetch(`${studio.url}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: 'a test asset', count: 5 }),
+      });
+      expect(rejectedCount.status).toBe(400);
     } finally {
       await studio.close();
     }

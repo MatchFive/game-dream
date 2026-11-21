@@ -165,7 +165,9 @@ Playable prototype or structured repair loop
 `dream studio` opens a local project studio and infinite Asset Canvas. The
 studio indexes module assets, screenshots, audio, and generated images; stores
 canvas layout under `.gamedream/studio/`; records verification runs; and can
-submit real ComfyUI jobs with transparent PNG output.
+submit real ComfyUI jobs with transparent PNG output. The UI defaults to
+Chinese and switches between Chinese and English from the top bar. Batch
+generation creates up to four independently seeded variants per request.
 
 ```bash
 corepack pnpm build

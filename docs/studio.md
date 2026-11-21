@@ -47,9 +47,10 @@ The **Transparent** mode adds a background-removal graph
 images and prompt/seed sidecars are written to
 `.gamedream/studio/generated/` and appear in the asset library.
 
-Generation is asynchronous: the API returns a job id and the UI polls its
-progress. Jobs are in memory, so restarting the server cancels the UI's view of
-an in-flight job.
+Generation is asynchronous: the API returns one or more job ids and the UI polls
+their progress. Up to four variants can be requested in one batch; each variant
+gets its own seed, image, and metadata name. Jobs are in memory, so restarting
+the server cancels the UI's view of an in-flight job.
 
 ## HTTP API
 
@@ -63,7 +64,7 @@ an in-flight job.
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
-| `POST /api/generate` | Start a ComfyUI job |
+| `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4 }`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/health` | ComfyUI and workflow health |
 
@@ -75,7 +76,7 @@ expose it on a public interface.
 
 ## Current limits
 
-- One image per generation job; generate again for another variant.
+- One image per generation job; request up to four jobs per batch for variants.
 - Build selection is metadata for the composer; it does not copy files into a
   module yet.
 - Generated jobs are not resumed after a server restart.

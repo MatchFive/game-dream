@@ -24,6 +24,13 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: MCP client smoke (fixture)
+        run: |
+          node scripts/mcp-scene-smoke.mjs \
+            --config fixtures/mcp/fake-godot.json \
+            --server fake-godot \
+            --project dist/mcp-smoke \
+            --scene ui/McpHud.tscn
 
   web-release:
     needs: test

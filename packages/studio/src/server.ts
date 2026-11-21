@@ -338,7 +338,7 @@ async function handleApi(
   }
 
   if (method === 'POST' && pathname === '/api/generate') {
-    let body: { prompt?: unknown; transparent?: unknown };
+    let body: { prompt?: unknown; transparent?: unknown; count?: unknown };
     try {
       body = (await readJson(request)) as typeof body;
     } catch (error) {
@@ -354,12 +354,17 @@ async function handleApi(
       json(response, 400, { error: 'prompt is limited to 2000 characters' });
       return;
     }
+    const count = body.count === undefined ? 1 : Number(body.count);
+    if (!Number.isInteger(count) || count < 1 || count > 4) {
+      json(response, 400, { error: 'count must be an integer between 1 and 4' });
+      return;
+    }
     if (!runner.workflowExists()) {
       json(response, 503, { error: `ComfyUI workflow not found: ${comfyui.workflow}` });
       return;
     }
-    const job = runner.start(prompt, body.transparent === true);
-    json(response, 202, { job });
+    const jobs = runner.startBatch(prompt, body.transparent === true, count);
+    json(response, 202, { job: jobs[0], jobs });
     return;
   }
 

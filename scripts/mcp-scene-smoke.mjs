@@ -2,7 +2,6 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { McpClient } from '../packages/cli/dist/commands/mcp.js';
-
 function arg(name, fallback) {
   const index = process.argv.indexOf(`--${name}`);
   return index >= 0 ? process.argv[index + 1] : fallback;
@@ -46,7 +45,13 @@ try {
     properties: { text: 'MCP HUD' },
   });
   await client.call('save_scene', { projectPath, scenePath });
-  console.log(`MCP_SCENE_OK=${resolve(projectPath, scenePath)}`);
+  const saved = resolve(projectPath, scenePath);
+  if (!existsSync(saved)) {
+    console.error(`MCP scene was not saved: ${saved}`);
+    process.exit(4);
+  }
+  console.log(`MCP_SCENE_OK=${saved}`);
+  console.log('MCP_SMOKE_EXIT=0');
 } finally {
   client.close();
 }

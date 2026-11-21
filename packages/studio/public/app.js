@@ -16,6 +16,7 @@ const state = {
   panY: window.innerWidth < 760 ? 45 : 0,
   tool: 'select',
   generating: false,
+  batchSize: 1,
   audio: null,
 };
 
@@ -238,6 +239,7 @@ function renderAll() {
   renderInspector();
   renderMinimap();
   applyView();
+  updateBatchChip();
 }
 
 function updateComfyStatus() {
@@ -350,7 +352,7 @@ function nodeMarkup(node) {
       <div class="node-foot"><span class="node-tag">${allInBuild ? t('common.inBuild') : t('common.set')}</span><button class="button secondary" type="button" data-use-group>${t('common.manage')}</button></div>`;
   }
   if (node.generating) {
-    return `${nodeHead(t('assets.nodesGenerating'), t('assets.job'))}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">${t('assets.generatingAsset')}</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}</div></div>`;
+    return `${nodeHead(t('assets.nodesGenerating'), t('assets.job'))}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">${t('assets.generatingAsset')}</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}${node.batchSize > 1 ? ` · ${node.batchIndex}/${node.batchSize}` : ''}</div></div>`;
   }
   if (node.error) {
     return `${nodeHead(t('assets.nodesError'), t('common.error'), 'coral')}<div class="node-media">${escapeHtml(node.error)}</div><div class="node-body"><div class="node-title">${t('assets.generationFailed')}</div><div class="node-sub">${t('assets.checkComfy')}</div></div>`;
@@ -688,35 +690,60 @@ async function generateAsset() {
     return;
   }
   const transparent = $('#transparentChip').classList.contains('accent');
-  const jobNode = {
-    id: `job-${Date.now()}`,
-    kind: 'asset',
-    x: 390,
-    y: 390,
-    width: 286,
-    generating: true,
-    progress: 'Submitting…',
-    prompt,
-  };
-  state.canvas.nodes.push(jobNode);
-  state.selectedId = jobNode.id;
+  const count = state.batchSize;
+  const started = Date.now();
+  const nodes = Array.from({ length: count }, (_, index) => {
+    const column = index % 2;
+    const row = Math.floor(index / 2);
+    return {
+      id: `job-${started}-${index}`,
+      kind: 'asset',
+      x: 390 + column * 300,
+      y: 390 + row * 270,
+      width: 286,
+      generating: true,
+      progress: t('assets.queued'),
+      prompt,
+      batchIndex: index + 1,
+      batchSize: count,
+    };
+  });
+  state.canvas.nodes.push(...nodes);
+  state.selectedId = nodes[0].id;
   renderCanvas();
   renderLibrary();
   renderInspector();
-  focusNode(jobNode.id);
-  setGenerating(true, t('assets.comfySubmitting'));
+  focusNode(nodes[0].id);
+  setGenerating(true, t('assets.batchSubmitting', { count }));
   try {
     const result = await request('/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, transparent }),
+      body: JSON.stringify({ prompt, transparent, count }),
     });
-    await pollJob(jobNode, result.job.id);
-  } catch (error) {
-    jobNode.generating = false;
-    jobNode.error = error.message;
-    renderCanvas();
-    renderInspector();
+    const jobs = Array.isArray(result.jobs) ? result.jobs : [result.job];
+    await Promise.all(nodes.map((node, index) => {
+      const job = jobs[index];
+      return job ? pollJob(node, job.id) : Promise.resolve({ node, error: t('assets.indexFailed') });
+    }));
+    const ready = nodes.filter((node) => node.assetId && !node.error);
+    const failed = nodes.length - ready.length;
     setGenerating(false);
+    renderAssetState();
+    renderMinimap();
+    if (ready.length > 0) {
+      state.selectedId = ready[0].id;
+      focusNode(ready[0].id);
+    }
+    if (failed === 0) toast(t('assets.batchReady', { count: ready.length }));
+    else toast(t('assets.batchPartial', { ready: ready.length, failed }));
+    scheduleSave();
+  } catch (error) {
+    for (const node of nodes) {
+      node.generating = false;
+      node.error = error.message;
+    }
+    setGenerating(false);
+    renderAssetState();
     toast(t('assets.generationFailedToast', { message: error.message }));
   }
 }
@@ -733,16 +760,22 @@ async function pollJob(node, jobId) {
       node.error = error.message;
       renderCanvas();
       renderInspector();
-      setGenerating(false);
-      toast(t('assets.jobPollFailed', { message: error.message }));
-      return;
+      return { node, error: error.message };
     }
     node.progress = job.progress;
     $('#queueLabel').textContent = `COMFYUI · ${job.progress.toUpperCase()}`;
     renderCanvas();
     renderInspector();
     if (job.status === 'done') {
-      const data = await request('/api/state');
+      let data;
+      try {
+        data = await request('/api/state');
+      } catch (error) {
+        node.generating = false;
+        node.error = error.message;
+        renderAssetState();
+        return { node, error: error.message };
+      }
       state.assets = data.assets;
       state.comfyui = data.comfyui;
       state.canvas.inBuild = data.canvas.inBuild;
@@ -758,28 +791,24 @@ async function pollJob(node, jobId) {
       } else {
         node.error = t('assets.indexFailed');
       }
-      setGenerating(false);
       renderAssetState();
       renderMinimap();
-      if (asset) {
-        state.selectedId = node.id;
-        focusNode(node.id);
-        toast(t('assets.generationReady', { name: asset.name }));
-      } else {
-        toast(t('assets.indexFailed'));
-      }
-      scheduleSave();
-      return;
+      return { node, asset };
     }
     if (job.status === 'error') {
       node.generating = false;
-      node.error = job.error ?? 'ComfyUI generation failed.';
-      setGenerating(false);
+      node.error = job.error ?? t('assets.generationFailed');
       renderAssetState();
-      toast(node.error);
-      return;
+      return { node, error: node.error };
     }
   }
+}
+
+function updateBatchChip() {
+  $('#countChip').textContent = t('assets.imageCount', {
+    count: state.batchSize,
+    s: state.batchSize === 1 ? '' : 's',
+  });
 }
 
 $('#assetSearch').addEventListener('input', (event) => {
@@ -842,7 +871,11 @@ $('#transparentChip').addEventListener('click', () => {
   $('#transparentChip').classList.toggle('accent');
 });
 $('#modelChip').addEventListener('click', () => toast(t('assets.modelHint')));
-$('#countChip').addEventListener('click', () => toast(t('assets.variantHint')));
+$('#countChip').addEventListener('click', () => {
+  state.batchSize = state.batchSize % 4 + 1;
+  updateBatchChip();
+  toast(t('assets.batchHint', { count: state.batchSize }));
+});
 $('#refChip').addEventListener('click', () => toast(t('assets.refHint')));
 
 $$('[data-tool]').forEach((button) => button.addEventListener('click', () => {
@@ -954,6 +987,7 @@ initLocale();
 document.title = t('assets.title');
 window.addEventListener('localechange', () => {
   document.title = t('assets.title');
+  updateBatchChip();
   if (state.project.name) {
     if (!$('#promptInput').dataset.touched) $('#promptInput').value = t('assets.defaultPrompt');
     if (state.canvas.nodes.length) renderAll();
