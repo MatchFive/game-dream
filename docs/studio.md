@@ -153,7 +153,10 @@ The Studio preview has a **Play** action:
   routes.
 - For a Godot project, the server launches the configured `GODOT_BIN` (or
   `godot`/`godot4`) in a separate window and tracks the process for Stop.
-- Unity playtest is not exposed by the local server yet; the API returns 501.
+- For a Unity project, the server looks for a built player under
+  `Builds/Windows/*.exe` (or `Builds`/`Build`) and launches it in a separate
+  window. If no player is built, the API returns 503 instead of pretending it
+  can play the project.
 - If no playable Web/Godot build is detected, the API returns 400 rather than
   opening an empty frame.
 
@@ -223,8 +226,8 @@ expose it on a public interface.
 - Web playtest rewrites HTML/CSS asset paths and injects a base path. Runtime
   URLs constructed dynamically in JavaScript (for example `fetch('/data.json')`)
   are not rewritten; generated apps should use relative paths.
-- Godot playtest requires a local display and a 4.x `GODOT_BIN`; Unity playtest
-  is not available from the Studio server.
+- Godot playtest requires a local display and a 4.x `GODOT_BIN`. Unity playtest
+  requires a built player; it does not build Unity from the Studio server.
 - Animation generation produces a 2–4 frame keyframe sequence with playback,
   regeneration, horizontal PNG atlas packing, and Web/Godot descriptors. There
   is no AnimateDiff node, automatic template wiring, or per-frame scaling.

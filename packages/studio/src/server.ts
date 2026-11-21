@@ -1,7 +1,7 @@
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { createAnimationAtlas } from './animation-atlas.js';
@@ -181,6 +181,25 @@ function safeProjectFile(root: string, relativePath: string): string | undefined
 
 function requireSeparator(): string {
   return process.platform === 'win32' ? '\\' : '/';
+}
+
+function detectUnityPlayer(root: string): string | undefined {
+  const directories = [
+    join(root, 'Builds', 'Windows'),
+    join(root, 'Builds'),
+    join(root, 'Build'),
+  ];
+  for (const directory of directories) {
+    if (!existsSync(directory)) continue;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      const lower = entry.name.toLowerCase();
+      if (lower.includes('crashhandler')) continue;
+      if (!lower.endsWith('.exe') && !lower.endsWith('.x86_64')) continue;
+      return join(directory, entry.name);
+    }
+  }
+  return undefined;
 }
 
 export async function startStudioServer(options: StudioServerOptions): Promise<StudioServerHandle> {
@@ -397,6 +416,7 @@ async function handleApi(
   if (method === 'GET' && pathname === '/api/playtest/capabilities') {
     const engine = detectEngine(root);
     const godot = detectGodotPlaytest();
+    const unityPlayer = detectUnityPlayer(root);
     json(response, 200, {
       engine,
       web: {
@@ -408,7 +428,10 @@ async function handleApi(
         bin: godot.bin,
         version: godot.version,
       },
-      unity: { available: false },
+      unity: {
+        available: Boolean(unityPlayer),
+        player: unityPlayer ? relative(root, unityPlayer).split('\\').join('/') : undefined,
+      },
     });
     return;
   }
@@ -445,7 +468,28 @@ async function handleApi(
       return;
     }
     if (engine === 'unity') {
-      json(response, 501, { error: 'Unity playtest is not available from the Studio server yet.' });
+      const player = detectUnityPlayer(root);
+      if (!player) {
+        json(response, 503, {
+          error: 'Unity player build not found. Build the project first (Builds/Windows/*.exe).',
+        });
+        return;
+      }
+      stopPlaytest();
+      const child = spawn(player, [], {
+        cwd: dirname(player),
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false,
+      });
+      child.unref();
+      setPlaytestChild(child);
+      json(response, 200, {
+        mode: 'external',
+        pid: child.pid,
+        bin: player,
+        message: 'Unity playtest launched in a separate window.',
+      });
       return;
     }
     json(response, 400, { error: 'No playable web or Godot project detected in this directory.' });

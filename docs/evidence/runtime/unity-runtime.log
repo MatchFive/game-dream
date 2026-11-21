@@ -1,0 +1,13 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/unity/test/runtime.test.ts (3 tests) 127751ms
+   ✓ unity runtime > runs EditorVerifier and emits both markers 51748ms
+   ✓ unity runtime > builds and screenshots fresh artifacts 76000ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:38:46
+   Duration  128.34s (transform 81ms, setup 0ms, collect 230ms, tests 127.75s, environment 0ms, prepare 117ms)
+
+EXIT=0

@@ -23,6 +23,21 @@ local/fake-runner based. The `godot-runtime` job downloads the official Godot
 GODOT_BIN=/path/to/godot pnpm smoke:godot --out dist/godot-runtime
 ```
 
+## Unity runtime
+
+GitHub-hosted runners do not include Unity. The real Unity checks are:
+
+```bash
+UNITY_BIN="D:/unity/6000.6.9f1/Editor" \
+  pnpm exec vitest run packages/unity/test/runtime.test.ts
+```
+
+This runs `EditorVerifier`, a Windows player build, runtime smoke, and a
+screenshot. The latest local run passed all three tests against Unity
+6000.6.9f1 (see `docs/evidence/runtime/unity-runtime.log`). A CI job requires a
+self-hosted runner with Unity installed; without one, the test must be skipped
+rather than reported as passing.
+
 `dream godot templates` reports whether matching export templates are installed
 for the host platform.
 

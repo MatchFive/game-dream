@@ -328,6 +328,32 @@ describe('studio assets', () => {
     }
   });
 
+  it('reports a built Unity player as playtestable', async () => {
+    mkdirSync(join(root, 'ProjectSettings'), { recursive: true });
+    writeFileSync(join(root, 'ProjectSettings', 'ProjectVersion.txt'), 'm_EditorVersion: 6000.6.9f1\n');
+    mkdirSync(join(root, 'Builds', 'Windows'), { recursive: true });
+    writeFileSync(join(root, 'Builds', 'Windows', 'GameDream.exe'), 'not launched by this test');
+    const studio = await startStudioServer({
+      projectDir: root,
+      port: 0,
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
+    });
+    try {
+      const capabilities = await fetch(`${studio.url}/api/playtest/capabilities`)
+        .then((response) => response.json()) as {
+          engine: string;
+          unity: { available: boolean; player?: string };
+        };
+      expect(capabilities.engine).toBe('unity');
+      expect(capabilities.unity).toEqual({
+        available: true,
+        player: 'Builds/Windows/GameDream.exe',
+      });
+    } finally {
+      await studio.close();
+    }
+  });
+
   it('serves a web playtest and reports playable capabilities', async () => {
     const playRoot = mkdtempSync(join(tmpdir(), 'gamedream-studio-play-'));
     writeFileSync(

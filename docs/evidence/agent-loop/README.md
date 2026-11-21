@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **233 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **234 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -103,6 +103,16 @@ depending on an installed editor. Real-engine validation remains separate.
   descriptor and a Godot `SpriteFrames` `.tres` resource.
 - The studio test decodes the generated atlas, asserts 4×2 dimensions for two
   2×2 frames, and checks both descriptor files.
+
+## Unity playtest
+
+- Real Unity 6000.6.9f1 evidence is separate:
+  `docs/evidence/runtime/unity-runtime.log` records EditorVerifier, Windows
+  player build, runtime smoke, and screenshot (3 tests passed).
+- Studio reports `unity.available` only when a built player exists under
+  `Builds/Windows/*.exe` (or `Builds`/`Build`) and launches it externally;
+  otherwise playtest returns 503.
+- The Studio test seeds a fake player and asserts the capability path.
 
 ## Asset rename
 
