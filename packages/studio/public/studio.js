@@ -114,7 +114,18 @@ function agentThreadMarkup(run) {
     )}</div>`;
   }
   const items = [];
+  let streamed = '';
+  let lastStreamed = '';
   for (const event of run.events.slice(-260)) {
+    if (event.type === 'assistant/chunk') {
+      streamed += String(event.text ?? '');
+      continue;
+    }
+    if (streamed) {
+      lastStreamed = streamed;
+      items.push(`<div class="studio-agent-msg assistant">${escapeHtml(streamed)}</div>`);
+      streamed = '';
+    }
     if (event.type === 'run/start') {
       items.push(`<div class="studio-agent-msg user">${escapeHtml(event.prompt ?? '')}</div>`);
       continue;
@@ -175,6 +186,7 @@ function agentThreadMarkup(run) {
       if (content.startsWith('Build this game:') || content.startsWith('Verification is clean.') || content.startsWith('Step budget is almost exhausted.')) continue;
       items.push(`<div class="studio-agent-msg user">${escapeHtml(content)}</div>`);
     } else if (inner.type === 'assistant/message') {
+      if (lastStreamed && String(inner.content ?? '').trim() === lastStreamed.trim()) continue;
       items.push(`<div class="studio-agent-msg assistant">${escapeHtml(inner.content ?? '')}</div>`);
     } else if (inner.type === 'assistant/tool_calls') {
       items.push(agentEventDetails(
@@ -186,6 +198,9 @@ function agentThreadMarkup(run) {
     } else if (inner.type === 'turn/end') {
       items.push(`<div class="studio-agent-step">${inner.finished ? t('studio.agentFinished') : t('studio.agentCanceled')}</div>`);
     }
+  }
+  if (streamed) {
+    items.push(`<div class="studio-agent-msg assistant">${escapeHtml(streamed)}</div>`);
   }
   return items.join('') || `<div class="studio-agent-empty">${t('studio.agentEmpty')}</div>`;
 }
