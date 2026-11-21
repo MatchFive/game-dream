@@ -5,23 +5,23 @@
 
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/cli/test/develop.test.ts (6 tests) 2465ms
-   ✓ development case > loads a case and develops a project through tools 1003ms
-   ✓ development case > generates and selects among candidates 722ms
-   ✓ development case > streams structured events and resolves Studio approvals 639ms
- ✓ packages/studio/test/agent.test.ts (11 tests) 9411ms
-   ✓ streams approval and completion for a Studio agent run 461ms
-   ✓ runs candidates and applies the selected candidate 587ms
-   ✓ marks a run stopped by the cost budget 439ms
-   ✓ retries a terminal batch into a linked new generation 321ms
-   ✓ queues batches, cancels a queued batch, and starts the next one 1016ms
-   ✓ reaps a persisted stale agent process after restart 2229ms
-   ✓ does not kill a reused pid whose command line does not match 2009ms
-   ✓ resumes an interrupted run after a Studio restart 1949ms
+ ✓ packages/cli/test/develop.test.ts (6 tests) 1935ms
+   ✓ development case > loads a case and develops a project through tools 597ms
+   ✓ development case > generates and selects among candidates 637ms
+   ✓ development case > streams structured events and resolves Studio approvals 544ms
+ ✓ packages/studio/test/agent.test.ts (11 tests) 8869ms
+   ✓ streams approval and completion for a Studio agent run 499ms
+   ✓ runs candidates and applies the selected candidate 613ms
+   ✓ marks a run stopped by the cost budget 380ms
+   ✓ retries a terminal batch into a linked new generation 370ms
+   ✓ queues batches, cancels a queued batch, and starts the next one 1055ms
+   ✓ reaps a persisted stale agent process after restart 2116ms
+   ✓ does not kill a reused pid whose command line does not match 1442ms
+   ✓ resumes an interrupted run after a Studio restart 2003ms
 
  Test Files  2 passed (2)
       Tests  17 passed (17)
-   Start at  21:15:25
-   Duration  10.66s (transform 2.65s, setup 0ms, collect 4.16s, tests 11.88s, environment 1ms, prepare 533ms)
+   Start at  21:58:20
+   Duration  10.22s (transform 3.84s, setup 0ms, collect 5.56s, tests 10.80s, environment 1ms, prepare 631ms)
 
 EXIT=0

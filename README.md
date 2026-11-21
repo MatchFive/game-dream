@@ -194,6 +194,8 @@ node packages/cli/dist/index.js studio --path . --open
   atlas packing; **BGM** generates a 30-second audio asset through ComfyUI.
   Web survivor auto-plays the first staged atlas and BGM. Assets can be renamed
   without moving the underlying file.
+- `/settings` — workspace model/API, ComfyUI, Godot/Unity paths, project list,
+  create and open.
 - Playtest — Web builds open in the preview pane with a `/play/` base path;
   Godot launches in a separate window when `GODOT_BIN` is configured
 

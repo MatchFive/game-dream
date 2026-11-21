@@ -178,6 +178,8 @@ interface AgentStartInput {
 interface AgentManagerOptions {
   root: string;
   cliEntry?: string;
+  env?: NodeJS.ProcessEnv;
+  provider?: 'auto' | 'fake' | 'openai';
 }
 
 const SKIP_APPLY = new Set([
@@ -348,6 +350,8 @@ function listCandidateFiles(root: string, prefix = ''): string[] {
 export class AgentManager {
   private readonly root: string;
   private readonly cliEntry?: string;
+  private env: NodeJS.ProcessEnv;
+  private defaultProvider: 'auto' | 'fake' | 'openai';
   private readonly children = new Map<string, ChildProcess>();
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly batches = new Map<string, AgentBatch>();
@@ -367,8 +371,18 @@ export class AgentManager {
   constructor(options: AgentManagerOptions) {
     this.root = resolve(options.root);
     this.cliEntry = options.cliEntry;
+    this.env = { ...(options.env ?? {}) };
+    this.defaultProvider = options.provider ?? 'auto';
     this.loadBatches();
     this.recoverInterrupted();
+  }
+
+  setEnv(env: NodeJS.ProcessEnv): void {
+    this.env = { ...env };
+  }
+
+  setDefaultProvider(provider: 'auto' | 'fake' | 'openai'): void {
+    this.defaultProvider = provider;
   }
 
   list(): { active?: AgentBatch; queued: AgentBatch[]; batches: AgentBatch[] } {
@@ -500,7 +514,9 @@ export class AgentManager {
     const batch: AgentBatch = {
       id,
       prompt,
-      provider: input.provider === 'fake' ? 'fake' : 'auto',
+      provider: input.provider === 'fake' || input.provider === 'openai'
+        ? input.provider
+        : this.defaultProvider,
       skill: input.skill?.trim() || 'survivor-demo',
       createdAt: new Date().toISOString(),
       status: 'queued',
@@ -784,7 +800,7 @@ export class AgentManager {
     try {
       child = spawn(process.execPath, args, {
         cwd: this.root,
-        env: { ...process.env },
+        env: { ...process.env, ...this.env },
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
       });

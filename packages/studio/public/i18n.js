@@ -239,6 +239,7 @@ const messages = {
 
     'assets.title': '素材画布',
     'assets.mission': '任务',
+    'assets.settings': '设置',
     'assets.assets': '素材',
     'assets.library': '素材库',
     'assets.inspect': '检查',
@@ -551,6 +552,7 @@ const messages = {
     'studio.runCount': '{count} runs',
     'studio.evidenceLocal': 'evidence / local files',
     'studio.agent': 'AGENT',
+    'studio.settings': 'Settings',
     'studio.agentIdle': 'IDLE',
     'studio.agentRunning': 'RUNNING',
     'studio.agentAwaiting': 'AWAITING APPROVAL',
@@ -654,6 +656,7 @@ const messages = {
 
     'assets.title': 'Asset Canvas',
     'assets.mission': 'MISSION',
+    'assets.settings': 'SETTINGS',
     'assets.assets': 'ASSETS',
     'assets.library': 'LIBRARY',
     'assets.inspect': 'INSPECT',

@@ -13,6 +13,7 @@
 | Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止、批次队列 |
 | Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算、usage 展示、排队/取消排队、按工具审批编辑器 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
+| Studio 配置/项目 | workspace 模型/生图/引擎设置、密钥不回显、项目列表/创建、独立子 Studio 打开 |
 | Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG、2–4 帧动画序列、PNG 图集 |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
 | CI | MCP fixture smoke、真实 Godot 4.4.1 runtime smoke、typecheck/build/full tests |
@@ -21,7 +22,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**244 passed / 9 skipped**
+- 全量测试：**246 passed / 9 skipped**
 - Agent focused tests：**17 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图 **3/3 pass**

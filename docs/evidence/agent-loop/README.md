@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 56 files passed, 6 skipped; **244 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 57 files passed, 6 skipped; **246 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; Agent CLI/Studio budgets, queue, policy/rules, recovery, history, retry, and reaping; **17 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, prompt-token, and cost budget tests; **4 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -182,6 +182,19 @@ depending on an installed editor. Real-engine validation remains separate.
   reaping and mismatch safety are covered by Studio tests.
 - `run/reaped` is appended to the run event stream.
 
+## Settings and project management
+
+- `GET/POST /api/settings` persist workspace settings under
+  `.gamedream/studio/settings.json`; the API key is never returned.
+- Saving settings recreates image/audio runners and updates Agent child env /
+  default provider.
+- `GET /api/projects` lists detected projects in the workspace; `POST
+  /api/projects` creates one through `dream create`; `POST /api/projects/open`
+  starts a separate local Studio server and returns its URL.
+- `packages/studio/test/settings.test.ts` covers redaction, persistence, project
+  listing, creation, and opening a child Studio.
+- `studio-settings.png` shows the `/settings` page.
+
 ## History and retry
 
 - Studio history lists persisted batches and switches transcript/candidate state
@@ -228,6 +241,7 @@ depending on an installed editor. Real-engine validation remains separate.
 - `agent-queue.png`: active approval plus queued batches and cancel controls.
 - `agent-policy-editor.png`: per-tool and default approval policy editor.
 - `agent-animation-node.png`: three-frame animation canvas node with playback.
+- `studio-settings.png`: workspace model/image/engine settings and project manager.
 
 The screenshots were taken against the Studio server using a fixture agent CLI
 for deterministic approval/candidate UI. The real CLI path is separately covered

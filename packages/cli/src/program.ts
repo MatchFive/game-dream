@@ -170,12 +170,13 @@ export function createProgram(): Command {
     .command('studio')
     .description('Open the local project studio and Asset Canvas')
     .option('--path <dir>', 'project root', '.')
+    .option('--workspace <dir>', 'workspace for settings and managed projects')
     .option('--host <host>', 'HTTP bind host', '127.0.0.1')
     .option('--port <port>', 'HTTP port', '4173')
     .option('--open', 'open the studio in the default browser')
     .option('--json', 'print JSON')
     .action(
-      async (options: { path: string; host: string; port: string; open?: boolean; json?: boolean }) => {
+      async (options: { path: string; workspace?: string; host: string; port: string; open?: boolean; json?: boolean }) => {
         try {
           const port = Number(options.port);
           if (!Number.isInteger(port) || port < 0 || port > 65535) {
@@ -185,6 +186,7 @@ export function createProgram(): Command {
           }
           const studio = await startStudioServer({
             projectDir: options.path,
+            workspaceDir: options.workspace,
             host: options.host,
             port,
             cliEntry: process.argv[1],

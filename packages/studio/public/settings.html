@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameDream Settings</title>
+<link rel="stylesheet" href="/styles.css?v=3">
+<style>
+  body { margin: 0; min-height: 100vh; background: #0b0d0a; color: var(--text); }
+  .settings-main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; display: grid; gap: 16px; }
+  .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .settings-card { border: 1px solid var(--line-strong); border-radius: 6px; background: #10130e; padding: 18px; }
+  .settings-card h1 { margin: 0 0 4px; font: 18px/1.2 var(--sans); }
+  .settings-card h2 { margin: 18px 0 8px; color: var(--lime); font: 9px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+  .settings-card p { margin: 0 0 14px; color: var(--dim); font: 9px/1.5 var(--mono); }
+  .settings-field { display: grid; gap: 5px; margin-bottom: 10px; }
+  .settings-field span { color: var(--muted); font: 8px/1 var(--mono); }
+  .settings-field input, .settings-field select, .settings-field textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 3px; padding: 8px; color: var(--text); background: #090b08; font: 10px/1.4 var(--mono); }
+  .settings-field textarea { min-height: 60px; resize: vertical; }
+  .settings-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  .settings-actions .status { color: var(--dim); font: 8px/1 var(--mono); }
+  .studio-nav a { color: var(--dim); text-decoration: none; font: 8px/1 var(--mono); letter-spacing: .05em; }
+  .studio-nav a[aria-current="page"] { color: var(--lime); }
+  .project-list { display: grid; gap: 6px; margin-top: 12px; }
+  .project-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px; border: 1px solid var(--line); border-radius: 4px; }
+  .project-row .name { min-width: 0; }
+  .project-row strong { display: block; font: 10px/1.2 var(--mono); }
+  .project-row small { color: var(--dim); font: 8px/1.3 var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .project-row .actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .project-row .current { color: var(--lime); font: 7px/1 var(--mono); }
+  .settings-toast { position: fixed; right: 20px; bottom: 20px; padding: 9px 12px; border: 1px solid var(--lime); color: var(--lime); background: #0b0d0a; font: 9px/1.3 var(--mono); opacity: 0; transform: translateY(8px); transition: .18s; pointer-events: none; }
+  .settings-toast.show { opacity: 1; transform: translateY(0); }
+  @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar studio-topbar">
+  <a class="brand" href="/" style="text-decoration:none">
+    <span class="brand-mark">✦</span>
+    <span class="brand-name">GAMEDREAM</span>
+    <span class="brand-sub">STUDIO</span>
+  </a>
+  <div class="crumb"><strong>设置</strong><span class="sep">/</span><span>模型 · 生图 · 引擎 · 项目</span></div>
+  <nav class="studio-nav" aria-label="Studio sections">
+    <a href="/">MISSION</a>
+    <a href="/assets">ASSETS</a>
+    <a href="/settings" aria-current="page">SETTINGS</a>
+  </nav>
+</header>
+<main class="settings-main">
+  <div class="settings-grid">
+    <section class="settings-card">
+      <h1>Studio 设置</h1>
+      <p>保存到当前 workspace 的 <code>.gamedream/studio/settings.json</code>。保存后当前 Studio 立即使用新的模型/生图配置。</p>
+      <form id="settingsForm">
+        <h2>模型</h2>
+        <label class="settings-field"><span>Provider</span>
+          <select id="modelProvider"><option value="auto">auto</option><option value="fake">fake</option><option value="openai">openai</option></select>
+        </label>
+        <label class="settings-field"><span>Model</span><input id="modelName" placeholder="gpt-4o-mini"></label>
+        <label class="settings-field"><span>Base URL</span><input id="modelBaseUrl" placeholder="https://api.openai.com/v1"></label>
+        <label class="settings-field"><span>API Key（留空保持已保存值）</span><input id="modelApiKey" type="password" autocomplete="new-password"></label>
+
+        <h2>生图 / 音频</h2>
+        <label class="settings-field"><span>ComfyUI URL</span><input id="comfyUrl" placeholder="http://127.0.0.1:8188"></label>
+        <label class="settings-field"><span>Qwen workflow 文件</span><input id="comfyWorkflow" placeholder="D:/path/workflow.json"></label>
+
+        <h2>引擎</h2>
+        <label class="settings-field"><span>Godot 可执行文件</span><input id="godotBin" placeholder="D:/godot/Godot.exe"></label>
+        <label class="settings-field"><span>Unity Editor 目录</span><input id="unityBin" placeholder="D:/unity/6000.6.9f1/Editor"></label>
+        <div class="settings-actions"><button class="button primary" type="submit">保存设置</button><span class="status" id="settingsStatus"></span></div>
+      </form>
+    </section>
+
+    <section class="settings-card">
+      <h1>项目</h1>
+      <p>Workspace：<code id="workspacePath">—</code></p>
+      <form id="projectForm">
+        <h2>新建项目</h2>
+        <label class="settings-field"><span>目录名</span><input id="projectName" placeholder="my-survivor" required></label>
+        <label class="settings-field"><span>游戏想法</span><textarea id="projectPrompt" placeholder="一个霓虹幸存者竞技场，自动攻击，60 秒生存。" required></textarea></label>
+        <div class="settings-actions"><button class="button primary" type="submit" id="projectCreate">创建项目</button><span class="status" id="projectStatus"></span></div>
+      </form>
+      <div class="project-list" id="projectList"></div>
+    </section>
+  </div>
+</main>
+<div class="settings-toast" id="toast" role="status"></div>
+<script type="module" src="/settings.js?v=1"></script>
+</body>
+</html>

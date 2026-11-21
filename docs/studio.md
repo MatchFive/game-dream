@@ -16,6 +16,27 @@ The command prints a URL such as `http://127.0.0.1:4173`. Stop it with
   summary, assets, and evidence.
 - `/assets` is the infinite Asset Canvas.
 
+## Settings and projects
+
+`/settings` configures the current workspace:
+
+- Model provider/model/base URL/API key. The key is never returned by the API;
+  leaving the field blank keeps the stored key.
+- ComfyUI URL and Qwen workflow file, applied to new image/audio runners
+  immediately after save.
+- Godot and Unity executable/editor paths.
+
+Settings are stored under the workspace at
+`.gamedream/studio/settings.json`. The workspace defaults to
+`GAMEDREAM_WORKSPACE`, then the parent directory of the Studio project; pass
+`dream studio --workspace <dir>` to choose it explicitly.
+
+The same page lists projects directly under the workspace whose engine can be
+detected. **Create** runs `dream create` with the configured provider and opens
+the new project in a separate Studio server/tab; **Open** starts another
+project Studio on an ephemeral localhost port. The current project remains
+untouched.
+
 ## Asset discovery
 
 The studio scans the project for:
@@ -184,6 +205,11 @@ binding.
 | Route | Purpose |
 |---|---|
 | `GET /api/state` | Project, assets, canvas, ComfyUI status |
+| `GET /api/settings` | Workspace settings with the API key redacted |
+| `POST /api/settings` | Persist model/image/engine settings and apply them |
+| `GET /api/projects` | List detected projects under the workspace |
+| `POST /api/projects` | Create a project via `dream create` |
+| `POST /api/projects/open` | Start/open a project Studio on a new local port |
 | `GET /api/project` | Build metadata, screenshot, verification runs, session |
 | `GET /api/project/screenshot?file=...` | Serve the latest build screenshot |
 | `POST /api/verify` | Spawn `dream verify` and record a durable run |
@@ -225,6 +251,11 @@ expose it on a public interface.
 ## Current limits
 
 - One image per generation job; request up to four jobs per batch for variants.
+- Studio settings are workspace-local and the API key is stored in plaintext in
+  `.gamedream/studio/settings.json`; the server remains localhost-only.
+- Project create uses the CLI `create` flow (automatic template/engine choice),
+  not an arbitrary engine upload; opening a project starts another local Studio
+  process inside the same server process.
 - Build selection stages assets under `game/build-assets/`; it does not
   automatically rewrite sprite configs or template content to reference them.
 - Generated jobs are not resumed after a server restart.

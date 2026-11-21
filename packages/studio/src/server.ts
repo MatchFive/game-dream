@@ -5,6 +5,14 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { createAnimationAtlas } from './animation-atlas.js';
+import { listProjects, projectNameForDirectory } from './projects.js';
+import {
+  loadStudioSettings,
+  publicStudioSettings,
+  saveStudioSettings,
+  studioEnv,
+  type StudioSettings,
+} from './settings.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, renameAsset, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
 import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
@@ -23,6 +31,16 @@ export interface StudioServerOptions {
   port?: number;
   comfyui?: Partial<ComfyUiConfig>;
   cliEntry?: string;
+  workspaceDir?: string;
+}
+
+interface StudioRuntime {
+  root: string;
+  getSettings(): StudioSettings;
+  getEnv(): NodeJS.ProcessEnv;
+  getComfyui(): ComfyUiConfig;
+  getRunner(): ComfyRunner;
+  getAudioRunner(): ComfyAudioRunner;
 }
 
 export interface StudioServerHandle {
@@ -31,8 +49,6 @@ export interface StudioServerHandle {
   close: () => Promise<void>;
 }
 
-const DEFAULT_COMFY_URL = 'http://192.168.124.56:8000';
-const DEFAULT_WORKFLOW = 'D:/QQ/image_qwen_image_2_1_t2i.json';
 const PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_UPLOAD_BYTES = 16 * 1024 * 1024;
@@ -205,21 +221,64 @@ function detectUnityPlayer(root: string): string | undefined {
 export async function startStudioServer(options: StudioServerOptions): Promise<StudioServerHandle> {
   const root = resolve(options.projectDir);
   if (!existsSync(root)) throw new Error(`project directory not found: ${root}`);
+  const workspaceDir = resolve(
+    options.workspaceDir
+      ?? process.env.GAMEDREAM_WORKSPACE
+      ?? dirname(root),
+  );
   const host = options.host ?? process.env.STUDIO_HOST ?? '127.0.0.1';
   const port = options.port ?? Number(process.env.STUDIO_PORT ?? 4173);
-  const comfyui = {
-    url: options.comfyui?.url ?? process.env.COMFYUI_URL ?? DEFAULT_COMFY_URL,
-    workflow: options.comfyui?.workflow ?? process.env.COMFYUI_WORKFLOW ?? DEFAULT_WORKFLOW,
+  let settings = loadStudioSettings(workspaceDir);
+  if (options.comfyui?.url || options.comfyui?.workflow) {
+    settings = {
+      ...settings,
+      image: {
+        url: options.comfyui?.url ?? settings.image.url,
+        workflow: options.comfyui?.workflow ?? settings.image.workflow,
+      },
+    };
+  }
+  let comfyui: ComfyUiConfig = {
+    url: settings.image.url,
+    workflow: settings.image.workflow,
   };
-  const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
-  const audioRunner = new ComfyAudioRunner(
+  let runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
+  let audioRunner = new ComfyAudioRunner(
     comfyui.url,
     join(root, '.gamedream', 'studio', 'generated'),
     root,
   );
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
+  let agentEnv = studioEnv(settings);
   syncBuildAssets(root);
-  const agent = new AgentManager({ root, cliEntry });
+  const agent = new AgentManager({
+    root,
+    cliEntry,
+    env: agentEnv,
+    provider: settings.model.provider,
+  });
+  const runtime: StudioRuntime = {
+    root,
+    getSettings: () => settings,
+    getEnv: () => agentEnv,
+    getComfyui: () => comfyui,
+    getRunner: () => runner,
+    getAudioRunner: () => audioRunner,
+  };
+  const applySettings = (next: StudioSettings): void => {
+    settings = next;
+    agentEnv = studioEnv(settings);
+    comfyui = { url: settings.image.url, workflow: settings.image.workflow };
+    runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
+    audioRunner = new ComfyAudioRunner(
+      comfyui.url,
+      join(root, '.gamedream', 'studio', 'generated'),
+      root,
+    );
+    agent.setEnv(agentEnv);
+    agent.setDefaultProvider(settings.model.provider);
+  };
+  const childServers = new Set<StudioServerHandle>();
   const sseClients = new Set<ServerResponse>();
   let playtestChild: ReturnType<typeof spawn> | undefined;
   const stopPlaytest = () => {
@@ -238,14 +297,33 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       const pathname = decodeURIComponent(url.pathname);
 
       if (pathname.startsWith('/api/')) {
+        if (pathname.startsWith('/api/settings') || pathname.startsWith('/api/projects')) {
+          await handleWorkspaceApi(request, response, pathname, {
+            workspaceDir,
+            root,
+            runtime,
+            cliEntry,
+            host,
+            applySettings,
+            openProject: async (projectPath) => {
+              const child = await startStudioServer({
+                projectDir: projectPath,
+                workspaceDir,
+                host,
+                port: 0,
+                cliEntry,
+              });
+              childServers.add(child);
+              return child.url;
+            },
+          });
+          return;
+        }
         await handleApi(
           request,
           response,
           pathname,
-          root,
-          runner,
-          audioRunner,
-          comfyui,
+          runtime,
           cliEntry,
           agent,
           sseClients,
@@ -278,9 +356,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         ? 'studio.html'
         : pathname === '/assets' || pathname === '/assets/'
           ? 'index.html'
-          : pathname === '/studio'
-            ? 'studio.html'
-            : pathname.replace(/^\/+/, '');
+          : pathname === '/settings' || pathname === '/settings/'
+            ? 'settings.html'
+            : pathname === '/studio'
+              ? 'studio.html'
+              : pathname.replace(/^\/+/, '');
       const file = resolve(PUBLIC_DIR, relativePath);
       if (!file.startsWith(resolve(PUBLIC_DIR)) || !existsSync(file) || !statSync(file).isFile()) {
         response.writeHead(404);
@@ -311,6 +391,9 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     close: () => new Promise((resolveClose, rejectClose) => {
       stopPlaytest();
       agent.close();
+      for (const child of childServers) {
+        void child.close();
+      }
       for (const client of sseClients) {
         if (!client.writableEnded) client.end();
       }
@@ -324,6 +407,7 @@ async function executeVerify(
   root: string,
   cliEntry: string | undefined,
   visual: boolean,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<VerifyRun> {
   if (!cliEntry) throw new Error('verification CLI entry is not configured');
   const started = Date.now();
@@ -332,7 +416,7 @@ async function executeVerify(
     if (visual) args.push('--visual');
     const child = spawn(process.execPath, args, {
       cwd: root,
-      env: process.env,
+      env: { ...process.env, ...env },
       windowsHide: true,
     });
     let stdout = '';
@@ -376,12 +460,12 @@ async function executeVerify(
   return run;
 }
 
-function detectGodotPlaytest(): {
+function detectGodotPlaytest(env: NodeJS.ProcessEnv = process.env): {
   available: boolean;
   bin: string;
   version?: string;
 } {
-  const candidates = [process.env.GODOT_BIN, 'godot', 'godot4'].filter(Boolean) as string[];
+  const candidates = [env.GODOT_BIN, 'godot', 'godot4'].filter(Boolean) as string[];
   for (const bin of candidates) {
     const result = spawnSync(bin, ['--version'], {
       encoding: 'utf8',
@@ -397,14 +481,172 @@ function detectGodotPlaytest(): {
   return { available: false, bin: candidates[0] ?? 'godot' };
 }
 
+interface WorkspaceApiContext {
+  workspaceDir: string;
+  root: string;
+  runtime: StudioRuntime;
+  cliEntry?: string;
+  host: string;
+  applySettings: (settings: StudioSettings) => void;
+  openProject: (projectPath: string) => Promise<string>;
+}
+
+async function handleWorkspaceApi(
+  request: IncomingMessage,
+  response: ServerResponse,
+  pathname: string,
+  context: WorkspaceApiContext,
+): Promise<void> {
+  const method = request.method ?? 'GET';
+  if (method === 'GET' && pathname === '/api/settings') {
+    json(response, 200, {
+      settings: publicStudioSettings(context.runtime.getSettings()),
+      workspace: context.workspaceDir,
+    });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/settings') {
+    try {
+      const body = (await readJson(request)) as {
+        model?: Partial<StudioSettings['model']>;
+        image?: Partial<StudioSettings['image']>;
+        engines?: Partial<StudioSettings['engines']>;
+      };
+      const next = saveStudioSettings(
+        context.workspaceDir,
+        context.runtime.getSettings(),
+        body,
+      );
+      context.applySettings(next);
+      json(response, 200, {
+        settings: publicStudioSettings(next),
+        workspace: context.workspaceDir,
+      });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/projects') {
+    json(response, 200, {
+      workspace: context.workspaceDir,
+      current: context.root,
+      projects: listProjects(context.workspaceDir),
+    });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/projects') {
+    try {
+      if (!context.cliEntry) throw new Error('agent CLI entry is not configured');
+      const body = (await readJson(request)) as {
+        name?: unknown;
+        prompt?: unknown;
+        provider?: unknown;
+      };
+      const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+      const requestedName = typeof body.name === 'string' ? body.name.trim() : '';
+      const name = (requestedName || `project-${Date.now().toString(36)}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60);
+      if (!prompt) throw new Error('prompt is required');
+      if (!name) throw new Error('project name is required');
+      const projectPath = resolve(context.workspaceDir, name);
+      if (!projectPath.startsWith(`${resolve(context.workspaceDir)}${requireSeparator()}`)) {
+        throw new Error('project path escapes workspace');
+      }
+      if (existsSync(projectPath)) throw new Error(`project already exists: ${projectPath}`);
+      const settings = context.runtime.getSettings();
+      const provider = body.provider === 'fake' || body.provider === 'openai'
+        ? body.provider
+        : settings.model.provider;
+      const modules = process.env.GAMEDREAM_MODULES ?? resolve(process.cwd(), 'modules');
+      const templates = process.env.GAMEDREAM_TEMPLATES ?? resolve(process.cwd(), 'templates');
+      const result = spawnSync(
+        process.execPath,
+        [
+          context.cliEntry,
+          'create',
+          prompt,
+          '--out',
+          projectPath,
+          '--modules',
+          modules,
+          '--templates',
+          templates,
+          '--provider',
+          provider,
+          '--no-verify',
+          '--json',
+        ],
+        {
+          cwd: context.workspaceDir,
+          env: { ...process.env, ...studioEnv(settings) },
+          encoding: 'utf8',
+          timeout: 180_000,
+          maxBuffer: 16 * 1024 * 1024,
+        },
+      );
+      if (result.status !== 0) {
+        throw new Error(
+          (result.stderr || result.stdout || `create exited ${result.status}`).trim().slice(0, 2000),
+        );
+      }
+      json(response, 201, {
+        project: {
+          name: projectNameForDirectory(projectPath),
+          path: projectPath,
+          engine: detectEngine(projectPath),
+          modifiedAt: new Date().toISOString(),
+        },
+        output: result.stdout,
+      });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/projects/open') {
+    try {
+      const body = (await readJson(request)) as { path?: unknown };
+      const projectPath = resolve(
+        context.workspaceDir,
+        typeof body.path === 'string' ? body.path : '',
+      );
+      if (!projectPath.startsWith(`${resolve(context.workspaceDir)}${requireSeparator()}`)) {
+        throw new Error('project path escapes workspace');
+      }
+      if (!existsSync(projectPath) || !statSync(projectPath).isDirectory()) {
+        throw new Error('project not found');
+      }
+      const url = await context.openProject(projectPath);
+      json(response, 200, {
+        url,
+        project: {
+          name: projectNameForDirectory(projectPath),
+          path: projectPath,
+          engine: detectEngine(projectPath),
+        },
+      });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  json(response, 404, { error: `unknown workspace API route: ${method} ${pathname}` });
+}
+
 async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
   pathname: string,
-  root: string,
-  runner: ComfyRunner,
-  audioRunner: ComfyAudioRunner,
-  comfyui: ComfyUiConfig,
+  runtime: StudioRuntime,
   cliEntry: string | undefined,
   agent: AgentManager,
   sseClients: Set<ServerResponse>,
@@ -412,10 +654,15 @@ async function handleApi(
   setPlaytestChild: (child: ReturnType<typeof spawn>) => void,
 ): Promise<void> {
   const method = request.method ?? 'GET';
+  const root = runtime.root;
+  const runner = runtime.getRunner();
+  const audioRunner = runtime.getAudioRunner();
+  const comfyui = runtime.getComfyui();
+  const studioEnvironment = runtime.getEnv();
 
   if (method === 'GET' && pathname === '/api/playtest/capabilities') {
     const engine = detectEngine(root);
-    const godot = detectGodotPlaytest();
+    const godot = detectGodotPlaytest(studioEnvironment);
     const unityPlayer = detectUnityPlayer(root);
     json(response, 200, {
       engine,
@@ -443,7 +690,7 @@ async function handleApi(
       return;
     }
     if (engine === 'godot') {
-      const godot = detectGodotPlaytest();
+      const godot = detectGodotPlaytest(studioEnvironment);
       if (!godot.available) {
         json(response, 503, {
           error: 'Godot 4.4+ not found. Set GODOT_BIN or add godot to PATH.',
@@ -456,6 +703,7 @@ async function handleApi(
         detached: true,
         stdio: 'ignore',
         windowsHide: false,
+        env: { ...process.env, ...studioEnvironment },
       });
       child.unref();
       setPlaytestChild(child);
@@ -838,7 +1086,7 @@ async function handleApi(
       // Optional body.
     }
     try {
-      const run = await executeVerify(root, cliEntry, visual);
+      const run = await executeVerify(root, cliEntry, visual, studioEnvironment);
       json(response, 200, { run });
     } catch (error) {
       json(response, 503, { error: (error as Error).message });
