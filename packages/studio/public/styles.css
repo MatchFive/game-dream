@@ -243,6 +243,8 @@
   .chip { display: inline-flex; align-items: center; gap: 4px; min-height: 23px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); font: 8px/1 var(--mono); }
   .chip:hover { color: var(--text); border-color: var(--line-strong); }
   .chip.accent { color: var(--lime); border-color: rgba(199,244,100,.25); background: var(--lime-soft); }
+  .chip.duration { width: 58px; background: transparent; text-align: center; }
+  .chip[hidden] { display: none; }
   .chip .icon { width: 11px; height: 11px; }
   .gen-btn { min-height: 26px; margin-inline-start: auto; padding: 0 8px; border-radius: 3px; background: var(--lime); color: #11160b; font: 9px/1 var(--mono); font-weight: 700; }
   .gen-btn:hover { background: #d7ff7e; }

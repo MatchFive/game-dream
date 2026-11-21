@@ -22,6 +22,7 @@ export {
   findAsset,
 } from './assets.js';
 export { ComfyRunner } from './comfyui.js';
+export { generateSfx, sfxTypeFromPrompt, type SfxOptions, type SfxResult, type SfxType } from './sfx.js';
 export {
   appendRun,
   detectEngine,

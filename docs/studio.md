@@ -39,6 +39,14 @@ untouched.
 
 ## Asset discovery
 
+### SFX
+
+The Asset Canvas `SFX` chip generates a local procedural WAV without ComfyUI.
+The prompt selects the type (`hit`, `pickup`, `ui`, `jump`, `laser`,
+`explosion`, `footstep`) and the duration input accepts 0.1–3 seconds. Files are
+indexed as generated audio assets like BGM, can be previewed, renamed, and
+staged into the build. AI text-to-SFX remains a later backend option.
+
 The studio scans the project for:
 
 - `assets/`

@@ -35,6 +35,14 @@ describe('Web survivor', () => {
     };
     expect(findBgmTrack(manifest)?.file).toBe('game/build-assets/studio/bgm.mp3');
     expect(findBgmTrack({ assets: [] })).toBeUndefined();
+    expect(
+      findBgmTrack({
+        assets: [
+          { kind: 'audio', file: 'game/build-assets/studio/sfx-coin.wav' },
+          { kind: 'audio', file: 'game/build-assets/studio/bgm.mp3' },
+        ],
+      })?.file,
+    ).toBe('game/build-assets/studio/bgm.mp3');
     expect(clampMusicVolume(2)).toBe(1);
     expect(clampMusicVolume(-1)).toBe(0);
     expect(clampMusicVolume('bad')).toBeCloseTo(0.35);

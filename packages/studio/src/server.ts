@@ -15,6 +15,7 @@ import {
 } from './settings.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, renameAsset, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
 import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
+import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
 import {
   appendRun,
@@ -1148,6 +1149,7 @@ async function handleApi(
       count?: unknown;
       animation?: unknown;
       audio?: unknown;
+      sfx?: unknown;
       duration?: unknown;
       lyrics?: unknown;
     };
@@ -1169,6 +1171,20 @@ async function handleApi(
     const count = body.count === undefined ? 1 : Number(body.count);
     if (!Number.isInteger(count) || count < 1 || count > 4) {
       json(response, 400, { error: 'count must be an integer between 1 and 4' });
+      return;
+    }
+    if (body.sfx === true) {
+      const duration = body.duration === undefined ? 0.6 : Number(body.duration);
+      if (!Number.isFinite(duration) || duration < 0.1 || duration > 3) {
+        json(response, 400, { error: 'sfx duration must be between 0.1 and 3 seconds' });
+        return;
+      }
+      try {
+        const result = generateSfx(root, { prompt, duration });
+        json(response, 201, { job: result.job, jobs: [result.job] });
+      } catch (error) {
+        json(response, 400, { error: (error as Error).message });
+      }
       return;
     }
     if (body.audio === true) {

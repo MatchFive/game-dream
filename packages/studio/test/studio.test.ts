@@ -287,6 +287,47 @@ describe('studio assets', () => {
     }
   });
 
+  it('generates a procedural SFX WAV without ComfyUI', async () => {
+    const studio = await startStudioServer({
+      projectDir: root,
+      port: 0,
+      cliEntry: join(root, 'missing-cli.mjs'),
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
+    });
+    try {
+      const response = await fetch(`${studio.url}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: 'coin pickup', sfx: true, duration: 0.3 }),
+      });
+      expect(response.status).toBe(201);
+      const body = await response.json() as {
+        job: { id: string; status: string; duration: number; assetId?: string };
+      };
+      expect(body.job.status).toBe('done');
+      expect(body.job.duration).toBe(0.3);
+      expect(body.job.assetId).toBeTruthy();
+      const asset = scanAssets(root).find((entry) => entry.id === body.job.assetId);
+      expect(asset).toMatchObject({ kind: 'audio', mime: 'audio/wav', name: 'SFX pickup' });
+      expect(asset?.file.endsWith('.wav')).toBe(true);
+
+      const raw = await fetch(`${studio.url}/api/assets/${body.job.assetId}/raw`);
+      expect(raw.headers.get('content-type')).toBe('audio/wav');
+      const bytes = Buffer.from(await raw.arrayBuffer());
+      expect(bytes.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(bytes.length).toBeGreaterThan(44);
+
+      const rejected = await fetch(`${studio.url}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: 'coin pickup', sfx: true, duration: 9 }),
+      });
+      expect(rejected.status).toBe(400);
+    } finally {
+      await studio.close();
+    }
+  });
+
   it('generates and indexes a BGM track through ComfyUI audio outputs', async () => {
     const server = createServer((request, response) => {
       if (request.url === '/prompt') {

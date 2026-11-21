@@ -9,6 +9,10 @@ export function clampMusicVolume(value) {
 export function findBgmTrack(manifest) {
   if (!manifest || !Array.isArray(manifest.assets)) return undefined;
   return manifest.assets.find(
-    (asset) => asset && asset.kind === 'audio' && typeof asset.file === 'string',
+    (asset) =>
+      asset &&
+      asset.kind === 'audio' &&
+      typeof asset.file === 'string' &&
+      !/(^|\/)sfx[-_]/i.test(asset.file),
   );
 }

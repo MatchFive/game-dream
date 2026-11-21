@@ -19,6 +19,8 @@ const state = {
   batchSize: 1,
   animate: false,
   audioMode: false,
+  sfxMode: false,
+  sfxDuration: 0.6,
   audio: null,
 };
 
@@ -809,9 +811,10 @@ async function generateAsset() {
     return;
   }
   const transparent = $('#transparentChip').classList.contains('accent');
-  const audio = state.audioMode;
-  const animate = !audio && state.animate;
-  const count = audio ? 1 : animate ? Math.max(2, state.batchSize) : state.batchSize;
+  const sfx = state.sfxMode;
+  const audio = !sfx && state.audioMode;
+  const animate = !audio && !sfx && state.animate;
+  const count = sfx || audio ? 1 : animate ? Math.max(2, state.batchSize) : state.batchSize;
   const started = Date.now();
   const nodes = Array.from({ length: count }, (_, index) => {
     const column = index % 2;
@@ -845,7 +848,8 @@ async function generateAsset() {
         count,
         animation: animate,
         audio,
-        duration: audio ? 30 : undefined,
+        sfx,
+        duration: audio ? 30 : sfx ? state.sfxDuration : undefined,
       }),
     });
     const jobs = Array.isArray(result.jobs) ? result.jobs : [result.job];
@@ -945,14 +949,16 @@ async function pollJob(node, jobId) {
 }
 
 function updateBatchChip() {
-  $('#countChip').textContent = state.audioMode
-    ? t('assets.audioOnly')
-    : state.animate
-      ? t('assets.frameCount', { count: Math.max(2, state.batchSize) })
-      : t('assets.imageCount', {
-          count: state.batchSize,
-          s: state.batchSize === 1 ? '' : 's',
-        });
+  $('#countChip').textContent = state.sfxMode
+    ? t('assets.sfxOnly')
+    : state.audioMode
+      ? t('assets.audioOnly')
+      : state.animate
+        ? t('assets.frameCount', { count: Math.max(2, state.batchSize) })
+        : t('assets.imageCount', {
+            count: state.batchSize,
+            s: state.batchSize === 1 ? '' : 's',
+          });
 }
 
 function updateAnimationChip() {
@@ -964,9 +970,24 @@ function updateAnimationChip() {
 function updateAudioChip() {
   $('#audioChip').classList.toggle('accent', state.audioMode);
   if (state.audioMode) {
+    state.sfxMode = false;
     state.animate = false;
+    $('#sfxChip').classList.remove('accent');
+    $('#sfxDuration').hidden = true;
     $('#animationChip').classList.remove('accent');
   }
+  updateBatchChip();
+}
+
+function updateSfxChip() {
+  $('#sfxChip').classList.toggle('accent', state.sfxMode);
+  if (state.sfxMode) {
+    state.audioMode = false;
+    state.animate = false;
+    $('#audioChip').classList.remove('accent');
+    $('#animationChip').classList.remove('accent');
+  }
+  $('#sfxDuration').hidden = !state.sfxMode;
   updateBatchChip();
 }
 
@@ -1035,6 +1056,10 @@ $('#countChip').addEventListener('click', () => {
     toast(t('assets.audioHint'));
     return;
   }
+  if (state.sfxMode) {
+    toast(t('assets.sfxHint'));
+    return;
+  }
   state.batchSize = state.batchSize % 4 + 1;
   if (state.animate) state.batchSize = Math.max(2, state.batchSize);
   updateBatchChip();
@@ -1044,7 +1069,10 @@ $('#animationChip').addEventListener('click', () => {
   state.animate = !state.animate;
   if (state.animate) {
     state.audioMode = false;
-    updateAudioChip();
+    state.sfxMode = false;
+    $('#audioChip').classList.remove('accent');
+    $('#sfxChip').classList.remove('accent');
+    $('#sfxDuration').hidden = true;
   }
   updateAnimationChip();
   toast(t(
@@ -1059,6 +1087,16 @@ $('#audioChip').addEventListener('click', () => {
   updateAudioChip();
   toast(t(state.audioMode ? 'assets.audioHint' : 'assets.audioOffHint'));
 });
+$('#sfxChip').addEventListener('click', () => {
+  state.sfxMode = !state.sfxMode;
+  updateSfxChip();
+  toast(t(state.sfxMode ? 'assets.sfxHint' : 'assets.sfxOffHint'));
+});
+$('#sfxDuration').addEventListener('input', (event) => {
+  const value = Number(event.target.value);
+  state.sfxDuration = Number.isFinite(value) ? Math.min(3, Math.max(0.1, value)) : 0.6;
+});
+updateSfxChip();
 $('#refChip').addEventListener('click', () => toast(t('assets.refHint')));
 
 $$('[data-tool]').forEach((button) => button.addEventListener('click', () => {

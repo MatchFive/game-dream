@@ -17,9 +17,11 @@ Headless verification skips audio playback.
 Recommended asset split:
 
 - **BGM**: MiniMax Music 3 instrumental (empty lyrics), 30–60s loops.
-- **Short SFX**: procedural Godot/WebAudio for hits, pickups, UI; use an
-  AI text-to-SFX model later if needed. `MireloVideoToSFX` requires a video input
-  and cloud auth, so it is not the right default for UI sounds.
+- **Short SFX**: Studio now generates local procedural WAV effects from 0.1–3
+  seconds (`hit`, `pickup`, `ui`, `jump`, `laser`, `explosion`, `footstep`) and
+  indexes them as audio assets. An AI text-to-SFX model is a later backend
+  option; `MireloVideoToSFX` requires a video input and cloud auth, so it is not
+  the right default for UI sounds.
 
 ## Animation
 

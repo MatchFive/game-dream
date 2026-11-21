@@ -104,9 +104,9 @@
 | AS1d | Web 模板动画接入 | Web survivor 自动读取 animations/index.json 并播放首个图集；Godot 未接 | Web 自动发现/播放 | Done |
 | AS1e | Godot 模板动画接入 | 已支持扫描 `game/build-assets/animations/*.tres` 并优先加载首个 `SpriteFrames`；真实 Godot e2e 通过，打印 `GAMEDREAM_ANIMATION_OK` | 模板自动发现并播放动画资源 | Done |
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听、重命名；SFX 未做 | UI 内生成、显示进度、试听、重命名、加入构建 | Done |
-| AS2b | 音频 SFX | 固定 30 秒 BGM，无文本 SFX | 自定义时长、SFX 生成 | Backlog |
+| AS2b | 音频 SFX | 已支持 Studio 本地程序化 WAV（0.1–3 秒、提示词选类型、自动索引/预览/入构建）；AI 文本 SFX 见 AS3 | 自定义时长、SFX 生成 | Done |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
-| AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity survivor 已从 StreamingAssets 加载并循环；其他模板未接 | Web/Unity survivor 统一接入 | In progress |
+| AS4 | BGM 模板覆盖 | Web/Unity survivor 及其余 Web/Unity 模板均已接入 staged BGM；音量滑杆仅 Web/部分模板 | Web/Unity survivor 统一接入 | Done |
 | AS4b | Unity BGM 接入 | 已同步到 StreamingAssets，真实 Unity player smoke 打出 `UNITY_BGM_OK` | StreamingAssets 打包与音量/循环 | Done |
 | AS4c | 其他模板 BGM | 5 个 Web 模板接入 staged BGM；Unity 6 个模板通过共享 `BgmPlayer` 接入并真实 smoke 打印 `UNITY_BGM_OK`；暂停/独立音量仍简化 | 按模板接入音量/循环与暂停 | Done |
 | AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS2b SFX**：补文本音效生成与降级。
-2. **AS5b 素材自动绑定模板**：把音频/图集写入内容配置，而不是只靠运行时发现。
-3. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
+1. **AS5b 素材自动绑定模板**：把音频/图集/音效写入内容配置，而不是只靠运行时发现。
+2. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
+3. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
 
 ## 11. Definition of Done
 

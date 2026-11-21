@@ -48,7 +48,11 @@ namespace GameDream
             BuildAsset track = null;
             foreach (BuildAsset asset in manifest?.assets ?? new BuildAsset[0])
             {
-                if (asset != null && asset.kind == "audio" && !string.IsNullOrEmpty(asset.file))
+                if (asset != null
+                    && asset.kind == "audio"
+                    && !string.IsNullOrEmpty(asset.file)
+                    && !asset.file.Contains("/sfx-")
+                    && !asset.file.Contains("/sfx_"))
                 {
                     track = asset;
                     break;
