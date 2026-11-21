@@ -253,6 +253,7 @@ corepack pnpm release:accept \
 - [Web deployment](docs/deploy-web.md)
 - [Godot release](docs/release-godot.md)
 - [ComfyUI transparent sprites](docs/comfyui-assets.md)
+- [Tool permissions](docs/permissions.md)
 - [Development cases](cases/development/README.md)
 - [P1 verification evidence](docs/evidence/p1/README.md)
 - [Demo test evidence](docs/evidence/demo-test/README.md)

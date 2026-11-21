@@ -173,6 +173,10 @@ export function createProgram(): Command {
     .option('--resume', 'resume the saved session in --out')
     .option('--fork <checkpoint>', 'fork the resumed session at a checkpoint id')
     .option('--cache-breakpoints', 'send stable prompt_cache_key boundaries')
+    .option('--permissions <file>', 'tool permission policy JSON')
+    .option('--deny-tool <tools>', 'comma-separated tools to deny')
+    .option('--ask-tool <tools>', 'comma-separated tools to require approval')
+    .option('--yes', 'auto-approve ask permissions')
     .option('--read-only', 'deny mutating tools (scaffold/compose/write/mcp)')
     .option('--visual', 'run G6 screenshot gate')
     .option('--json', 'print JSON')
@@ -192,6 +196,10 @@ export function createProgram(): Command {
           resume?: boolean;
           fork?: string;
           cacheBreakpoints?: boolean;
+          permissions?: string;
+          denyTool?: string;
+          askTool?: string;
+          yes?: boolean;
           readOnly?: boolean;
           visual?: boolean;
           json?: boolean;
@@ -220,6 +228,10 @@ export function createProgram(): Command {
             resume: options.resume,
             fork: options.fork,
             cacheBreakpoints: options.cacheBreakpoints,
+            permissions: options.permissions,
+            denyTools: options.denyTool?.split(',').map((value) => value.trim()).filter(Boolean),
+            askTools: options.askTool?.split(',').map((value) => value.trim()).filter(Boolean),
+            yes: options.yes,
             readOnly: options.readOnly,
           };
           const candidates = candidateCount > 1

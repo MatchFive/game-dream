@@ -26,6 +26,11 @@ import { composeProject } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
 import { McpClient, defaultMcpConfig, type McpTool } from './mcp.js';
+import {
+  ToolPermissionGate,
+  loadPermissionPolicy,
+  mergePermissionLists,
+} from './permissions.js';
 
 export interface DevelopmentCase {
   id: string;
@@ -55,6 +60,10 @@ export interface DevelopOptions {
   readOnly?: boolean;
   candidates?: number;
   cacheBreakpoints?: boolean;
+  permissions?: string;
+  denyTools?: string[];
+  askTools?: string[];
+  yes?: boolean;
 }
 
 export interface CandidateReport {
@@ -639,6 +648,19 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   saveSession();
   let lastVerify: VerifyReport | undefined;
   let lastMissingMarkers: string[] = [];
+  const defaultPermissionPath = join(options.outDir, '.gamedream', 'permissions.json');
+  const permissionPath =
+    options.permissions ??
+    (existsSync(defaultPermissionPath) ? defaultPermissionPath : undefined);
+  const permissionPolicy = mergePermissionLists(
+    loadPermissionPolicy(permissionPath),
+    options.denyTools,
+    options.askTools,
+  );
+  const permissionGate = new ToolPermissionGate({
+    policy: permissionPolicy,
+    autoApprove: options.yes,
+  });
   let finished = false;
   let steps = 0;
   let actions: string[] = [];
@@ -651,7 +673,18 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
   const harnessTools: HarnessTool<DevelopContext>[] = TOOLS.map((tool) => ({
     name: tool.name,
     description: tool.description,
-    execute: (args, toolContext) => tool.run(args, toolContext),
+    execute: async (args, toolContext) => {
+      const denied = readOnlyDenied(toolContext, tool.name);
+      if (denied) return denied;
+      const confirmation = await permissionGate.authorize(tool.name, args);
+      if (!confirmation.allowed) {
+        return {
+          ok: false,
+          output: `Permission denied: ${confirmation.reason ?? tool.name}`,
+        };
+      }
+      return tool.run(args, toolContext);
+    },
   }));
   const loop = new AgentLoop<DevelopContext>({
     system,
