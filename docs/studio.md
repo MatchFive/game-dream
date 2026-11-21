@@ -74,7 +74,10 @@ is indexed as a normal asset and also written to
 The **BGM** chip generates a 30-second MiniMax Music 3 track through ComfyUI.
 The job is written to `.gamedream/studio/generated/<job-id>.mp3` with a JSON
 sidecar, then indexed as an audio asset that can be previewed and added to the
-build. SFX generation and asset renaming are not implemented yet.
+build. The Web survivor template reads a selected audio asset from
+`game/build-assets/manifest.json`, loops it, and binds the Music slider; the
+Unity survivor audio path is still pending. SFX generation and asset renaming
+are not implemented yet.
 
 ## Agent
 

@@ -21,7 +21,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**231 passed / 9 skipped**
+- 全量测试：**232 passed / 9 skipped**
 - Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -100,7 +100,8 @@
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听；SFX/重命名未做 | UI 内生成、显示进度、试听、加入构建 | Done |
 | AS2b | 音频 SFX/重命名 | 固定 30 秒 BGM，无文本 SFX、无素材重命名 | 自定义时长、SFX 生成、重命名和元数据编辑 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
-| AS4 | BGM 全模板覆盖 | 生成的 MiniMax BGM 只接 Godot survivor | Web/Unity survivor 及其他需要音频的模板统一接入音量和循环设置 | Next |
+| AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity 仍未接 | Web/Unity survivor 及其他音频模板统一接入 | In progress |
+| AS4b | Unity BGM 接入 | Unity 构建尚未加载 Studio 暂存音频 | StreamingAssets/Resources 打包与音量/循环 | Backlog |
 | AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
 | AS5b | 素材自动绑定模板 | 暂存文件不会自动改写 sprite/content 配置 | 按素材类型生成引用配置或提供可视化绑定 | Backlog |
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
@@ -138,7 +139,7 @@
 
 1. **V1 Unity runtime**：本机无 Unity，先补 self-hosted/本地可执行 job，不能伪造通过。
 2. **AS1d 模板动画接入**：让 Web/Godot 模板自动发现图集描述并播放。
-3. **AS4 BGM 全模板覆盖**：把现有 BGM 接入 Web/Unity survivor 及音量/循环设置。
+3. **AS4b Unity BGM**：把 Studio 暂存 BGM 打进 Unity StreamingAssets 并接线。
 
 ## 11. Definition of Done
 

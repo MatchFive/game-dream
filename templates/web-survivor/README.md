@@ -13,6 +13,14 @@ python -m http.server 8080
 
 WASD/arrows move; attacks are automatic; R restarts after win/lose.
 
+## Audio
+
+When the project contains `game/build-assets/manifest.json` with an audio asset
+(for example after selecting a BGM in Studio), the game loads that file, loops
+it, and wires the existing Music slider to its volume. Browsers still require a
+first click/keypress before playback, so the track starts on first interaction.
+Without a staged BGM the game stays silent.
+
 ## Verify
 
 ```bash

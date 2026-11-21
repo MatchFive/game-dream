@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **231 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **232 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -83,6 +83,9 @@ depending on an installed editor. Real-engine validation remains separate.
   indexed as an audio asset.
 - The Asset Canvas **BGM** mode previews generated audio and can add it to the
   build. SFX and asset renaming remain AS2b.
+- `templates/web-survivor/audio.mjs` selects the first audio asset from
+  `game/build-assets/manifest.json`; `game.js` loops it and binds the Music
+  slider. The pure helpers are covered by the Web survivor test.
 
 ## Animation sequence
 
