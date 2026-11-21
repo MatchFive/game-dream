@@ -67,6 +67,11 @@ and creates an animation canvas node that plays the frames and can regenerate
 the sequence from its prompt. This is a keyframe sequence, not an AnimateDiff or
 sprite-atlas pipeline; the generated frames are ordinary PNG assets.
 
+The **BGM** chip generates a 30-second MiniMax Music 3 track through ComfyUI.
+The job is written to `.gamedream/studio/generated/<job-id>.mp3` with a JSON
+sidecar, then indexed as an audio asset that can be previewed and added to the
+build. SFX generation and asset renaming are not implemented yet.
+
 ## Agent
 
 The Studio Agent panel starts the same `dream develop` loop used by the CLI as a
@@ -158,7 +163,7 @@ binding.
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
-| `POST /api/generate` | Start one to four ComfyUI jobs (`{ "prompt": "...", "count": 1-4, "animation"?: true }`) |
+| `POST /api/generate` | Start image/animation jobs or a BGM job (`audio: true, duration: 10-60`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active, queued, and historical Agent batches |
 | `GET /api/agent/policy` | Read the Studio approval policy, available tools, and source path |
@@ -212,3 +217,5 @@ expose it on a public interface.
 - Animation generation produces a 2–4 frame keyframe sequence with playback and
   regeneration. There is no sprite-sheet/atlas packer, AnimateDiff node, or
   automatic engine animation resource yet.
+- BGM generation is a fixed 30-second UI mode; SFX generation, custom duration,
+  and generated-asset renaming are not implemented yet.

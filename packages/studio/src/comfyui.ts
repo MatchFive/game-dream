@@ -10,7 +10,11 @@ interface WorkflowNode {
 }
 
 interface HistoryEntry {
-  outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
+  outputs?: Record<string, {
+    images?: Array<{ filename: string; subfolder?: string; type?: string }>;
+    audio?: Array<{ filename: string; subfolder?: string; type?: string }>;
+    files?: Array<{ filename: string; subfolder?: string; type?: string }>;
+  }>;
 }
 
 const IMAGE_OUTPUT_NODE = '461';
@@ -18,6 +22,11 @@ const SOURCE_IMAGE_NODE = '459:457';
 const PROMPT_NODE = '459:471';
 const SWITCH_NODE = '459:474';
 const SAMPLER_NODE = '459:458';
+const AUDIO_MODELS = {
+  unet: 'minimax_music3_dit_int8_convrot.safetensors',
+  clip: 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors',
+  vae: 'minimax_music3_dav.safetensors',
+};
 
 function generatedName(prompt: string): string {
   const words = prompt
@@ -232,6 +241,195 @@ export class ComfyRunner {
         'utf8',
       );
 
+      const relativeFile = relative(this.root, file).split('\\').join('/');
+      this.update(job, {
+        status: 'done',
+        progress: 'ready',
+        assetId: assetIdFor(relativeFile),
+      });
+    } catch (error) {
+      this.update(job, {
+        status: 'error',
+        progress: 'failed',
+        error: (error as Error).message,
+      });
+    }
+  }
+}
+
+export class ComfyAudioRunner {
+  private readonly jobs = new Map<string, ComfyJob>();
+
+  constructor(
+    private readonly url: string,
+    private readonly generatedDir: string,
+    private readonly root: string,
+    private readonly pollIntervalMs = 2000,
+  ) {}
+
+  start(prompt: string, duration = 30, lyrics = ''): ComfyJob {
+    const now = new Date().toISOString();
+    const safeDuration = Math.max(10, Math.min(60, Math.trunc(duration || 30)));
+    const job: ComfyJob = {
+      id: randomUUID(),
+      status: 'queued',
+      prompt,
+      transparent: false,
+      seed: Math.floor(Math.random() * 2_147_483_647),
+      createdAt: now,
+      updatedAt: now,
+      progress: 'queued',
+      kind: 'audio',
+      duration: safeDuration,
+    };
+    this.jobs.set(job.id, job);
+    void this.run(job, lyrics);
+    return { ...job };
+  }
+
+  getJob(id: string): ComfyJob | undefined {
+    const job = this.jobs.get(id);
+    return job ? { ...job } : undefined;
+  }
+
+  private update(job: ComfyJob, patch: Partial<ComfyJob>): void {
+    Object.assign(job, patch, { updatedAt: new Date().toISOString() });
+  }
+
+  private workflow(job: ComfyJob, lyrics: string): Record<string, WorkflowNode> {
+    return {
+      '1': {
+        class_type: 'CLIPLoader',
+        inputs: { clip_name: AUDIO_MODELS.clip, type: 'minimax', device: 'default' },
+      },
+      '2': {
+        class_type: 'UNETLoader',
+        inputs: { unet_name: AUDIO_MODELS.unet, weight_dtype: 'default' },
+      },
+      '3': {
+        class_type: 'VAELoader',
+        inputs: { vae_name: AUDIO_MODELS.vae },
+      },
+      '4': {
+        class_type: 'MiniMaxMusic3TextEncode',
+        inputs: {
+          clip: ['1', 0],
+          caption: job.prompt,
+          lyrics,
+          seed: job.seed,
+          max_duration: job.duration,
+          cfg_scale: 1.5,
+          top_k: 50,
+        },
+      },
+      '5': {
+        class_type: 'EmptyMiniMaxMusic3LatentAudio',
+        inputs: { seconds: job.duration, batch_size: 1 },
+      },
+      '6': {
+        class_type: 'ConditioningZeroOut',
+        inputs: { conditioning: ['4', 0] },
+      },
+      '7': {
+        class_type: 'KSampler',
+        inputs: {
+          seed: job.seed,
+          steps: 30,
+          cfg: 1.5,
+          sampler_name: 'euler',
+          scheduler: 'simple',
+          denoise: 1,
+          model: ['2', 0],
+          positive: ['4', 0],
+          negative: ['6', 0],
+          latent_image: ['5', 0],
+        },
+      },
+      '8': {
+        class_type: 'VAEDecodeAudio',
+        inputs: { samples: ['7', 0], vae: ['3', 0] },
+      },
+      '9': {
+        class_type: 'SaveAudioAdvanced',
+        inputs: {
+          audio: ['8', 0],
+          filename_prefix: 'audio/gamedream_bgm',
+          format: 'mp3',
+          'format.quality': 'V0',
+        },
+      },
+    };
+  }
+
+  private async run(job: ComfyJob, lyrics: string): Promise<void> {
+    try {
+      this.update(job, { status: 'running', progress: 'submitting to ComfyUI' });
+      const submit = await fetch(`${this.url.replace(/\/$/, '')}/prompt`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          prompt: this.workflow(job, lyrics),
+          client_id: `gamedream-audio-${job.id}`,
+        }),
+      });
+      const submitted = (await submit.json().catch(() => ({}))) as {
+        prompt_id?: string;
+        error?: unknown;
+      };
+      if (!submit.ok || !submitted.prompt_id) {
+        throw new Error(
+          `ComfyUI audio submit failed ${submit.status}: ${JSON.stringify(submitted).slice(0, 1000)}`,
+        );
+      }
+      this.update(job, { progress: 'queued in ComfyUI' });
+
+      let audio: { filename: string; subfolder?: string; type?: string } | undefined;
+      for (let attempt = 0; attempt < 300; attempt += 1) {
+        await new Promise((resolveWait) => setTimeout(resolveWait, this.pollIntervalMs));
+        const response = await fetch(
+          `${this.url.replace(/\/$/, '')}/history/${submitted.prompt_id}`,
+        );
+        if (!response.ok) continue;
+        const history = (await response.json()) as Record<string, HistoryEntry>;
+        const outputs = history[submitted.prompt_id]?.outputs ?? {};
+        for (const value of Object.values(outputs)) {
+          const candidate = value.audio?.[0] ?? value.files?.[0] ?? value.images?.[0];
+          if (candidate?.filename) {
+            audio = candidate;
+            break;
+          }
+        }
+        if (audio) break;
+        this.update(job, { progress: `rendering · ${Math.floor((attempt + 1) * 2)}s` });
+      }
+      if (!audio) throw new Error('ComfyUI audio generation timed out');
+
+      const query = new URLSearchParams({
+        filename: audio.filename,
+        subfolder: audio.subfolder ?? '',
+        type: audio.type ?? 'output',
+      });
+      const response = await fetch(`${this.url.replace(/\/$/, '')}/view?${query}`);
+      if (!response.ok) throw new Error(`ComfyUI audio download failed ${response.status}`);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      mkdirSync(this.generatedDir, { recursive: true });
+      const file = join(this.generatedDir, `${job.id}.mp3`);
+      writeFileSync(file, bytes);
+      writeFileSync(
+        join(this.generatedDir, `${job.id}.json`),
+        `${JSON.stringify({
+          name: generatedName(job.prompt),
+          prompt: job.prompt,
+          seed: job.seed,
+          duration: job.duration,
+          lyrics,
+          kind: 'audio',
+          file: basename(file),
+          source: audio.filename,
+          createdAt: job.createdAt,
+        }, null, 2)}\n`,
+        'utf8',
+      );
       const relativeFile = relative(this.root, file).split('\\').join('/');
       this.update(job, {
         status: 'done',

@@ -74,4 +74,6 @@ export interface ComfyJob {
   animationId?: string;
   frameIndex?: number;
   frameCount?: number;
+  kind?: 'image' | 'audio';
+  duration?: number;
 }

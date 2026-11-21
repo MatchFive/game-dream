@@ -18,6 +18,7 @@ const state = {
   generating: false,
   batchSize: 1,
   animate: false,
+  audioMode: false,
   audio: null,
 };
 
@@ -748,8 +749,9 @@ async function generateAsset() {
     return;
   }
   const transparent = $('#transparentChip').classList.contains('accent');
-  const animate = state.animate;
-  const count = animate ? Math.max(2, state.batchSize) : state.batchSize;
+  const audio = state.audioMode;
+  const animate = !audio && state.animate;
+  const count = audio ? 1 : animate ? Math.max(2, state.batchSize) : state.batchSize;
   const started = Date.now();
   const nodes = Array.from({ length: count }, (_, index) => {
     const column = index % 2;
@@ -777,7 +779,14 @@ async function generateAsset() {
   try {
     const result = await request('/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, transparent, count, animation: animate }),
+      body: JSON.stringify({
+        prompt,
+        transparent,
+        count,
+        animation: animate,
+        audio,
+        duration: audio ? 30 : undefined,
+      }),
     });
     const jobs = Array.isArray(result.jobs) ? result.jobs : [result.job];
     await Promise.all(nodes.map((node, index) => {
@@ -876,17 +885,28 @@ async function pollJob(node, jobId) {
 }
 
 function updateBatchChip() {
-  $('#countChip').textContent = state.animate
-    ? t('assets.frameCount', { count: Math.max(2, state.batchSize) })
-    : t('assets.imageCount', {
-        count: state.batchSize,
-        s: state.batchSize === 1 ? '' : 's',
-      });
+  $('#countChip').textContent = state.audioMode
+    ? t('assets.audioOnly')
+    : state.animate
+      ? t('assets.frameCount', { count: Math.max(2, state.batchSize) })
+      : t('assets.imageCount', {
+          count: state.batchSize,
+          s: state.batchSize === 1 ? '' : 's',
+        });
 }
 
 function updateAnimationChip() {
   $('#animationChip').classList.toggle('accent', state.animate);
   if (state.animate) state.batchSize = Math.max(2, state.batchSize);
+  updateBatchChip();
+}
+
+function updateAudioChip() {
+  $('#audioChip').classList.toggle('accent', state.audioMode);
+  if (state.audioMode) {
+    state.animate = false;
+    $('#animationChip').classList.remove('accent');
+  }
   updateBatchChip();
 }
 
@@ -951,6 +971,10 @@ $('#transparentChip').addEventListener('click', () => {
 });
 $('#modelChip').addEventListener('click', () => toast(t('assets.modelHint')));
 $('#countChip').addEventListener('click', () => {
+  if (state.audioMode) {
+    toast(t('assets.audioHint'));
+    return;
+  }
   state.batchSize = state.batchSize % 4 + 1;
   if (state.animate) state.batchSize = Math.max(2, state.batchSize);
   updateBatchChip();
@@ -958,6 +982,10 @@ $('#countChip').addEventListener('click', () => {
 });
 $('#animationChip').addEventListener('click', () => {
   state.animate = !state.animate;
+  if (state.animate) {
+    state.audioMode = false;
+    updateAudioChip();
+  }
   updateAnimationChip();
   toast(t(
     state.animate
@@ -965,6 +993,11 @@ $('#animationChip').addEventListener('click', () => {
       : 'assets.imageHint',
     { count: Math.max(2, state.batchSize) },
   ));
+});
+$('#audioChip').addEventListener('click', () => {
+  state.audioMode = !state.audioMode;
+  updateAudioChip();
+  toast(t(state.audioMode ? 'assets.audioHint' : 'assets.audioOffHint'));
 });
 $('#refChip').addEventListener('click', () => toast(t('assets.refHint')));
 

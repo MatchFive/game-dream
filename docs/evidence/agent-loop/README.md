@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget/queue 
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **229 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **230 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
 | `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
@@ -73,6 +73,16 @@ depending on an installed editor. Real-engine validation remains separate.
   and verifies the original file content is restored.
 - `studio-agent-smoke.log` still verifies the complete actual-CLI approval and
   finish path after these changes.
+
+## BGM generation
+
+- `POST /api/generate` with `{ "audio": true, "duration": 30 }` submits the
+  MiniMax Music 3 workflow and polls ComfyUI audio outputs.
+- `packages/studio/test/studio.test.ts` uses a local fake ComfyUI server and
+  asserts the mp3 is written, the sidecar records `kind: audio`, and the file is
+  indexed as an audio asset.
+- The Asset Canvas **BGM** mode previews generated audio and can add it to the
+  build. SFX and asset renaming remain AS2b.
 
 ## Animation sequence
 

@@ -21,7 +21,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**229 passed / 9 skipped**
+- 全量测试：**230 passed / 9 skipped**
 - Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -95,7 +95,8 @@
 |---|---|---|---|---|
 | AS1 | 动画关键帧序列 | 已支持 2–4 帧透明关键帧、动画节点播放/重生成；没有 atlas | 生成序列、节点预览、可重生成 | Done |
 | AS1b | 动画图集/引擎资源 | 没有 sprite sheet 打包和引擎动画元数据 | 横向/网格 atlas、frame_size/FPS/loop、Godot/Web 引用 | Backlog |
-| AS2 | Asset Canvas 音频生成 | 只能索引/试听已有音频 | UI 内生成 BGM/SFX、试听、重命名、加入构建 | Next |
+| AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听；SFX/重命名未做 | UI 内生成、显示进度、试听、加入构建 | Done |
+| AS2b | 音频 SFX/重命名 | 固定 30 秒 BGM，无文本 SFX、无素材重命名 | 自定义时长、SFX 生成、重命名和元数据编辑 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
 | AS4 | BGM 全模板覆盖 | 生成的 MiniMax BGM 只接 Godot survivor | Web/Unity survivor 及其他需要音频的模板统一接入音量和循环设置 | Next |
 | AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
@@ -133,9 +134,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **V1 Unity runtime**：确认 runner 与许可证后，把 Unity playtest/release 从静态检查推进到真实运行。
+1. **V1 Unity runtime**：本机无 Unity，先补 self-hosted/本地可执行 job，不能伪造通过。
 2. **AS1b 动画图集**：给现有帧序列加 atlas 打包和引擎动画元数据。
-3. **AS2 Asset Canvas 音频生成**：UI 内生成 BGM/SFX 并加入构建。
+3. **AS4 BGM 全模板覆盖**：把现有 BGM 接入 Web/Unity survivor 及音量/循环设置。
 
 ## 11. Definition of Done
 

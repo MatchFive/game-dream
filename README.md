@@ -184,7 +184,8 @@ node packages/cli/dist/index.js studio --path . --open
   candidates, session, assets, evidence
 - `/assets` — infinite canvas, generation, uploads, build selection; selected
   assets are staged into `game/build-assets/` with a manifest. **Animate**
-  generates a 2–4 frame transparent keyframe sequence node.
+  generates a 2–4 frame transparent keyframe sequence node; **BGM** generates a
+  30-second audio asset through ComfyUI.
 - Playtest — Web builds open in the preview pane with a `/play/` base path;
   Godot launches in a separate window when `GODOT_BIN` is configured
 

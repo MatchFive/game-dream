@@ -5,7 +5,7 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
-import { ComfyRunner } from './comfyui.js';
+import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
 import {
   appendRun,
@@ -192,6 +192,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     workflow: options.comfyui?.workflow ?? process.env.COMFYUI_WORKFLOW ?? DEFAULT_WORKFLOW,
   };
   const runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
+  const audioRunner = new ComfyAudioRunner(
+    comfyui.url,
+    join(root, '.gamedream', 'studio', 'generated'),
+    root,
+  );
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
   syncBuildAssets(root);
   const agent = new AgentManager({ root, cliEntry });
@@ -219,6 +224,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           pathname,
           root,
           runner,
+          audioRunner,
           comfyui,
           cliEntry,
           agent,
@@ -377,6 +383,7 @@ async function handleApi(
   pathname: string,
   root: string,
   runner: ComfyRunner,
+  audioRunner: ComfyAudioRunner,
   comfyui: ComfyUiConfig,
   cliEntry: string | undefined,
   agent: AgentManager,
@@ -737,7 +744,15 @@ async function handleApi(
   }
 
   if (method === 'POST' && pathname === '/api/generate') {
-    let body: { prompt?: unknown; transparent?: unknown; count?: unknown; animation?: unknown };
+    let body: {
+      prompt?: unknown;
+      transparent?: unknown;
+      count?: unknown;
+      animation?: unknown;
+      audio?: unknown;
+      duration?: unknown;
+      lyrics?: unknown;
+    };
     try {
       body = (await readJson(request)) as typeof body;
     } catch (error) {
@@ -758,6 +773,20 @@ async function handleApi(
       json(response, 400, { error: 'count must be an integer between 1 and 4' });
       return;
     }
+    if (body.audio === true) {
+      const duration = body.duration === undefined ? 30 : Number(body.duration);
+      if (!Number.isFinite(duration) || duration < 10 || duration > 60) {
+        json(response, 400, { error: 'audio duration must be between 10 and 60 seconds' });
+        return;
+      }
+      const job = audioRunner.start(
+        prompt,
+        duration,
+        typeof body.lyrics === 'string' ? body.lyrics.slice(0, 2000) : '',
+      );
+      json(response, 202, { job, jobs: [job] });
+      return;
+    }
     if (!runner.workflowExists()) {
       json(response, 503, { error: `ComfyUI workflow not found: ${comfyui.workflow}` });
       return;
@@ -775,7 +804,7 @@ async function handleApi(
 
   const jobMatch = pathname.match(/^\/api\/jobs\/([a-f0-9-]+)$/);
   if (method === 'GET' && jobMatch) {
-    const job = runner.getJob(jobMatch[1]);
+    const job = runner.getJob(jobMatch[1]) ?? audioRunner.getJob(jobMatch[1]);
     if (!job) {
       json(response, 404, { error: 'job not found' });
       return;

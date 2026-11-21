@@ -1,9 +1,10 @@
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadCanvas, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
-import { ComfyRunner } from '../src/comfyui.js';
+import { ComfyAudioRunner, ComfyRunner } from '../src/comfyui.js';
 import { loadProjectSnapshot, loadRuns } from '../src/project.js';
 import { startStudioServer } from '../src/server.js';
 
@@ -205,6 +206,64 @@ describe('studio assets', () => {
       expect(rejectedCount.status).toBe(400);
     } finally {
       await studio.close();
+    }
+  });
+
+  it('generates and indexes a BGM track through ComfyUI audio outputs', async () => {
+    const server = createServer((request, response) => {
+      if (request.url === '/prompt') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ prompt_id: 'prompt-audio' }));
+        return;
+      }
+      if (request.url === '/history/prompt-audio') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({
+          'prompt-audio': {
+            outputs: {
+              '9': { audio: [{ filename: 'bgm.mp3', subfolder: '', type: 'output' }] },
+            },
+          },
+        }));
+        return;
+      }
+      if (request.url?.startsWith('/view?')) {
+        response.writeHead(200, { 'content-type': 'audio/mpeg' });
+        response.end(Buffer.from('ID3 fixture'));
+        return;
+      }
+      response.writeHead(404);
+      response.end();
+    });
+    await new Promise<void>((resolveListen) => server.listen(0, '127.0.0.1', resolveListen));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    try {
+      const runner = new ComfyAudioRunner(
+        `http://127.0.0.1:${port}`,
+        join(root, '.gamedream', 'studio', 'generated'),
+        root,
+        5,
+      );
+      const job = runner.start('calm forest loop', 30);
+      let result = runner.getJob(job.id);
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        result = runner.getJob(job.id);
+        if (result?.status === 'done' || result?.status === 'error') break;
+        await new Promise((resolveWait) => setTimeout(resolveWait, 5));
+      }
+      expect(result?.status).toBe('done');
+      const file = join(root, '.gamedream', 'studio', 'generated', `${job.id}.mp3`);
+      expect(existsSync(file)).toBe(true);
+      expect(result?.assetId).toBe(
+        scanAssets(root).find((asset) => asset.file.endsWith(`${job.id}.mp3`))?.id,
+      );
+      const metadata = JSON.parse(
+        readFileSync(join(root, '.gamedream', 'studio', 'generated', `${job.id}.json`), 'utf8'),
+      );
+      expect(metadata).toMatchObject({ kind: 'audio', duration: 30, prompt: 'calm forest loop' });
+    } finally {
+      await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     }
   });
 
