@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>GameDream Asset Canvas</title>
+<link rel="stylesheet" href="/styles.css?v=2">
+<link rel="stylesheet" href="/runtime.css?v=2">
+</head>
+<body data-screen="canvas">
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-spark" viewBox="0 0 16 16"><path d="M8 1.2 9.4 6l4.8 1.4-4.8 1.5L8 14.8 6.6 8.9 1.8 7.4 6.6 6Z" fill="currentColor"/></symbol>
+  <symbol id="i-cursor" viewBox="0 0 16 16"><path d="m4 2 8.4 7.1-3.9.4-2.1 3.6Z" fill="currentColor"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 16 16"><path d="M5 8V4.2a1 1 0 0 1 2 0V7m0-4.2a1 1 0 0 1 2 0V7m0-3.2a1 1 0 0 1 2 0V8m0-2.4a1 1 0 0 1 2 0v4.1c0 2.4-1.7 4.3-4.2 4.3H8c-1.3 0-2.1-.6-2.8-1.7L3 9.4a1.1 1.1 0 0 1 1.8-1.2L6 9.3V5.2" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 16 16"><path d="M3 8h10" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 16 16"><path d="M3 6V3h3M13 6V3H10M3 10v3h3m7-3v3h-3" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 16 16"><path d="M3 3h10v10H3zM3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="m10 10 3 3" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6.3" r="1.1" fill="currentColor"/><path d="m4 12 3-3 2 2 1.6-1.7L13 12" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 16 16"><path d="M2 9h1.5V7H2Zm3 2h1.5V5H5Zm3-4h1.5V3H8Zm3 5h1.5V4H11Zm3-2h1.5V6H14Z" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="m3.2 8.4 3.1 3.1 6.5-6.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.2" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.8" cy="8" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 16 16"><path d="m8 2.5 5 2.7-5 2.7-5-2.7Zm-5 5 5 2.7 5-2.7M3 10.8l5 2.7 5-2.7" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 16 16"><path d="M2.5 4h4l1.2 1.5h5.8v7H2.5Z" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 16 16"><path d="M8 3v8m-3-3 3 3 3-3M3 12v1.5h10V12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></symbol>
+  <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2 12 8l-7 4.8Z" fill="currentColor"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 3v4H9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></symbol>
+</svg>
+
+<a class="skip-link" href="#promptInput">Skip to generation prompt</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg class="icon"><use href="#i-spark"></use></svg></span>
+    <span class="brand-name">GAMEDREAM</span>
+    <span class="brand-sub">ASSET CANVAS</span>
+  </div>
+  <div class="crumb"><strong id="projectName">Project</strong><span class="sep">/</span><span>assets</span><span class="sep">·</span><span id="assetCount">0 assets</span></div>
+  <div class="top-actions">
+    <span class="saved"><span class="dot" id="saveDot"></span><span id="saveState">Loading</span></span>
+    <span class="connection" id="comfyState"><span class="dot"></span>ComfyUI checking</span>
+    <button class="button secondary" id="libraryToggle" type="button"><svg class="icon"><use href="#i-folder"></use></svg> Library</button>
+    <button class="button secondary" id="inspectorToggle" type="button"><svg class="icon"><use href="#i-layers"></use></svg> Inspect</button>
+    <button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh assets"><svg class="icon"><use href="#i-refresh"></use></svg></button>
+    <button class="button primary" id="focusGenerate" type="button"><svg class="icon"><use href="#i-spark"></use></svg> Generate</button>
+    <div class="avatar">GD</div>
+  </div>
+</header>
+
+<main class="workspace">
+  <aside class="library panel" id="library" aria-label="Asset library">
+    <div class="library-head">
+      <div class="eyebrow">PROJECT <span class="accent">/</span> <span id="projectLabel">ASSETS</span></div>
+      <div class="library-title"><h1>Assets</h1><span class="library-count" id="libraryCount">0 ITEMS</span></div>
+      <label class="search"><svg class="icon"><use href="#i-search"></use></svg><input id="assetSearch" type="search" placeholder="Search assets" aria-label="Search assets"></label>
+      <div class="filters" role="group" aria-label="Asset type">
+        <button class="filter" type="button" data-filter="all" aria-pressed="true">ALL</button>
+        <button class="filter" type="button" data-filter="concept" aria-pressed="false">CONCEPTS</button>
+        <button class="filter" type="button" data-filter="sprite" aria-pressed="false">SPRITES</button>
+        <button class="filter" type="button" data-filter="screenshot" aria-pressed="false">BUILDS</button>
+        <button class="filter" type="button" data-filter="audio" aria-pressed="false">AUDIO</button>
+      </div>
+    </div>
+    <div class="collection" id="collectionLabel">IN BUILD / 0</div>
+    <div class="library-list" id="libraryList"></div>
+    <div class="library-empty" id="libraryEmpty" hidden>No assets in this view. Generate an asset or add one to the project.</div>
+    <div class="library-foot"><span class="good">●</span> <span id="libraryEndpoint">ComfyUI</span><br><span id="libraryWorkflow">Ready</span></div>
+  </aside>
+
+  <section class="canvas" id="canvas" aria-label="Infinite asset canvas">
+    <div class="canvas-grid" id="canvasGrid"></div>
+    <div class="world" id="world">
+      <svg class="wires" id="wires" aria-hidden="true"></svg>
+    </div>
+
+    <div class="canvas-toolbar" role="toolbar" aria-label="Canvas tools">
+      <button class="tool" type="button" data-tool="select" aria-pressed="true" aria-label="Select tool" title="Select (V)"><svg class="icon"><use href="#i-cursor"></use></svg></button>
+      <button class="tool" type="button" data-tool="hand" aria-pressed="false" aria-label="Hand tool" title="Hand (H)"><svg class="icon"><use href="#i-hand"></use></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool" type="button" data-zoom="out" aria-label="Zoom out"><svg class="icon"><use href="#i-minus"></use></svg></button>
+      <span class="zoom-readout" id="zoomReadout">78%</span>
+      <button class="tool" type="button" data-zoom="in" aria-label="Zoom in"><svg class="icon"><use href="#i-plus"></use></svg></button>
+      <button class="tool" type="button" id="fitBtn" aria-label="Fit canvas" title="Fit (F)"><svg class="icon"><use href="#i-fit"></use></svg></button>
+      <button class="tool" type="button" id="gridBtn" aria-pressed="true" aria-label="Toggle grid" title="Grid"><svg class="icon"><use href="#i-grid"></use></svg></button>
+    </div>
+
+    <div class="minimap" aria-label="Canvas minimap">
+      <div class="minimap-head"><span>MAP</span><span id="mapZoom">78%</span></div>
+      <div class="minimap-world" id="mapWorld"><div class="mini-viewport" id="miniViewport"></div></div>
+    </div>
+
+    <div class="prompt-dock">
+      <div class="dock-head"><span>GENERATE ART <span class="accent">·</span> COMFYUI</span><span class="refs" id="dockRefs">PROJECT · LOCAL</span></div>
+      <div class="dock-input">
+        <textarea id="promptInput" rows="2" aria-label="Asset generation prompt">Create a transparent 64px boss variant for the neon survivor arena, coral accents, readable silhouette, arcade-style.</textarea>
+        <button class="gen-btn" id="generateBtn" type="button">Generate <span aria-hidden="true">↵</span></button>
+      </div>
+      <div class="dock-actions">
+        <button class="chip" type="button" id="modelChip"><svg class="icon"><use href="#i-spark"></use></svg> Qwen-Image 2.1</button>
+        <button class="chip accent" type="button" id="transparentChip"><svg class="icon"><use href="#i-image"></use></svg> Transparent</button>
+        <button class="chip" type="button" id="countChip">1 image</button>
+        <button class="chip" type="button" id="refChip"><svg class="icon"><use href="#i-folder"></use></svg> @project</button>
+      </div>
+      <div class="dock-foot"><span><kbd>⌘</kbd><kbd>↵</kbd> generate · <kbd>V</kbd> select · <kbd>H</kbd> pan · <kbd>F</kbd> fit</span><span id="queueLabel">LOCAL SANDBOX</span></div>
+    </div>
+  </section>
+
+  <aside class="inspector panel" id="inspector" aria-label="Selected asset inspector">
+    <div class="inspector-head"><span class="title">SELECTED ASSET</span><button class="icon-btn" type="button" id="inspectorClose" aria-label="Close inspector"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+    <div class="inspector-body" id="inspectorBody"></div>
+  </aside>
+</main>
+
+<div class="drawer-scrim" id="drawerScrim"></div>
+
+<nav class="mobile-tabs" aria-label="Asset workspace sections">
+  <button class="mobile-tab" type="button" data-screen="library" aria-selected="false"><svg class="icon"><use href="#i-folder"></use></svg>LIBRARY</button>
+  <button class="mobile-tab" type="button" data-screen="canvas" aria-selected="true"><svg class="icon"><use href="#i-layers"></use></svg>CANVAS</button>
+  <button class="mobile-tab" type="button" data-screen="inspect" aria-selected="false"><svg class="icon"><use href="#i-layers"></use></svg>INSPECT</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="/app.js?v=2"></script>
+</body>
+</html>

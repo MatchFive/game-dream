@@ -160,6 +160,20 @@ Playable prototype or structured repair loop
 - Explicit `prompt_cache_key` boundaries when the provider supports them.
 - MCP bridge for Godot editor tools, discoverable through `mcp.json`.
 
+## Asset Canvas
+
+`dream studio` opens a local infinite canvas for project art. It indexes module
+assets, screenshots, audio, and generated images; stores canvas layout under
+`.gamedream/studio/`; and can submit real ComfyUI jobs with transparent PNG
+output.
+
+```bash
+corepack pnpm build
+node packages/cli/dist/index.js studio --path . --open
+```
+
+See [Studio](docs/studio.md) for the API and current limits.
+
 ## CLI
 
 | Command | Purpose |
@@ -169,6 +183,7 @@ Playable prototype or structured repair loop
 | `dream compose` | Compose a GameSpec and module set into a project |
 | `dream verify` | Run G1–G3 and optional G6 visual gates |
 | `dream develop` | Run the tool-using developer loop |
+| `dream studio` | Open the local Asset Canvas and ComfyUI generation studio |
 | `dream screenshot` | Capture a generated project |
 | `dream web` | Compose, verify, screenshot, and package Web projects |
 | `dream unity` | Compose, verify, build, smoke, and screenshot Unity projects |
@@ -253,6 +268,7 @@ corepack pnpm release:accept \
 - [Web deployment](docs/deploy-web.md)
 - [Godot release](docs/release-godot.md)
 - [ComfyUI transparent sprites](docs/comfyui-assets.md)
+- [Studio Asset Canvas](docs/studio.md)
 - [Tool permissions](docs/permissions.md)
 - [Development cases](cases/development/README.md)
 - [P1 verification evidence](docs/evidence/p1/README.md)

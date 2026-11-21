@@ -1,4 +1,6 @@
 import { Command } from 'commander';
+import { spawn } from 'node:child_process';
+import { startStudioServer } from '@gamedream/studio';
 import {
   detectGodot,
   exportProject,
@@ -52,6 +54,13 @@ function printUnityDiagnostics(result: { stdout?: string; stderr?: string }): vo
   if (/path too long|MAX_PATH|DirectoryNotFound|IOException/i.test(output)) {
     printLine('hint: move the Unity project to a short path such as C:\\temp\\gd-game');
   }
+}
+
+function openBrowser(url: string): void {
+  const command = process.platform === 'win32' ? 'cmd' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+  child.unref();
 }
 
 export function createProgram(): Command {
@@ -149,6 +158,51 @@ export function createProgram(): Command {
             }
           }
           process.exitCode = exitCode;
+        } catch (error) {
+          const formatted = formatCliError(error);
+          printLine(formatted.message);
+          process.exitCode = formatted.exitCode;
+        }
+      },
+    );
+
+  program
+    .command('studio')
+    .description('Open the local Asset Canvas and ComfyUI generation studio')
+    .option('--path <dir>', 'project root', '.')
+    .option('--host <host>', 'HTTP bind host', '127.0.0.1')
+    .option('--port <port>', 'HTTP port', '4173')
+    .option('--open', 'open the studio in the default browser')
+    .option('--json', 'print JSON')
+    .action(
+      async (options: { path: string; host: string; port: string; open?: boolean; json?: boolean }) => {
+        try {
+          const port = Number(options.port);
+          if (!Number.isInteger(port) || port < 0 || port > 65535) {
+            printLine('--port must be an integer between 0 and 65535');
+            process.exitCode = 1;
+            return;
+          }
+          const studio = await startStudioServer({
+            projectDir: options.path,
+            host: options.host,
+            port,
+          });
+          if (options.json) printJson({ url: studio.url, port: studio.port });
+          else {
+            printLine(`Asset Canvas: ${studio.url}`);
+            printLine('Press Ctrl+C to stop.');
+          }
+          if (options.open) openBrowser(studio.url);
+          const stop = async () => {
+            try {
+              await studio.close();
+            } finally {
+              process.exit(0);
+            }
+          };
+          process.once('SIGINT', stop);
+          process.once('SIGTERM', stop);
         } catch (error) {
           const formatted = formatCliError(error);
           printLine(formatted.message);

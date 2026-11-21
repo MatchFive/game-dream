@@ -48,6 +48,9 @@ importers:
       '@gamedream/godot':
         specifier: workspace:*
         version: link:../godot
+      '@gamedream/studio':
+        specifier: workspace:*
+        version: link:../studio
       '@gamedream/unity':
         specifier: workspace:*
         version: link:../unity
@@ -93,6 +96,8 @@ importers:
       '@gamedream/testing':
         specifier: workspace:*
         version: link:../testing
+
+  packages/studio: {}
 
   packages/testing:
     dependencies:
