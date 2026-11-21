@@ -222,6 +222,8 @@ export function createProgram(): Command {
     .option('--skills <dir>', 'skills directory', 'skills')
     .option('--provider <kind>', 'auto | fake | openai', 'fake')
     .option('--max-steps <count>', 'maximum tool steps', '12')
+    .option('--max-tokens <count>', 'stop before the next model call after this total token usage')
+    .option('--max-prompt-tokens <count>', 'stop when prompt token usage reaches this limit')
     .option('--candidates <count>', 'generate and select among N candidates', '1')
     .option('--mcp-config <file>', 'MCP server config for Godot tools')
     .option('--mcp-server <name>', 'MCP server name', 'godot')
@@ -249,6 +251,8 @@ export function createProgram(): Command {
           skills: string;
           provider: string;
           maxSteps: string;
+          maxTokens?: string;
+          maxPromptTokens?: string;
           candidates: string;
           mcpConfig?: string;
           mcpServer: string;
@@ -284,6 +288,10 @@ export function createProgram(): Command {
             skill: selected?.skill ?? options.skill,
             providerKind: parseProviderKind(options.provider),
             maxSteps: Number(options.maxSteps),
+            maxTokens: options.maxTokens === undefined ? undefined : Number(options.maxTokens),
+            maxPromptTokens: options.maxPromptTokens === undefined
+              ? undefined
+              : Number(options.maxPromptTokens),
             visual: options.visual,
             expectedMarkers: selected?.expected_markers,
             mcpConfig: options.mcpConfig,

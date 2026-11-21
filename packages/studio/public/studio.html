@@ -79,6 +79,9 @@
           <label class="studio-agent-count"><span data-i18n="studio.agentMaxSteps">步数</span>
             <input id="agentMaxSteps" type="number" min="1" max="48" value="12" aria-label="最大步数">
           </label>
+          <label class="studio-agent-count"><span data-i18n="studio.agentTokenBudget">Token 预算</span>
+            <input id="agentMaxTokens" type="number" min="0" step="1000" placeholder="∞" aria-label="Token 预算">
+          </label>
           <button class="button primary" id="agentStart" type="button"><svg class="icon"><use href="#i-play"></use></svg> <span data-i18n="studio.agentStart">启动</span></button>
         </div>
         <div class="studio-agent-foot"><span id="agentMeta" data-i18n="studio.agentIdle">空闲 · auto provider</span><button class="button secondary" id="agentCancel" type="button" hidden data-i18n="studio.agentStop">停止</button></div>

@@ -1,6 +1,6 @@
 # Studio / Agent loop evidence
 
-Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits following on `master`; synced to `D:\project\game_dream`.
+Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget follow-up on `master`; synced to `D:\project\game_dream`.
 
 ## Validation commands
 
@@ -8,8 +8,9 @@ Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits fo
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **222 tests passed**, 9 skipped; exit `0` |
-| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, and Studio AgentManager tests; **8 passed**; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **226 tests passed**, 9 skipped; exit `0` |
+| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget state, and Studio AgentManager tests; **10 passed**; exit `0` |
+| `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
 Real Godot runtime evidence is separate: `docs/evidence/runtime/README.md` and
@@ -48,7 +49,7 @@ depending on an installed editor. Real-engine validation remains separate.
   server, starts a new server on the same root, and verifies the persisted batch
   is resumed to `finished` with the pending approval expired and `run/end`
   present.
-- `agent-tests.log` records all 7 focused tests passing.
+- `agent-tests.log` records all 10 focused tests passing.
 
 ## Playtest
 
@@ -78,12 +79,28 @@ depending on an installed editor. Real-engine validation remains separate.
 - The Studio “Always allow” button applies the current approval and records the
   policy for subsequent runs; the current child keeps its loaded gate.
 
+## Token budget
+
+- `packages/agent/test/harness-loop.test.ts` returns a provider response whose
+  usage exceeds `maxTokens` and asserts the tool is never executed, `finished`
+  is false, and `budgetExceeded` reports the limit and actual usage.
+- `packages/cli/test/develop.test.ts` runs `dream develop` with a custom
+  provider and `maxTokens: 1`, then asserts the report and JSONL events include
+  the budget stop (`run/budget`) instead of a finished run.
+- `packages/studio/test/agent.test.ts` starts a fixture Agent through the Studio
+  API with `maxTokens`, then asserts the batch and candidate become
+  `budget-exceeded` and the event stream contains `run/budget`.
+- The Studio form exposes an optional **Token 预算** field; see
+  `agent-budget-form.png`. Budget enforcement relies on provider-reported usage;
+  providers without usage are documented as unenforceable.
+
 ## UI evidence
 
 - `agent-awaiting.png`: pending approval card, tool trace, running state.
 - `agent-candidates.png`: candidate A/B cards while awaiting approval.
 - `agent-candidates-done.png`: both candidates scored and Apply enabled.
 - `agent-final-empty.png`: final localized Studio with the Agent panel loaded.
+- `agent-budget-form.png`: Agent composer with the optional Token 预算 field.
 
 The screenshots were taken against the Studio server using a fixture agent CLI
 for deterministic approval/candidate UI. The real CLI path is separately covered

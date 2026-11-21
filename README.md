@@ -156,6 +156,8 @@ Playable prototype or structured repair loop
 - Append-only `AgentSession` with JSONL generation headers and durable checkpoints.
 - `--resume` and `--resume --fork <checkpoint-id>` for branching a development run.
 - `--candidates N` to generate several projects and select by verification score.
+- `--max-tokens N` for a hard stop on provider-reported total token usage, plus
+  `--max-prompt-tokens N` for prompt usage.
 - Replaceable plugin tree with tool overrides and step/tool/finish hooks.
 - Explicit `prompt_cache_key` boundaries when the provider supports them.
 - MCP bridge for Godot editor tools, discoverable through `mcp.json`.

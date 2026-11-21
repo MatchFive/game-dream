@@ -90,10 +90,11 @@ function agentStatusLabel(status) {
   return t(`studio.agent${
     status === 'running' ? 'Running'
       : status === 'awaiting-approval' ? 'Awaiting'
-        : status === 'finished' ? 'Finished'
-          : status === 'failed' ? 'Failed'
-            : status === 'canceled' ? 'Canceled'
-              : 'Idle'
+        : status === 'budget-exceeded' ? 'BudgetExceeded'
+          : status === 'finished' ? 'Finished'
+            : status === 'failed' ? 'Failed'
+              : status === 'canceled' ? 'Canceled'
+                : 'Idle'
   }`);
 }
 
@@ -161,12 +162,17 @@ function agentThreadMarkup(run) {
       const gateText = Object.entries(gates)
         .map(([name, gate]) => `${name}:${t(`common.${gate?.status === 'pass' ? 'pass' : gate?.status === 'fail' ? 'fail' : 'skip'}`)}`)
         .join(' ');
-      const summary = report.finished === false
-        ? t('studio.agentRunIncomplete', { steps: report.steps ?? 0 })
-        : t('studio.agentRunEnd', {
-            steps: report.steps ?? 0,
-            actions: (report.actions ?? []).length,
-          });
+      const summary = report.budgetExceeded
+        ? t('studio.agentBudgetStopped', {
+            used: report.budgetExceeded.used,
+            limit: report.budgetExceeded.limit,
+          })
+        : report.finished === false
+          ? t('studio.agentRunIncomplete', { steps: report.steps ?? 0 })
+          : t('studio.agentRunEnd', {
+              steps: report.steps ?? 0,
+              actions: (report.actions ?? []).length,
+            });
       items.push(
         `<div class="studio-agent-progress">${escapeHtml(summary)}${gateText ? ` · ${escapeHtml(gateText)}` : ''}</div>`,
       );
@@ -232,9 +238,10 @@ function renderAgent() {
   stateElement.textContent = agentStatusLabel(status);
   stateElement.className = `studio-agent-state ${
     status === 'awaiting-approval' ? 'awaiting'
-      : status === 'finished' ? 'finished'
-        : status === 'failed' || status === 'canceled' ? 'failed'
-          : status === 'running' ? 'running' : ''
+      : status === 'budget-exceeded' ? 'budget'
+        : status === 'finished' ? 'finished'
+          : status === 'failed' || status === 'canceled' ? 'failed'
+            : status === 'running' ? 'running' : ''
   }`;
   $('#agentStart').disabled = status === 'running' || status === 'awaiting-approval';
   $('#agentCancel').hidden = !(status === 'running' || status === 'awaiting-approval');
@@ -258,7 +265,11 @@ function renderAgent() {
   if (candidates.length > 1) {
     const cards = candidates.map((candidate) => {
       const letter = String.fromCharCode(64 + candidate.index);
-      const statusClass = candidate.status === 'finished' ? 'ok' : candidate.status === 'failed' ? 'bad' : '';
+      const statusClass = candidate.status === 'finished'
+        ? 'ok'
+        : candidate.status === 'budget-exceeded'
+          ? 'warn'
+          : candidate.status === 'failed' ? 'bad' : '';
       const score = candidate.score === undefined ? '—' : candidate.score;
       return `
         <button class="studio-candidate" type="button" data-agent-run="${escapeHtml(candidate.id)}" aria-selected="${candidate.id === run?.id ? 'true' : 'false'}">
@@ -446,6 +457,10 @@ async function startAgent() {
   }
   const candidates = Number($('#agentCandidateCount').value) || 1;
   const maxSteps = Math.max(1, Math.min(48, Number($('#agentMaxSteps').value) || 12));
+  const maxTokensValue = Number($('#agentMaxTokens').value);
+  const maxTokens = Number.isFinite(maxTokensValue) && maxTokensValue > 0
+    ? Math.trunc(maxTokensValue)
+    : undefined;
   $('#agentStart').disabled = true;
   try {
     await request('/api/agent/start', {
@@ -454,6 +469,7 @@ async function startAgent() {
         prompt,
         candidates,
         maxSteps,
+        maxTokens,
         resume: candidates === 1 && $('#agentResume').checked,
         provider: 'auto',
       }),

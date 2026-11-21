@@ -28,6 +28,12 @@ export interface HarnessUsage extends ChatUsage {
   calls: number;
 }
 
+export interface BudgetExceeded {
+  kind: 'total-tokens' | 'prompt-tokens';
+  limit: number;
+  used: number;
+}
+
 export interface HarnessLoopOptions<TContext> {
   system: string;
   initialUser: string;
@@ -35,6 +41,8 @@ export interface HarnessLoopOptions<TContext> {
   tools: HarnessTool<TContext>[];
   context: TContext;
   maxSteps: number;
+  maxTokens?: number;
+  maxPromptTokens?: number;
   compactChars?: number;
   nativeTools?: boolean;
   stream?: boolean;
@@ -58,6 +66,7 @@ export interface HarnessLoopResult {
   steps: number;
   finished: boolean;
   usage: HarnessUsage;
+  budgetExceeded?: BudgetExceeded;
 }
 
 function parseAction(raw: string): { tool: string; args: Record<string, unknown> } {
@@ -97,6 +106,31 @@ export class AgentLoop<TContext> {
     const actions: string[] = [];
     let finished = false;
     let steps = 0;
+    let budgetExceeded: BudgetExceeded | undefined;
+    const checkBudget = (): BudgetExceeded | undefined => {
+      const total = usage.promptTokens + usage.completionTokens;
+      if (
+        options.maxTokens !== undefined
+        && Number.isFinite(options.maxTokens)
+        && options.maxTokens > 0
+        && total >= options.maxTokens
+      ) {
+        return { kind: 'total-tokens', limit: options.maxTokens, used: total };
+      }
+      if (
+        options.maxPromptTokens !== undefined
+        && Number.isFinite(options.maxPromptTokens)
+        && options.maxPromptTokens > 0
+        && usage.promptTokens >= options.maxPromptTokens
+      ) {
+        return {
+          kind: 'prompt-tokens',
+          limit: options.maxPromptTokens,
+          used: usage.promptTokens,
+        };
+      }
+      return undefined;
+    };
     const tools = options.pluginTree?.resolveTools(options.tools) ?? options.tools;
     const cacheKey = options.cacheBreakpoints ? session.prefixHash() : undefined;
     const pluginContext = (step: number) => ({
@@ -125,6 +159,8 @@ export class AgentLoop<TContext> {
     save();
     try {
       while (steps < options.maxSteps) {
+        budgetExceeded = checkBudget();
+        if (budgetExceeded) break;
         steps += 1;
         session.record('step/start', steps);
         await options.pluginTree?.onStepStart(pluginContext(steps));
@@ -173,6 +209,9 @@ export class AgentLoop<TContext> {
             temperature: 0.1,
           });
         }
+
+        budgetExceeded = checkBudget();
+        if (budgetExceeded) break;
 
         if (nativeCalls.length > 0) {
           session.appendAssistantToolCalls(raw, nativeCalls);
@@ -295,7 +334,7 @@ export class AgentLoop<TContext> {
       save();
     }
 
-    const result: HarnessLoopResult = { session, actions, steps, finished, usage };
+    const result: HarnessLoopResult = { session, actions, steps, finished, usage, budgetExceeded };
     await options.pluginTree?.onFinish(pluginContext(steps), result);
     return result;
   }

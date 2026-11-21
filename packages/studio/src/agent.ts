@@ -13,7 +13,13 @@ import {
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
-export type AgentRunStatus = 'running' | 'awaiting-approval' | 'finished' | 'failed' | 'canceled';
+export type AgentRunStatus =
+  | 'running'
+  | 'awaiting-approval'
+  | 'finished'
+  | 'budget-exceeded'
+  | 'failed'
+  | 'canceled';
 export type AgentApprovalStatus = 'pending' | 'allowed' | 'denied';
 export type AgentToolMode = 'allow' | 'ask' | 'deny';
 
@@ -68,6 +74,12 @@ export interface AgentUsage {
   cachedTokens?: number;
 }
 
+export interface AgentBudgetExceeded {
+  kind: 'total-tokens' | 'prompt-tokens';
+  limit: number;
+  used: number;
+}
+
 export interface AgentReport {
   finished?: boolean;
   steps?: number;
@@ -76,6 +88,7 @@ export interface AgentReport {
   provider?: string;
   outDir?: string;
   usage?: AgentUsage;
+  budgetExceeded?: AgentBudgetExceeded;
   verify?: {
     gates?: Record<string, { status?: string; message?: string }>;
   };
@@ -113,6 +126,8 @@ export interface AgentBatch {
   selectedRunId?: string;
   appliedRunId?: string;
   maxSteps?: number;
+  maxTokens?: number;
+  maxPromptTokens?: number;
   approvalTools?: string[];
   resume?: boolean;
   lastBackup?: AgentBackup;
@@ -127,6 +142,8 @@ interface AgentStartInput {
   candidates?: number;
   resume?: boolean;
   approvalTools?: string[];
+  maxTokens?: number;
+  maxPromptTokens?: number;
 }
 
 interface AgentManagerOptions {
@@ -211,9 +228,17 @@ function batchStatus(candidates: AgentRun[]): AgentRunStatus {
   if (candidates.some((run) => run.status === 'awaiting-approval')) return 'awaiting-approval';
   if (candidates.some((run) => run.status === 'running')) return 'running';
   if (candidates.length > 0 && candidates.every((run) => run.status === 'finished')) return 'finished';
+  if (candidates.some((run) => run.status === 'budget-exceeded')) return 'budget-exceeded';
   if (candidates.some((run) => run.status === 'failed')) return 'failed';
   if (candidates.some((run) => run.status === 'canceled')) return 'canceled';
   return 'running';
+}
+
+function optionalTokenLimit(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return undefined;
+  return Math.trunc(number);
 }
 
 function listCandidateFiles(root: string, prefix = ''): string[] {
@@ -306,6 +331,8 @@ export class AgentManager {
     }
     const count = clampCandidates(input.candidates);
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || 12));
+    const maxTokens = optionalTokenLimit(input.maxTokens);
+    const maxPromptTokens = optionalTokenLimit(input.maxPromptTokens);
     const policyPath = this.policyPath();
     const hasPolicy = existsSync(policyPath);
     const approvalTools = input.approvalTools ?? (hasPolicy ? [] : ['scaffold', 'mcp']);
@@ -341,6 +368,8 @@ export class AgentManager {
       status: 'running',
       candidates,
       maxSteps,
+      maxTokens,
+      maxPromptTokens,
       approvalTools,
       resume: input.resume === true,
       permissions: hasPolicy ? policyPath : undefined,
@@ -520,6 +549,8 @@ export class AgentManager {
       ? rootSkills
       : join(dirname(this.cliEntry as string), '..', '..', '..', 'skills');
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || batch.maxSteps || 12));
+    const maxTokens = optionalTokenLimit(input.maxTokens ?? batch.maxTokens);
+    const maxPromptTokens = optionalTokenLimit(input.maxPromptTokens ?? batch.maxPromptTokens);
     const approvalTools = input.approvalTools ?? batch.approvalTools ?? ['scaffold', 'mcp'];
     const permissions = batch.permissions;
     const args = [
@@ -544,6 +575,8 @@ export class AgentManager {
       '--ask-tool',
       approvalTools.join(','),
     ];
+    if (maxTokens !== undefined) args.push('--max-tokens', String(maxTokens));
+    if (maxPromptTokens !== undefined) args.push('--max-prompt-tokens', String(maxPromptTokens));
     if (permissions) args.push('--permissions', permissions);
     if (eventSeqStart > 0) args.push('--event-seq-start', String(eventSeqStart));
     if (input.resume) args.push('--resume');
@@ -612,7 +645,12 @@ export class AgentManager {
             ? (event.report as AgentReport)
             : undefined;
         run.score = scoreReport(run.report);
-        run.status = run.report?.finished === false ? 'failed' : 'finished';
+        if (run.report?.budgetExceeded) {
+          run.status = 'budget-exceeded';
+          run.error = `token budget exceeded: ${run.report.budgetExceeded.used}/${run.report.budgetExceeded.limit}`;
+        } else {
+          run.status = run.report?.finished === false ? 'failed' : 'finished';
+        }
         run.finishedAt = event.at;
         if (run.status === 'failed' && !run.error) {
           run.error = 'agent finished without a passing verification';

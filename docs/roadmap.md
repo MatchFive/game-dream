@@ -1,6 +1,6 @@
 # GameDream 后续开发路线图
 
-> 基线：`master` @ `b8367af`（2026-11-21）  
+> 基线：`master`（2026-11-21，A1 完成后）  
 > 范围：CLI、Agent runtime、Studio、引擎适配、资产管线、模板内容与发布验证  
 > 状态标记：**Done** / **Next** / **Backlog** / **Blocked**
 
@@ -10,8 +10,8 @@
 
 | 领域 | 已完成 |
 |---|---|
-| Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送 |
-| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数和 token/usage 展示 |
+| Agent runtime | 结构化事件、工具轨迹、审批、候选 A/B/C、`--resume`、持久化 batch、服务重启自动恢复、SSE 推送、token 硬预算停止 |
+| Studio Agent | 实时会话、流式 chunk、审批卡、Always allow 策略、候选 diff、应用前备份、回滚、最大步数、token 预算和 usage 展示 |
 | Studio 项目页 | 构建截图、G1–G3 闸门、验证运行历史、素材/证据/会话摘要 |
 | Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
@@ -21,8 +21,8 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**222 passed / 9 skipped**
-- Agent focused tests：**8 passed**
+- 全量测试：**226 passed / 9 skipped**
+- Agent focused tests：**10 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
 
@@ -46,7 +46,7 @@
 
 | 阶段 | 目标 | 主要产出 | 状态 |
 |---|---|---|---|
-| M1 | Agent 运行生产化 | 硬预算、队列、策略编辑、崩溃恢复 | Next |
+| M1 | Agent 运行生产化 | 硬预算、队列、策略编辑、崩溃恢复 | In progress |
 | M2 | 验证与试玩闭环 | 真实 playtest、Unity runtime、G6 集成 | Next |
 | M3 | 资产管线完整化 | 动画、音频 UI、SFX、构建素材落地 | Next |
 | M4 | 游戏内容深度 | survivor/roguelike/模板内容提升 | Backlog |
@@ -56,20 +56,21 @@
 
 | ID | 事项 | 当前缺口 | 验收标准 | 状态 |
 |---|---|---|---|---|
-| A1 | Token/费用硬预算 | 目前只有最大步数，没有 token 或金额硬停 | 达到预算前停止当前 run，状态明确，报告 usage；测试覆盖预算触发 | Next |
+| A1 | Token 硬预算 | 已实现总 token 和 prompt token 停止；provider 不返回 usage 时无法约束 | 达预算前停止、`run/budget` 事件、`budget-exceeded` 状态、CLI/Studio 测试 | Done |
+| A1b | 费用/金额预算 | 尚无模型价格表和货币预算 | 按模型价格估算成本，达到预算前停止；未知价格显式标记 | Backlog |
 | A2 | Agent 队列与并发 | 同一时间只允许一个 active batch | 支持排队、取消排队、并发上限；SSE 显示 queued/running | Next |
 | A3 | 完整审批策略编辑器 | 目前 UI 只有 Always allow，API 支持单工具模式 | 可按工具编辑 allow/ask/deny，查看策略来源，参数范围可扩展 | Next |
 | A4 | 硬崩溃子进程回收 | graceful restart 可恢复，hard crash 遗留进程不回收 | 持久化 PID/启动标识；重启时安全判断并回收旧进程 | Backlog |
 | A5 | 运行历史 UI | API 有 batch history，Studio 主要显示 latest | 历史列表、切换查看、清理旧 batch | Backlog |
 | A6 | Agent 失败重试 | 失败后需重新发起 | 支持 retry 当前 prompt、保留旧事件、明确新 generation | Backlog |
 
-### A1 预算设计要点
+### A1 预算语义
 
-- 区分 `maxSteps`、`maxPromptTokens`、`maxTotalTokens` 三种限制。
-- 预算应在 AgentLoop 每次模型调用后、下一次调用前检查。
-- 触发预算时写入结构化 `run/budget-exceeded` 事件。
-- Studio 展示“预算停止”而不是“完成”。
-- 不能用 provider 返回 usage 为 0 来假装预算有效；无 usage 时显示未知。
+- `maxSteps` 限制工具/模型步数，不限制成本。
+- `maxTokens` 在累计 `prompt + completion` 达到上限后、下一次工具/模型动作前停止。
+- `maxPromptTokens` 在累计 prompt token 达到上限后停止。
+- 触发时写入 `run/budget`，报告 `budgetExceeded`，Studio 状态为 `budget-exceeded`。
+- 不把未返回 usage 的 provider 当作“预算已生效”；金额预算仍待 A1b。
 
 ## 5. P0 · 验证与试玩
 
@@ -128,8 +129,8 @@
 
 ## 10. 建议的下一步顺序
 
-1. **A1 Token/费用硬预算**：当前最大步数只是间接限制，先把运行成本做成可控硬约束。
-2. **A2 Agent 队列**：支持连续提交多个任务，避免 UI 只能等待单次运行。
+1. **A2 Agent 队列**：支持连续提交多个任务，避免 UI 只能等待单次运行。
+2. **A3 审批策略编辑器**：把单工具 allow/ask/deny 做成可查看、可编辑的完整策略面。
 3. **V3 Web preview base path**：修掉 Web playtest 的绝对路径回归。
 4. **AS5 Build selection 落地**：让素材选择真正进入 composer。
 5. **AS1 动画节点**：在本地 ComfyUI 可用节点范围内先做透明帧/atlas，不等待 AnimateDiff。

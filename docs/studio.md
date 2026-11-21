@@ -63,13 +63,18 @@ remains as a fallback when `EventSource` is unavailable.
 The CLI flags used by the Studio are:
 
 - `--events-file <file>` writes `run/start`, session events, `tool/start`,
-  `tool/end`, `approval/request`, `approval/decision`, `run/end`, and
-  `run/error`.
+  `tool/end`, `approval/request`, `approval/decision`, `run/budget`, `run/end`,
+  and `run/error`.
 - `--approval-dir <dir>` exchanges approval request and decision JSON files.
   The studio writes a decision when the user clicks Allow or Deny.
 - `--run-id <id>` attaches the batch/run id to every event.
 - `--event-seq-start <n>` continues event sequencing when a persisted run is
   resumed.
+- `--max-steps <n>` caps tool steps.
+- `--max-tokens <n>` stops before another model call once total
+  prompt + completion usage reaches the limit.
+- `--max-prompt-tokens <n>` stops when cumulative prompt usage reaches the
+  limit.
 
 Each Agent batch is persisted under `.gamedream/studio/agent/<batch-id>/`.
 Candidates run in separate `<candidate-N>/project` directories; applying a
@@ -82,9 +87,12 @@ The approval card's **Always allow** action writes
 Future runs pass the file through `dream develop --permissions`; the server does
 not inject the default `--ask-tool scaffold,mcp` once the policy file exists.
 
-The Studio Agent panel accepts a maximum step count before starting a run.
-Finished runs show model calls, total tokens, and cache-hit percentage from the
-CLI report in both the run log and the Agent meta line.
+The Studio Agent panel accepts a maximum step count and an optional token
+budget before starting a run. When total provider-reported usage reaches the
+token budget, the CLI emits `run/budget`, stops before the next tool/model
+action, and the run is marked **budget-exceeded** rather than finished. Finished
+runs show model calls, total tokens, and cache-hit percentage from the CLI
+report in both the run log and the Agent meta line.
 
 If the Studio server restarts while a run is active, it loads the persisted
 batch, expires any old pending approvals, and starts the interrupted run again
@@ -152,6 +160,9 @@ expose it on a public interface.
 - Agent children are resumed with `--resume` after a Studio restart; a child
   left behind by a hard crash is not reaped automatically.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
+- Token budgets are enforced only when the provider reports usage. A provider
+  that returns zero or no usage cannot be hard-capped; the Studio does not
+  pretend the budget was enforced. There is no currency/pricing budget yet.
 - “Always allow” writes policy for future runs; it does not retroactively change
   the permission gate already loaded by the current child process.
 - Candidate apply backs up only the top-level files it will touch; rollback

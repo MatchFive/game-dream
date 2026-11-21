@@ -453,6 +453,8 @@ async function handleApi(
         provider?: unknown;
         skill?: unknown;
         maxSteps?: unknown;
+        maxTokens?: unknown;
+        maxPromptTokens?: unknown;
         candidates?: unknown;
         resume?: unknown;
         approvalTools?: unknown;
@@ -462,6 +464,10 @@ async function handleApi(
         provider: body.provider === 'fake' ? 'fake' : 'auto',
         skill: typeof body.skill === 'string' ? body.skill : undefined,
         maxSteps: typeof body.maxSteps === 'number' ? body.maxSteps : undefined,
+        maxTokens: typeof body.maxTokens === 'number' ? body.maxTokens : undefined,
+        maxPromptTokens: typeof body.maxPromptTokens === 'number'
+          ? body.maxPromptTokens
+          : undefined,
         candidates: typeof body.candidates === 'number' ? body.candidates : undefined,
         resume: body.resume === true,
         approvalTools: Array.isArray(body.approvalTools)

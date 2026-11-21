@@ -52,6 +52,8 @@ export interface DevelopOptions {
   fetchImpl?: typeof fetch;
   runner?: CommandRunner;
   maxSteps?: number;
+  maxTokens?: number;
+  maxPromptTokens?: number;
   visual?: boolean;
   expectedMarkers?: string[];
   mcpConfig?: string;
@@ -91,6 +93,12 @@ export interface UsageTotals {
   cachedTokens: number;
 }
 
+export interface ManageBudgetExceeded {
+  kind: 'total-tokens' | 'prompt-tokens';
+  limit: number;
+  used: number;
+}
+
 export interface DevelopReport {
   provider: string;
   skill: string;
@@ -105,6 +113,7 @@ export interface DevelopReport {
   forked?: string;
   generation: number;
   usage: UsageTotals;
+  budgetExceeded?: ManageBudgetExceeded;
   verify: VerifyReport;
 }
 
@@ -750,6 +759,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     completionTokens: 0,
     cachedTokens: 0,
   };
+  let budgetExceeded: ManageBudgetExceeded | undefined;
   const harnessTools: HarnessTool<DevelopContext>[] = TOOLS.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -812,6 +822,8 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     ]),
     context,
     maxSteps: options.maxSteps ?? 12,
+    maxTokens: options.maxTokens,
+    maxPromptTokens: options.maxPromptTokens,
     compactChars: 80_000,
     nativeTools,
     stream: Boolean(provider.completeChatStream),
@@ -858,6 +870,10 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       steps = result.steps;
       finished = result.finished;
       usage = result.usage;
+      budgetExceeded = result.budgetExceeded;
+      if (budgetExceeded) {
+        emitEvent({ type: 'run/budget', ...budgetExceeded });
+      }
     } finally {
       mcp?.close();
     }
@@ -882,6 +898,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       forked,
       generation: session.generation,
       usage,
+      budgetExceeded,
       verify,
     };
     emitEvent({ type: 'run/end', report });

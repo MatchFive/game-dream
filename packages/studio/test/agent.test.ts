@@ -21,9 +21,15 @@ const approvalDir = arg('approval-dir');
 const runId = arg('run-id');
 const outDir = arg('out');
 const resume = process.argv.includes('--resume');
+const maxTokens = arg('max-tokens');
 let seq = Number(arg('event-seq-start', '0')) || 0;
 const write = (event) => appendFileSync(eventsFile, JSON.stringify({ seq: ++seq, at: new Date().toISOString(), runId, ...event }) + '\\n', 'utf8');
 write({ type: 'run/start', prompt: 'fixture' });
+if (maxTokens) {
+  write({ type: 'run/budget', kind: 'total-tokens', limit: Number(maxTokens), used: Number(maxTokens) + 1 });
+  write({ type: 'run/end', report: { finished: false, steps: 1, actions: [], missingMarkers: [], budgetExceeded: { kind: 'total-tokens', limit: Number(maxTokens), used: Number(maxTokens) + 1 }, usage: { calls: 1, promptTokens: Number(maxTokens) + 1, completionTokens: 0, cachedTokens: 0 }, verify: { gates: { G1: { status: 'fail' }, G2: { status: 'skip' }, G3: { status: 'skip' } } } } });
+  process.exit(0);
+}
 if (resume) {
   write({ type: 'session/event', event: { type: 'assistant/message', content: 'fixture resumed' } });
   write({ type: 'run/end', report: { finished: true, steps: 1, actions: ['finish'], missingMarkers: [], verify: { gates: { G1: { status: 'pass' }, G2: { status: 'pass' }, G3: { status: 'pass' } } } } });
@@ -246,6 +252,29 @@ it('pushes agent snapshots over SSE', async () => {
 
   await reader?.cancel();
   controller.abort();
+});
+
+it('marks a run stopped by the token budget', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-budget-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: 'budget fixture', candidates: 1, maxTokens: 100 }),
+  });
+  expect(started.status).toBe(202);
+
+  let data = await getAgent(studio.url);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.batches[0]?.status === 'budget-exceeded') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const batch = data.batches[0];
+  expect(batch?.status).toBe('budget-exceeded');
+  expect(batch?.candidates[0]?.status).toBe('budget-exceeded');
+  expect(batch?.candidates[0]?.events.some((event) => event.type === 'run/budget')).toBe(true);
 });
 
 it('resumes an interrupted run after a Studio restart', async () => {

@@ -15,6 +15,7 @@
 .studio-agent-state { color: var(--dim); font: 8px/1 var(--mono); }
 .studio-agent-state.running { color: var(--amber); }
 .studio-agent-state.awaiting { color: var(--coral); }
+.studio-agent-state.budget { color: var(--amber); }
 .studio-agent-state.finished { color: var(--lime); }
 .studio-agent-state.failed { color: var(--coral); }
 .studio-agent-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 12px 7px; }
@@ -23,6 +24,7 @@
 .studio-candidate strong { display: block; font: 9px/1.2 var(--mono); }
 .studio-candidate span { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); font: 7px/1.2 var(--mono); }
 .studio-candidate .ok { color: var(--lime); }
+.studio-candidate .warn { color: var(--amber); }
 .studio-candidate .bad { color: var(--coral); }
 .studio-agent-candidate-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 7px; }
 .studio-agent-candidate-actions .button { min-height: 24px; font-size: 7px; }
@@ -59,9 +61,10 @@
 .studio-agent-compose { margin-top: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); background: #0d100b; }
 .studio-agent-compose textarea { width: 100%; min-height: 49px; max-height: 100px; resize: vertical; padding: 7px 8px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--text); background: #090b08; font: 9px/1.45 var(--sans); }
 .studio-agent-compose textarea:focus { border-color: var(--lime); outline: none; }
-.studio-agent-options { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
+.studio-agent-options { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 6px; }
 .studio-agent-options .button { margin-inline-start: auto; min-height: 27px; font-size: 8px; }
-.studio-check, .studio-agent-count { display: inline-flex; align-items: center; gap: 3px; color: var(--dim); font: 8px/1 var(--mono); }
+.studio-check, .studio-agent-count { display: inline-flex; flex-shrink: 0; align-items: center; gap: 3px; color: var(--dim); font: 8px/1 var(--mono); }
+#agentMaxTokens { width: 58px; }
 .studio-check input { accent-color: var(--lime); }
 .studio-agent-count select { border: 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); background: transparent; font: 8px/1 var(--mono); }
 .studio-agent-count input { width: 34px; border: 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); background: transparent; font: 8px/1 var(--mono); text-align: center; }

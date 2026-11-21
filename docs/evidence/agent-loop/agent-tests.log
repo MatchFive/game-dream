@@ -1,21 +1,20 @@
-
+﻿
 > gamedream@ test:agent D:\project\game_dream
 > vitest run packages/cli/test/develop.test.ts packages/studio/test/agent.test.ts
 
 
-[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/project/game_dream[39m
+ RUN  v2.1.9 D:/project/game_dream
 
- [32m✓[39m packages/studio/test/agent.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1435[2mms[22m[39m
-   [33m[2m✓[22m[39m streams approval and completion for a Studio agent run [33m422[2mms[22m[39m
-   [33m[2m✓[22m[39m runs candidates and applies the selected candidate [33m463[2mms[22m[39m
-   [33m[2m✓[22m[39m resumes an interrupted run after a Studio restart [33m507[2mms[22m[39m
- [32m✓[39m packages/cli/test/develop.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 871[2mms[22m[39m
-   [33m[2m✓[22m[39m development case[2m > [22mgenerates and selects among candidates [33m327[2mms[22m[39m
-   [33m[2m✓[22m[39m development case[2m > [22mstreams structured events and resolves Studio approvals [33m353[2mms[22m[39m
+ ✓ packages/studio/test/agent.test.ts (6 tests) 1662ms
+   ✓ streams approval and completion for a Studio agent run 521ms
+   ✓ runs candidates and applies the selected candidate 439ms
+   ✓ resumes an interrupted run after a Studio restart 497ms
+ ✓ packages/cli/test/develop.test.ts (4 tests) 957ms
+   ✓ development case > generates and selects among candidates 355ms
 
-[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
-[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
-[2m   Start at [22m 18:55:35
-[2m   Duration [22m 2.37s[2m (transform 419ms, setup 0ms, collect 1.33s, tests 2.31s, environment 0ms, prepare 249ms)[22m
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  19:14:45
+   Duration  2.99s (transform 724ms, setup 0ms, collect 1.78s, tests 2.62s, environment 1ms, prepare 533ms)
 
 EXIT=0

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 import type { CommandRunner } from '@gamedream/godot';
+import type { ModelProvider } from '@gamedream/agent';
 import {
   developCandidates,
   developCommand,
@@ -126,5 +127,50 @@ describe('development case', () => {
     expect(types).toContain('tool/end');
     expect(types).toContain('session/event');
     expect(types).toContain('run/end');
+  }, 30_000);
+
+  it('stops a development run when the token budget is exceeded', async () => {
+    const developmentCase = loadDevelopmentCase(
+      join(root, 'cases/development/survivor-demo.json'),
+    );
+    const outDir = join(makeTempDir('gamedream budget '), 'survivor-demo');
+    const eventsFile = join(outDir, 'events.jsonl');
+    const provider: ModelProvider = {
+      name: 'budget-test',
+      async complete() {
+        throw new Error('legacy complete should not be used');
+      },
+      async completeChatWithUsage() {
+        return {
+          content: '',
+          toolCalls: [{ id: 'call_1', name: 'scaffold', arguments: '{}' }],
+          usage: { promptTokens: 2, completionTokens: 0, cachedTokens: 0 },
+        };
+      },
+    };
+    const report = await developCommand({
+      prompt: developmentCase.prompt,
+      outDir,
+      skillsDir: join(root, 'skills'),
+      skill: developmentCase.skill,
+      provider,
+      providerKind: 'fake',
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      maxSteps: 4,
+      maxTokens: 1,
+      eventsFile,
+    });
+    expect(report.finished).toBe(false);
+    expect(report.budgetExceeded).toEqual({
+      kind: 'total-tokens',
+      limit: 1,
+      used: 2,
+    });
+    const types = readFileSync(eventsFile, 'utf8')
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => (JSON.parse(line) as { type: string }).type);
+    expect(types).toContain('run/budget');
   }, 30_000);
 });
