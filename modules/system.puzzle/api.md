@@ -6,8 +6,8 @@
 - WASD moves and pushes one box at a time.
 - Pushing a box prints `GAMEDREAM_PUSH`; completing all targets advances the
   level.
-- Two levels; clearing both prints `GAMEDREAM_WIN`.
-- Headless mode uses BFS over player/box states to solve both levels for CI.
+- Four levels; clearing all prints `GAMEDREAM_WIN`.
+- Headless mode uses BFS over player/box states to solve all levels for CI.
 
 ## Inputs
 

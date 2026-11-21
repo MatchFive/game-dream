@@ -74,7 +74,7 @@ namespace GameDream
                         Progress += 1;
                         Milestone = 1;
                         Status = "PUSH " + Progress;
-                        if (Progress >= 2)
+                        if (Progress >= 4)
                         {
                             Won = true;
                             Status = "CIRCUITS ALIGNED";
@@ -100,7 +100,7 @@ namespace GameDream
                         Progress += 1;
                         Milestone = 1;
                         Status = "WAVE " + Progress;
-                        if (Progress >= 3)
+                        if (Progress >= 5)
                         {
                             Won = true;
                             Status = "SECTOR CLEAR";

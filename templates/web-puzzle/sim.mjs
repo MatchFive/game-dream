@@ -22,7 +22,30 @@ const LEVELS = [
     ],
     solution: ['up'],
   },
+  {
+    grid: [
+      '######',
+      '#    #',
+      '# .  #',
+      '# $  #',
+      '# @  #',
+      '######',
+    ],
+    solution: ['up'],
+  },
+  {
+    grid: [
+      '########',
+      '#      #',
+      '#  .$@ #',
+      '#      #',
+      '########',
+    ],
+    solution: ['left'],
+  },
 ];
+
+export const LEVEL_COUNT = LEVELS.length;
 
 function copyLevel(index) {
   const level = LEVELS[index];
@@ -36,13 +59,21 @@ function copyLevel(index) {
       if (cell === '.') targets.push({ x, y });
     });
   });
-  return { player, boxes, targets, solution: level.solution };
+  return {
+    player,
+    boxes,
+    targets,
+    solution: level.solution,
+    width: level.grid[0].length,
+    height: level.grid.length,
+  };
 }
 
 export function createSim() {
   return {
     levelIndex: 0,
     ...copyLevel(0),
+    levelCount: LEVEL_COUNT,
     moveIndex: 0,
     moveTimer: 0,
     pushes: 0,

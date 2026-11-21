@@ -23,8 +23,8 @@ window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase())
 function draw() {
   ctx.fillStyle = '#071018';
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
-  const width = state.levelIndex === 0 ? 7 : 5;
-  const height = state.levelIndex === 0 ? 6 : 5;
+  const width = state.width;
+  const height = state.height;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const wall = y === 0 || y === height - 1 || x === 0 || x === width - 1;
@@ -53,7 +53,7 @@ function draw() {
   ctx.font = '13px ui-monospace, monospace';
   ctx.fillStyle = '#a9c7df';
   ctx.fillText(
-    `Chamber ${state.levelIndex + 1}/2   Pushes ${state.pushes}   ${state.message}`,
+    `Chamber ${state.levelIndex + 1}/${state.levelCount}   Pushes ${state.pushes}   ${state.message}`,
     20,
     46,
   );

@@ -7,7 +7,7 @@ const BULLET_SPEED := 680.0
 const FIRE_INTERVAL := 0.18
 const PLAYER_RADIUS := 16.0
 const ENEMY_RADIUS := 18.0
-const TOTAL_WAVES := 3
+const TOTAL_WAVES := 5
 const ENEMIES_PER_WAVE := 4
 const SPAWNS := [
 	Vector2(110, 100),

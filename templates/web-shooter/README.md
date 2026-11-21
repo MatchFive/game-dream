@@ -11,7 +11,7 @@ python -m http.server 8080
 # open http://localhost:8080
 ```
 
-WASD/arrows move. Weapons auto-target the nearest enemy. Clear three waves;
+WASD/arrows move. Weapons auto-target the nearest enemy. Clear five waves;
 R restarts after win/lose.
 
 ## Verify
