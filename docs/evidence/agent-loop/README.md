@@ -1,6 +1,6 @@
 # Studio / Agent loop evidence
 
-Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget/queue follow-ups on `master`; synced to `D:\project\game_dream`.
+Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue, policy, playtest, build-selection, animation, BGM, and atlas follow-ups on `master`; synced to `D:\project\game_dream`.
 
 ## Validation commands
 
