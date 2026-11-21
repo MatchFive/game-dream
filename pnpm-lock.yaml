@@ -64,6 +64,12 @@ importers:
       '@gamedream/testing':
         specifier: workspace:*
         version: link:../testing
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
 
   packages/core:
     dependencies:

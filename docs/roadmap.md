@@ -102,7 +102,7 @@
 | AS1b | 动画图集 | 已支持 2–8 个同尺寸 PNG 横向打包、透明通道、frame/FPS/loop 元数据 | 图集文件、元数据、素材索引 | Done |
 | AS1c | 引擎动画描述 | 已生成 Web JSON 与 Godot SpriteFrames `.tres`，并写入 `game/build-assets/animations/` | 图集、frame 元数据、引擎描述文件 | Done |
 | AS1d | Web 模板动画接入 | Web survivor 自动读取 animations/index.json 并播放首个图集；Godot 未接 | Web 自动发现/播放 | Done |
-| AS1e | Godot 模板动画接入 | Godot 不会自动加载 SpriteFrames 资源 | 模板自动发现并播放动画资源 | Backlog |
+| AS1e | Godot 模板动画接入 | 已支持扫描 `game/build-assets/animations/*.tres` 并优先加载首个 `SpriteFrames`；真实 Godot e2e 通过，打印 `GAMEDREAM_ANIMATION_OK` | 模板自动发现并播放动画资源 | Done |
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听、重命名；SFX 未做 | UI 内生成、显示进度、试听、重命名、加入构建 | Done |
 | AS2b | 音频 SFX | 固定 30 秒 BGM，无文本 SFX | 自定义时长、SFX 生成 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS1e Godot 模板动画**：让 Godot 模板自动发现 `SpriteFrames` 并播放。
-2. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
-3. **AS2b SFX**：补文本音效生成与降级。
+1. **AS4c 其他模板 BGM**：把音量/循环/暂停接到剩余模板。
+2. **AS2b SFX**：补文本音效生成与降级。
+3. **AS5b 素材自动绑定模板**：在动画已能自动发现后，补齐音频/图集到内容配置。
 
 ## 11. Definition of Done
 

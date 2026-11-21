@@ -55,3 +55,11 @@ job instead of producing a false pass.
 Unity 6000.6.9f1: `UNITY_RELEASE_OK=1`, player bytes, `smoke.log`, and
 `Screenshots/unity.png`, exit `0`. The optional self-hosted CI job runs the same
 script with `--require` and uploads `gamedream-unity-release-player`.
+
+## Godot generated animation
+
+`godot-animation-e2e.log` records `sprite-e2e.test.ts` against real Godot 4.4.1.
+The test composes M1, stages a transparent 2-frame atlas plus `.tres`, keeps the
+normal content sprite configs, and verifies G3 with
+`GAMEDREAM_ANIMATION_OK`, proving the generated resource takes precedence and
+plays.

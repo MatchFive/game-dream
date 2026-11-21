@@ -20,6 +20,8 @@
     "commander": "^12.1.0"
   },
   "devDependencies": {
-    "@gamedream/testing": "workspace:*"
+    "@gamedream/testing": "workspace:*",
+    "@types/pngjs": "^6.0.5",
+    "pngjs": "^7.0.0"
   }
 }
