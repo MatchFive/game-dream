@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=6';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=7';
 
 const state = {
   snapshot: null,
@@ -718,6 +718,38 @@ function renderRight() {
   }));
 }
 
+async function startPlaytest() {
+  try {
+    const result = await request('/api/playtest/start', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    if (result.mode === 'iframe') {
+      const frame = $('#playFrame');
+      frame.hidden = false;
+      frame.src = result.url;
+      $('#playControls').hidden = false;
+      toast(t('studio.playStarted'));
+    } else {
+      toast(result.message ?? t('studio.playExternal'));
+    }
+  } catch (error) {
+    toast(t('studio.playFailed', { message: error.message }));
+  }
+}
+
+async function stopPlaytest() {
+  try {
+    await request('/api/playtest/stop', { method: 'POST', body: JSON.stringify({}) });
+  } catch {
+    // The iframe has no server process to stop; local shutdown is best effort.
+  }
+  const frame = $('#playFrame');
+  frame.src = 'about:blank';
+  frame.hidden = true;
+  $('#playControls').hidden = true;
+}
+
 async function verify() {
   if (state.verifying) return;
   state.verifying = true;
@@ -749,6 +781,8 @@ $('#refreshBtn').addEventListener('click', () => {
   loadAgent(true);
 });
 $('#refreshPreview').addEventListener('click', load);
+$('#playBtn').addEventListener('click', startPlaytest);
+$('#playClose').addEventListener('click', stopPlaytest);
 $('#agentStart').addEventListener('click', startAgent);
 $('#agentCancel').addEventListener('click', cancelAgent);
 $('#agentAllow').addEventListener('click', () => decideAgentApproval(true));

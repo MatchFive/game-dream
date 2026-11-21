@@ -8,7 +8,7 @@ Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits fo
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **220 tests passed**, 9 skipped; exit `0` |
+| `vitest.log` | 55 files passed, 6 skipped; **221 tests passed**, 9 skipped; exit `0` |
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, SSE, recovery, and Studio AgentManager tests; **7 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
@@ -45,6 +45,16 @@ depending on an installed editor. Real-engine validation remains separate.
   is resumed to `finished` with the pending approval expired and `run/end`
   present.
 - `agent-tests.log` records all 7 focused tests passing.
+
+## Playtest
+
+- `packages/studio/test/studio.test.ts` starts a Studio server over a generated
+  Web project, checks `/api/playtest/capabilities`, starts an iframe playtest,
+  serves `/play/` and `/play/game.js`, then stops it.
+- The local runtime reports Godot `4.4.1` availability through
+  `/api/playtest/capabilities`; the connected project itself has no
+  `project.godot`, so pressing Play correctly reports “No playable Web or Godot
+  project detected” instead of opening an empty frame.
 
 ## Candidate workflow
 

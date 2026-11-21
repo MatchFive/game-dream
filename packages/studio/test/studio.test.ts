@@ -166,4 +166,51 @@ describe('studio assets', () => {
       await studio.close();
     }
   });
+
+  it('serves a web playtest and reports playable capabilities', async () => {
+    const playRoot = mkdtempSync(join(tmpdir(), 'gamedream-studio-play-'));
+    writeFileSync(
+      join(playRoot, 'index.html'),
+      '<!doctype html><script src="./game.js"></script>',
+    );
+    writeFileSync(join(playRoot, 'game.js'), 'console.log("playable");');
+    const playStudio = await startStudioServer({
+      projectDir: playRoot,
+      port: 0,
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(playRoot, 'missing.json') },
+    });
+    try {
+      const capabilities = await fetch(`${playStudio.url}/api/playtest/capabilities`)
+        .then((response) => response.json()) as {
+          engine: string;
+          web: { available: boolean; url: string };
+        };
+      expect(capabilities.engine).toBe('web');
+      expect(capabilities.web).toMatchObject({ available: true, url: '/play/' });
+
+      const start = await fetch(`${playStudio.url}/api/playtest/start`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      }).then((response) => response.json()) as { mode: string; url: string };
+      expect(start).toEqual({ mode: 'iframe', url: '/play/' });
+
+      const page = await fetch(`${playStudio.url}/play/`);
+      expect(page.status).toBe(200);
+      expect(await page.text()).toContain('game.js');
+      const script = await fetch(`${playStudio.url}/play/game.js`);
+      expect(script.status).toBe(200);
+      expect(await script.text()).toContain('playable');
+
+      const stop = await fetch(`${playStudio.url}/api/playtest/stop`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      expect(stop.status).toBe(200);
+    } finally {
+      await playStudio.close();
+      rmSync(playRoot, { recursive: true, force: true });
+    }
+  });
 });

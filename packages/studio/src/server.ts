@@ -1,11 +1,12 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager } from './agent.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, toggleInBuild } from './assets.js';
 import { ComfyRunner } from './comfyui.js';
+import { detectEngine } from './project.js';
 import {
   appendRun,
   loadProjectSnapshot,
@@ -126,6 +127,16 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
   const agent = new AgentManager({ root, cliEntry });
   const sseClients = new Set<ServerResponse>();
+  let playtestChild: ReturnType<typeof spawn> | undefined;
+  const stopPlaytest = () => {
+    if (!playtestChild?.pid) return;
+    if (process.platform === 'win32') {
+      spawn('taskkill', ['/pid', String(playtestChild.pid), '/t', '/f'], { windowsHide: true });
+    } else {
+      playtestChild.kill('SIGTERM');
+    }
+    playtestChild = undefined;
+  };
 
   const server = createServer(async (request, response) => {
     try {
@@ -143,7 +154,23 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           cliEntry,
           agent,
           sseClients,
+          stopPlaytest,
+          (child) => { playtestChild = child; },
         );
+        return;
+      }
+
+      if (pathname === '/play' || pathname.startsWith('/play/')) {
+        const relativePath = pathname === '/play' || pathname === '/play/'
+          ? 'index.html'
+          : pathname.slice('/play/'.length);
+        const file = safeProjectFile(root, relativePath);
+        if (!file || !existsSync(file) || !statSync(file).isFile()) {
+          response.writeHead(404);
+          response.end('Playtest build not found');
+          return;
+        }
+        serveFile(request, response, file, false);
         return;
       }
 
@@ -187,6 +214,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     url: `http://${displayHost}:${actualPort}`,
     port: actualPort,
     close: () => new Promise((resolveClose, rejectClose) => {
+      stopPlaytest();
       agent.close();
       for (const client of sseClients) {
         if (!client.writableEnded) client.end();
@@ -253,6 +281,27 @@ async function executeVerify(
   return run;
 }
 
+function detectGodotPlaytest(): {
+  available: boolean;
+  bin: string;
+  version?: string;
+} {
+  const candidates = [process.env.GODOT_BIN, 'godot', 'godot4'].filter(Boolean) as string[];
+  for (const bin of candidates) {
+    const result = spawnSync(bin, ['--version'], {
+      encoding: 'utf8',
+      timeout: 3000,
+      windowsHide: true,
+      shell: process.platform === 'win32',
+    });
+    const version = String(result.stdout ?? '').trim().split(/\r?\n/)[0] ?? '';
+    if (result.status === 0 && /^4\./.test(version)) {
+      return { available: true, bin, version };
+    }
+  }
+  return { available: false, bin: candidates[0] ?? 'godot' };
+}
+
 async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -263,8 +312,74 @@ async function handleApi(
   cliEntry: string | undefined,
   agent: AgentManager,
   sseClients: Set<ServerResponse>,
+  stopPlaytest: () => void,
+  setPlaytestChild: (child: ReturnType<typeof spawn>) => void,
 ): Promise<void> {
   const method = request.method ?? 'GET';
+
+  if (method === 'GET' && pathname === '/api/playtest/capabilities') {
+    const engine = detectEngine(root);
+    const godot = detectGodotPlaytest();
+    json(response, 200, {
+      engine,
+      web: {
+        available: existsSync(join(root, 'index.html')),
+        url: '/play/',
+      },
+      godot: {
+        available: godot.available,
+        bin: godot.bin,
+        version: godot.version,
+      },
+      unity: { available: false },
+    });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/playtest/start') {
+    const engine = detectEngine(root);
+    if (engine === 'web' && existsSync(join(root, 'index.html'))) {
+      json(response, 200, { mode: 'iframe', url: '/play/' });
+      return;
+    }
+    if (engine === 'godot') {
+      const godot = detectGodotPlaytest();
+      if (!godot.available) {
+        json(response, 503, {
+          error: 'Godot 4.4+ not found. Set GODOT_BIN or add godot to PATH.',
+        });
+        return;
+      }
+      stopPlaytest();
+      const child = spawn(godot.bin, ['--path', root], {
+        cwd: root,
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false,
+      });
+      child.unref();
+      setPlaytestChild(child);
+      json(response, 200, {
+        mode: 'external',
+        pid: child.pid,
+        bin: godot.bin,
+        message: 'Godot playtest launched in a separate window.',
+      });
+      return;
+    }
+    if (engine === 'unity') {
+      json(response, 501, { error: 'Unity playtest is not available from the Studio server yet.' });
+      return;
+    }
+    json(response, 400, { error: 'No playable web or Godot project detected in this directory.' });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/playtest/stop') {
+    stopPlaytest();
+    json(response, 200, { stopped: true });
+    return;
+  }
 
   if (method === 'GET' && pathname === '/api/agent/events') {
     response.writeHead(200, {

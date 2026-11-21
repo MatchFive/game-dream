@@ -82,6 +82,21 @@ with `dream develop --resume`. The event sequence continues rather than
 restarting at one. This recovery is process-level; a stale child left by a hard
 crash is not reaped automatically.
 
+## Playtest
+
+The Studio preview has a **Play** action:
+
+- For a generated Web project (`index.html` present), the build is served from
+  `/play/` in the center pane iframe using its relative assets.
+- For a Godot project, the server launches the configured `GODOT_BIN` (or
+  `godot`/`godot4`) in a separate window and tracks the process for Stop.
+- Unity playtest is not exposed by the local server yet; the API returns 501.
+- If no playable Web/Godot build is detected, the API returns 400 rather than
+  opening an empty frame.
+
+The playtest endpoint is local-only and inherits the Studio server's local
+binding.
+
 ## HTTP API
 
 | Route | Purpose |
@@ -104,6 +119,10 @@ crash is not reaped automatically.
 | `GET /api/agent/batches/:id/candidates/:runId/diff` | Compare a candidate with the Studio project |
 | `POST /api/agent/batches/:id/apply` | Back up touched files and copy a finished candidate into the Studio project |
 | `POST /api/agent/batches/:id/rollback` | Restore the files replaced by the last candidate apply |
+| `GET /api/playtest/capabilities` | Detect Web/Godot playtest availability |
+| `POST /api/playtest/start` | Serve a Web iframe or launch a Godot window |
+| `POST /api/playtest/stop` | Stop the launched playtest process |
+| `GET /play/` | Serve the generated Web build for the Studio playtest frame |
 | `GET /api/health` | ComfyUI and workflow health |
 
 Verification uses the same CLI entry that launched `dream studio` (or
@@ -123,4 +142,8 @@ expose it on a public interface.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
+- Web playtest serves the project root directly; generated apps that assume an
+  absolute deployment URL may need their asset paths adjusted.
+- Godot playtest requires a local display and a 4.x `GODOT_BIN`; Unity playtest
+  is not available from the Studio server.
 - Animation generation is not implemented; animation nodes remain a placeholder.
