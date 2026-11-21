@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { makeTempDir } from '@gamedream/testing';
 // @ts-ignore - the template ships plain ESM without a declaration file
 import { clampMusicVolume, findBgmTrack } from '../../../templates/web-survivor/audio.mjs';
+// @ts-ignore - the template ships plain ESM without a declaration file
+import { atlasFrameRect, findAnimationEntry, frameAtTime } from '../../../templates/web-survivor/animation.mjs';
 import { webComposeCommand, webVerifyCommand } from '../src/commands/web.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -35,5 +37,24 @@ describe('Web survivor', () => {
     expect(clampMusicVolume(2)).toBe(1);
     expect(clampMusicVolume(-1)).toBe(0);
     expect(clampMusicVolume('bad')).toBeCloseTo(0.35);
+    const animation = findAnimationEntry({
+      animations: [{
+        name: 'walk',
+        image: 'game/build-assets/animations/walk.png',
+        frameWidth: 32,
+        frameHeight: 32,
+        frameCount: 4,
+        fps: 8,
+        loop: true,
+      }],
+    });
+    expect(animation?.name).toBe('walk');
+    expect(frameAtTime(animation, 0.3)).toBe(2);
+    expect(atlasFrameRect(animation, 3)).toEqual({
+      x: 96,
+      y: 0,
+      width: 32,
+      height: 32,
+    });
   });
 });

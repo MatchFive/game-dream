@@ -127,6 +127,15 @@ describe('studio assets', () => {
     const godot = readFileSync(join(root, result.godotResource), 'utf8');
     expect(godot).toContain('[gd_resource type="SpriteFrames"');
     expect(godot).toContain('region = Rect2(2, 0, 2, 2)');
+    const index = JSON.parse(readFileSync(join(root, result.index), 'utf8'));
+    expect(index.animations[0]).toMatchObject({
+      name: 'Walk atlas',
+      frameWidth: 2,
+      frameHeight: 2,
+      frameCount: 2,
+      fps: 10,
+      loop: true,
+    });
   });
 
   it('stages selected assets into the project build and removes them on unselect', () => {

@@ -70,8 +70,10 @@ the sequence from its prompt. Each frame is an ordinary PNG asset. **Pack
 atlas** combines equal-sized frames into a horizontal transparent PNG with
 `frameWidth`, `frameHeight`, `frameCount`, `fps`, and `loop` metadata; the atlas
 is indexed as a normal asset and also written to
-`game/build-assets/animations/` with a Web JSON descriptor and a Godot
-`SpriteFrames` `.tres` resource.
+`game/build-assets/animations/` with a Web JSON descriptor, a Godot
+`SpriteFrames` `.tres` resource, and an `index.json`. The Web survivor template
+loads the first indexed atlas and animates the player; Godot template auto-wiring
+is still pending.
 
 The **BGM** chip generates a 30-second MiniMax Music 3 track through ComfyUI.
 The job is written to `.gamedream/studio/generated/<job-id>.mp3` with a JSON

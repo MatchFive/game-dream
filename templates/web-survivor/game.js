@@ -1,5 +1,6 @@
 import { ARENA, RUN_SECONDS, createSim, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
+import { atlasFrameRect, findAnimationEntry, frameAtTime } from './animation.mjs';
 
 const root = document.querySelector('#game');
 root.replaceChildren();
@@ -16,6 +17,25 @@ const keys = new Set();
 const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
+let playerAnimation;
+
+async function loadPlayerAnimation() {
+  try {
+    const indexResponse = await fetch(
+      new URL('./game/build-assets/animations/index.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!indexResponse.ok) return;
+    const entry = findAnimationEntry(await indexResponse.json());
+    if (!entry) return;
+    const image = new Image();
+    image.src = new URL(entry.image, import.meta.url).href;
+    await image.decode();
+    playerAnimation = { ...entry, image };
+  } catch {
+    // The template falls back to the vector ship when no atlas is staged.
+  }
+}
 
 async function loadBgm() {
   try {
@@ -48,6 +68,7 @@ if (musicInput) {
 window.addEventListener('pointerdown', playBgm, { once: true });
 window.addEventListener('keydown', playBgm, { once: true });
 void loadBgm();
+void loadPlayerAnimation();
 
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
@@ -86,14 +107,30 @@ function draw() {
     ctx.arc(enemy.x + 4, enemy.y - 3, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = '#55d6ff';
-  ctx.beginPath();
-  ctx.moveTo(state.player.x, state.player.y - 20);
-  ctx.lineTo(state.player.x + 16, state.player.y + 14);
-  ctx.lineTo(state.player.x, state.player.y + 8);
-  ctx.lineTo(state.player.x - 16, state.player.y + 14);
-  ctx.closePath();
-  ctx.fill();
+  if (playerAnimation) {
+    const frame = frameAtTime(playerAnimation, state.time);
+    const rect = atlasFrameRect(playerAnimation, frame);
+    ctx.drawImage(
+      playerAnimation.image,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      state.player.x - rect.width / 2,
+      state.player.y - rect.height / 2,
+      rect.width,
+      rect.height,
+    );
+  } else {
+    ctx.fillStyle = '#55d6ff';
+    ctx.beginPath();
+    ctx.moveTo(state.player.x, state.player.y - 20);
+    ctx.lineTo(state.player.x + 16, state.player.y + 14);
+    ctx.lineTo(state.player.x, state.player.y + 8);
+    ctx.lineTo(state.player.x - 16, state.player.y + 14);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   ctx.fillStyle = '#e8f5ee';
   ctx.font = '16px ui-monospace, monospace';

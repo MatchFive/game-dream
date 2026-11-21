@@ -34,8 +34,10 @@ Implemented in Studio:
 - The frames are ordinary PNG assets and are grouped into an animation canvas
   node with playback and regenerate controls.
 - **Pack atlas** creates a horizontal transparent PNG with frame dimensions,
-  count, FPS, and loop metadata, plus Web JSON and Godot `SpriteFrames` files
-  under `game/build-assets/animations/`.
+  count, FPS, and loop metadata, plus Web JSON, Godot `SpriteFrames`, and
+  `index.json` under `game/build-assets/animations/`.
+- The Web survivor template loads the first indexed atlas and animates the
+  player; Godot template auto-wiring is pending.
 - Build selection can stage the frames or atlas under `game/build-assets/`.
 
 Still pending:

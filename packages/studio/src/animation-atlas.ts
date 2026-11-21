@@ -18,6 +18,7 @@ export interface AnimationAtlasResult {
   buildFile: string;
   webManifest: string;
   godotResource: string;
+  index: string;
   frameWidth: number;
   frameHeight: number;
   frameCount: number;
@@ -109,6 +110,29 @@ export function createAnimationAtlas(
   };
   const webManifest = join(buildDirectory, `${buildName}.web.json`);
   writeFileSync(webManifest, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
+  const indexFile = join(buildDirectory, 'index.json');
+  let index: { animations: Array<Record<string, unknown>> } = { animations: [] };
+  try {
+    const existing = JSON.parse(readFileSync(indexFile, 'utf8')) as { animations?: unknown };
+    if (Array.isArray(existing.animations)) {
+      index.animations = existing.animations.filter(
+        (entry) => entry && (entry as Record<string, unknown>).name !== name,
+      ) as Array<Record<string, unknown>>;
+    }
+  } catch {
+    // A missing or malformed index is rebuilt from this atlas.
+  }
+  index.animations.push({
+    name,
+    image: descriptor.image,
+    descriptor: relative(root, webManifest).split('\\').join('/'),
+    frameWidth,
+    frameHeight,
+    frameCount: frames.length,
+    fps: metadata.fps,
+    loop: metadata.loop,
+  });
+  writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`, 'utf8');
   const regions = Array.from({ length: frames.length }, (_, index) => [
     `[sub_resource type="AtlasTexture" id="AtlasTexture_${index + 1}"]`,
     'atlas = ExtResource("1")',
@@ -143,6 +167,7 @@ export function createAnimationAtlas(
     buildFile: relative(root, buildFile).split('\\').join('/'),
     webManifest: relative(root, webManifest).split('\\').join('/'),
     godotResource: relative(root, godotResource).split('\\').join('/'),
+    index: relative(root, indexFile).split('\\').join('/'),
     frameWidth,
     frameHeight,
     frameCount: frames.length,

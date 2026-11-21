@@ -100,9 +100,13 @@ depending on an installed editor. Real-engine validation remains separate.
   transparent atlas; `createAnimationAtlas` writes a sidecar with frame size,
   count, FPS, loop, and source frame ids.
 - It also writes the atlas to `game/build-assets/animations/` with a Web JSON
-  descriptor and a Godot `SpriteFrames` `.tres` resource.
+  descriptor, a Godot `SpriteFrames` `.tres` resource, and `index.json`.
 - The studio test decodes the generated atlas, asserts 4×2 dimensions for two
-  2×2 frames, and checks both descriptor files.
+  2×2 frames, and checks the descriptors/index.
+- Web survivor reads the first `animations/index.json` entry and draws the
+  animated player when the atlas image loads; the vector player remains the
+  fallback. `templates/web-survivor/animation.mjs` frame math is covered by the
+  Web survivor test.
 
 ## Unity playtest
 

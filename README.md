@@ -186,7 +186,8 @@ node packages/cli/dist/index.js studio --path . --open
   assets are staged into `game/build-assets/` with a manifest. **Animate**
   generates a 2–4 frame transparent keyframe sequence node with playback and
   atlas packing; **BGM** generates a 30-second audio asset through ComfyUI.
-  Assets can be renamed without moving the underlying file.
+  Web survivor auto-plays the first staged atlas and BGM. Assets can be renamed
+  without moving the underlying file.
 - Playtest — Web builds open in the preview pane with a `/play/` base path;
   Godot launches in a separate window when `GODOT_BIN` is configured
 
