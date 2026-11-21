@@ -38,6 +38,15 @@ screenshot. The latest local run passed all three tests against Unity
 self-hosted runner with Unity installed; without one, the test must be skipped
 rather than reported as passing.
 
+The optional `unity-runtime` workflow job uses a self-hosted Windows runner
+labeled `unity`. Enable it with repository variables:
+
+- `UNITY_RUNTIME_ENABLED=true`
+- `UNITY_BIN=D:\unity\6000.6.9f1\Editor`
+
+When the variables are absent, the job is skipped and does not report Unity as
+verified.
+
 `dream godot templates` reports whether matching export templates are installed
 for the host platform.
 

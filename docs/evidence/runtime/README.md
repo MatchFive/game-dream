@@ -31,5 +31,7 @@ The run passed all three runtime tests in 128s:
 - Unity screenshot generation.
 
 The log records `3 passed` and `EXIT=0`. GitHub-hosted CI has no Unity; a
-self-hosted runner is required for the same check. Studio can launch an existing
-`Builds/Windows/*.exe` player but does not build Unity itself.
+self-hosted runner is required for the same check. The optional `unity-runtime`
+job in `.github/workflows/ci.yml` skips unless `UNITY_RUNTIME_ENABLED=true` and
+`UNITY_BIN` are configured as repository variables. Studio can launch an
+existing `Builds/Windows/*.exe` player but does not build Unity itself.

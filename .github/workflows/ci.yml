@@ -58,6 +58,27 @@ jobs:
           GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
         run: pnpm smoke:godot --out dist/godot-runtime
 
+  unity-runtime:
+    # Optional: set UNITY_RUNTIME_ENABLED=true and UNITY_BIN as repository
+    # variables. Requires a self-hosted Windows runner with the `unity` label.
+    if: ${{ vars.UNITY_RUNTIME_ENABLED == 'true' }}
+    runs-on: [self-hosted, windows, unity]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Real Unity runtime, build, smoke, screenshot
+        env:
+          UNITY_BIN: ${{ vars.UNITY_BIN }}
+        run: pnpm exec vitest run packages/unity/test/runtime.test.ts
+
   web-release:
     needs: test
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
