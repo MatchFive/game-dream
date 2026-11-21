@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=8';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=9';
 
 const state = {
   snapshot: null,
@@ -106,6 +106,20 @@ function pendingApproval(run) {
   return run?.approvals?.find((approval) => approval.status === 'pending');
 }
 
+function agentUsageText(report) {
+  const usage = report?.usage;
+  if (!usage || !usage.calls) return '';
+  const tokens = (usage.promptTokens ?? 0) + (usage.completionTokens ?? 0);
+  const cache = usage.promptTokens
+    ? Math.round(((usage.cachedTokens ?? 0) / usage.promptTokens) * 100)
+    : 0;
+  return t('studio.agentUsage', {
+    calls: usage.calls,
+    tokens,
+    cache,
+  });
+}
+
 function agentEventDetails(summary, body) {
   return `<details class="studio-agent-tool"><summary>${summary}</summary><pre>${body}</pre></details>`;
 }
@@ -156,6 +170,9 @@ function agentThreadMarkup(run) {
       items.push(
         `<div class="studio-agent-progress">${escapeHtml(summary)}${gateText ? ` · ${escapeHtml(gateText)}` : ''}</div>`,
       );
+      if (agentUsageText(report)) {
+        items.push(`<div class="studio-agent-step">${escapeHtml(agentUsageText(report))}</div>`);
+      }
       continue;
     }
     if (event.type === 'approval/request') {
@@ -285,6 +302,10 @@ function renderAgent() {
         candidates: candidates.length,
       })
     : t('studio.agentMetaSingle', { provider: batch.provider, skill: batch.skill });
+  if (run) {
+    const usage = agentUsageText(run.report);
+    if (usage) $('#agentMeta').textContent += ` · ${usage}`;
+  }
 
   $$('[data-agent-run]', $('#agentCandidates')).forEach((button) => {
     button.addEventListener('click', () => {
@@ -424,6 +445,7 @@ async function startAgent() {
     return;
   }
   const candidates = Number($('#agentCandidateCount').value) || 1;
+  const maxSteps = Math.max(1, Math.min(48, Number($('#agentMaxSteps').value) || 12));
   $('#agentStart').disabled = true;
   try {
     await request('/api/agent/start', {
@@ -431,6 +453,7 @@ async function startAgent() {
       body: JSON.stringify({
         prompt,
         candidates,
+        maxSteps,
         resume: candidates === 1 && $('#agentResume').checked,
         provider: 'auto',
       }),

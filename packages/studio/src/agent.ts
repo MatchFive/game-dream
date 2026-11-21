@@ -61,6 +61,13 @@ export interface AgentDiff {
   files: AgentFileDiff[];
 }
 
+export interface AgentUsage {
+  calls?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  cachedTokens?: number;
+}
+
 export interface AgentReport {
   finished?: boolean;
   steps?: number;
@@ -68,6 +75,7 @@ export interface AgentReport {
   missingMarkers?: string[];
   provider?: string;
   outDir?: string;
+  usage?: AgentUsage;
   verify?: {
     gates?: Record<string, { status?: string; message?: string }>;
   };

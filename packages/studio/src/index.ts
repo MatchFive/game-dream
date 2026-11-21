@@ -10,6 +10,7 @@ export {
   type AgentReport,
   type AgentRun,
   type AgentRunStatus,
+  type AgentUsage,
 } from './agent.js';
 export {
   loadCanvas,

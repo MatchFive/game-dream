@@ -64,6 +64,7 @@
 .studio-check, .studio-agent-count { display: inline-flex; align-items: center; gap: 3px; color: var(--dim); font: 8px/1 var(--mono); }
 .studio-check input { accent-color: var(--lime); }
 .studio-agent-count select { border: 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); background: transparent; font: 8px/1 var(--mono); }
+.studio-agent-count input { width: 34px; border: 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); background: transparent; font: 8px/1 var(--mono); text-align: center; }
 .studio-agent-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; color: var(--dim); font: 7px/1.4 var(--mono); }
 .studio-agent-foot .button { min-height: 23px; font-size: 7px; }
 

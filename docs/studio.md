@@ -82,6 +82,10 @@ The approval card's **Always allow** action writes
 Future runs pass the file through `dream develop --permissions`; the server does
 not inject the default `--ask-tool scaffold,mcp` once the policy file exists.
 
+The Studio Agent panel accepts a maximum step count before starting a run.
+Finished runs show model calls, total tokens, and cache-hit percentage from the
+CLI report in both the run log and the Agent meta line.
+
 If the Studio server restarts while a run is active, it loads the persisted
 batch, expires any old pending approvals, and starts the interrupted run again
 with `dream develop --resume`. The event sequence continues rather than

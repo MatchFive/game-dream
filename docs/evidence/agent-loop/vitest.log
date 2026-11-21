@@ -6,118 +6,121 @@
 [1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/project/game_dream[39m
 
  [32m✓[39m packages/agent/test/openai-provider.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 40[2mms[22m[39m
- [32m✓[39m packages/core/test/resolver.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 285[2mms[22m[39m
- [32m✓[39m packages/agent/test/harness-p2.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
-(node:22428) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+ [32m✓[39m packages/core/test/resolver.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 272[2mms[22m[39m
+ [32m✓[39m packages/agent/test/harness-p2.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+(node:18344) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
 (Use `node --trace-deprecation ...` to show where the warning was created)
- [32m✓[39m packages/studio/test/studio.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 567[2mms[22m[39m
- [32m✓[39m packages/core/test/fixtures.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 151[2mms[22m[39m
- [32m✓[39m packages/web/test/web.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 844[2mms[22m[39m
-   [33m[2m✓[22m[39m web M0[2m > [22mcomposes a standalone project and wins headlessly [33m410[2mms[22m[39m
- [32m✓[39m packages/agent/test/vision.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 33[2mms[22m[39m
- [32m✓[39m packages/unity/test/unity.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1142[2mms[22m[39m
-   [33m[2m✓[22m[39m unity M0 scaffold[2m > [22mrejects bad project version, manifest, config, and duplicate GUIDs [33m531[2mms[22m[39m
+ [32m✓[39m packages/studio/test/studio.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 585[2mms[22m[39m
+   [33m[2m✓[22m[39m studio assets[2m > [22mserves state, project, uploads, verification, files, and canvas saves [33m332[2mms[22m[39m
+ [32m✓[39m packages/core/test/fixtures.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 190[2mms[22m[39m
+ [32m✓[39m packages/web/test/web.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 873[2mms[22m[39m
+   [33m[2m✓[22m[39m web M0[2m > [22mcomposes a standalone project and wins headlessly [33m354[2mms[22m[39m
+ [32m✓[39m packages/agent/test/vision.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 94[2mms[22m[39m
+ [32m✓[39m packages/unity/test/unity.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1128[2mms[22m[39m
+   [33m[2m✓[22m[39m unity M0 scaffold[2m > [22mrejects bad project version, manifest, config, and duplicate GUIDs [33m501[2mms[22m[39m
  [32m✓[39m packages/agent/test/harness-session.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 16[2mms[22m[39m
- [32m✓[39m packages/web/test/sim.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 75[2mms[22m[39m
- [32m✓[39m packages/web/test/save.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 53[2mms[22m[39m
- [32m✓[39m packages/studio/test/agent.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1886[2mms[22m[39m
-   [33m[2m✓[22m[39m streams approval and completion for a Studio agent run [33m550[2mms[22m[39m
-   [33m[2m✓[22m[39m runs candidates and applies the selected candidate [33m559[2mms[22m[39m
-   [33m[2m✓[22m[39m resumes an interrupted run after a Studio restart [33m691[2mms[22m[39m
- [32m✓[39m packages/cli/test/cli.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1659[2mms[22m[39m
-   [33m[2m✓[22m[39m compose[2m > [22mcomposes the fixture into a temp directory [33m321[2mms[22m[39m
-   [33m[2m✓[22m[39m verify[2m > [22mfails G3 when Godot runs but the boot markers are missing [33m334[2mms[22m[39m
-   [33m[2m✓[22m[39m verify[2m > [22mskips G2/G3 when Godot is missing, without claiming pass [33m587[2mms[22m[39m
- [32m✓[39m packages/web/test/package.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1872[2mms[22m[39m
-   [33m[2m✓[22m[39m web package[2m > [22mpackages managed files and assets, excludes screenshots, and verifies [33m415[2mms[22m[39m
-   [33m[2m✓[22m[39m web package[2m > [22mrequires force to overwrite and rejects incomplete projects [33m815[2mms[22m[39m
-   [33m[2m✓[22m[39m web package[2m > [22mkeeps the previous package when a forced copy fails [33m537[2mms[22m[39m
- [32m✓[39m packages/core/test/tiled.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 17[2mms[22m[39m
- [32m✓[39m packages/godot/test/export.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 69[2mms[22m[39m
- [32m✓[39m packages/cli/test/eval.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 117[2mms[22m[39m
- [32m✓[39m packages/core/test/composer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 2533[2mms[22m[39m
-   [33m[2m✓[22m[39m composeProject[2m > [22mpreserves user files on a second compose [33m419[2mms[22m[39m
-   [33m[2m✓[22m[39m generated Godot project[2m > [22mwrites a main scene that mounts the HUD [33m341[2mms[22m[39m
-   [33m[2m✓[22m[39m generated Godot project[2m > [22mwrites a game manifest that separates managed and user files [33m337[2mms[22m[39m
-   [33m[2m✓[22m[39m generated Godot project[2m > [22mpreserves user edits to project.godot on recompose [33m549[2mms[22m[39m
+ [32m✓[39m packages/web/test/sim.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 66[2mms[22m[39m
+ [32m✓[39m packages/studio/test/agent.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 2001[2mms[22m[39m
+   [33m[2m✓[22m[39m streams approval and completion for a Studio agent run [33m568[2mms[22m[39m
+   [33m[2m✓[22m[39m runs candidates and applies the selected candidate [33m586[2mms[22m[39m
+   [33m[2m✓[22m[39m resumes an interrupted run after a Studio restart [33m770[2mms[22m[39m
+ [32m✓[39m packages/web/test/save.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m packages/cli/test/cli.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1818[2mms[22m[39m
+   [33m[2m✓[22m[39m compose[2m > [22mcomposes the fixture into a temp directory [33m420[2mms[22m[39m
+   [33m[2m✓[22m[39m verify[2m > [22mfails G2 when the detected Godot is older than 4.4 [33m417[2mms[22m[39m
+   [33m[2m✓[22m[39m verify[2m > [22mskips G2/G3 when Godot is missing, without claiming pass [33m498[2mms[22m[39m
+ [32m✓[39m packages/core/test/tiled.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m packages/web/test/package.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1798[2mms[22m[39m
+   [33m[2m✓[22m[39m web package[2m > [22mpackages managed files and assets, excludes screenshots, and verifies [33m571[2mms[22m[39m
+   [33m[2m✓[22m[39m web package[2m > [22mrequires force to overwrite and rejects incomplete projects [33m727[2mms[22m[39m
+   [33m[2m✓[22m[39m web package[2m > [22mkeeps the previous package when a forced copy fails [33m402[2mms[22m[39m
+ [32m✓[39m packages/godot/test/export.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 50[2mms[22m[39m
+ [32m✓[39m packages/cli/test/eval.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 124[2mms[22m[39m
  [32m✓[39m packages/core/test/schemas.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 17[2mms[22m[39m
- [32m✓[39m packages/agent/test/select-template.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m packages/core/test/composer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 2861[2mms[22m[39m
+   [33m[2m✓[22m[39m composeProject[2m > [22mpreserves user files on a second compose [33m528[2mms[22m[39m
+   [33m[2m✓[22m[39m generated Godot project[2m > [22mwrites a project.godot with Game first and modules after [33m360[2mms[22m[39m
+   [33m[2m✓[22m[39m generated Godot project[2m > [22mwrites a game manifest that separates managed and user files [33m477[2mms[22m[39m
+   [33m[2m✓[22m[39m generated Godot project[2m > [22mpreserves user edits to project.godot on recompose [33m453[2mms[22m[39m
+   [33m[2m✓[22m[39m generated Godot project[2m > [22mhashes the copied module tree in the lockfile [33m308[2mms[22m[39m
+ [32m✓[39m packages/cli/test/map.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 61[2mms[22m[39m
+ [32m✓[39m packages/agent/test/select-template.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 31[2mms[22m[39m
  [32m✓[39m packages/unity/test/runtime.test.ts [2m([22m[2m3 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m[90m 4[2mms[22m[39m
- [32m✓[39m packages/cli/test/map.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 98[2mms[22m[39m
- [32m✓[39m packages/core/test/m1-compose.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 3613[2mms[22m[39m
-   [33m[2m✓[22m[39m m1 composition[2m > [22mcopies template content without overwriting user edits [33m3612[2mms[22m[39m
- [32m✓[39m packages/cli/test/develop.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1588[2mms[22m[39m
-   [33m[2m✓[22m[39m development case[2m > [22mloads a case and develops a project through tools [33m400[2mms[22m[39m
-   [33m[2m✓[22m[39m development case[2m > [22mgenerates and selects among candidates [33m692[2mms[22m[39m
-   [33m[2m✓[22m[39m development case[2m > [22mstreams structured events and resolves Studio approvals [33m494[2mms[22m[39m
- [32m✓[39m packages/agent/test/harness-loop.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
- [32m✓[39m packages/agent/test/draft-game-spec.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 14[2mms[22m[39m
- [32m✓[39m packages/godot/test/package.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 1182[2mms[22m[39m
-   [33m[2m✓[22m[39m Godot package[2m > [22mcopies the source project and excludes generated/screenshot artifacts [33m546[2mms[22m[39m
-   [33m[2m✓[22m[39m Godot package[2m > [22mrefuses non-empty output and preserves the old package on copy failure [33m632[2mms[22m[39m
- [32m✓[39m packages/core/test/m0-compose.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 553[2mms[22m[39m
-   [33m[2m✓[22m[39m m0 composition[2m > [22mgenerates the input map, game scene, markers, and input assertions [33m552[2mms[22m[39m
- [32m✓[39m packages/cli/test/permissions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
- [32m✓[39m packages/godot/test/templates.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m packages/cli/test/develop.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1500[2mms[22m[39m
+   [33m[2m✓[22m[39m development case[2m > [22mloads a case and develops a project through tools [33m407[2mms[22m[39m
+   [33m[2m✓[22m[39m development case[2m > [22mgenerates and selects among candidates [33m650[2mms[22m[39m
+   [33m[2m✓[22m[39m development case[2m > [22mstreams structured events and resolves Studio approvals [33m441[2mms[22m[39m
+ [32m✓[39m packages/agent/test/harness-loop.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m packages/core/test/m1-compose.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 3841[2mms[22m[39m
+   [33m[2m✓[22m[39m m1 composition[2m > [22mcopies template content without overwriting user edits [33m3839[2mms[22m[39m
+ [32m✓[39m packages/agent/test/draft-game-spec.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m packages/cli/test/permissions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m packages/godot/test/package.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 1478[2mms[22m[39m
+   [33m[2m✓[22m[39m Godot package[2m > [22mcopies the source project and excludes generated/screenshot artifacts [33m604[2mms[22m[39m
+   [33m[2m✓[22m[39m Godot package[2m > [22mrefuses non-empty output and preserves the old package on copy failure [33m872[2mms[22m[39m
+ [32m✓[39m packages/godot/test/templates.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m packages/core/test/m0-compose.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 777[2mms[22m[39m
+   [33m[2m✓[22m[39m m0 composition[2m > [22mgenerates the input map, game scene, markers, and input assertions [33m776[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/sprite-e2e.test.ts [2m([22m[2m2 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m
-(node:20208) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(node:13940) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
 (Use `node --trace-deprecation ...` to show where the warning was created)
- [32m✓[39m packages/godot/test/run-screenshot.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 30[2mms[22m[39m
- [32m✓[39m packages/cli/test/unity.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 207[2mms[22m[39m
- [32m✓[39m packages/cli/test/screenshot-command.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
- [32m✓[39m packages/cli/test/mcp.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 470[2mms[22m[39m
-   [33m[2m✓[22m[39m MCP client[2m > [22minitializes, discovers tools, and drives a scene save [33m468[2mms[22m[39m
- [32m✓[39m packages/cli/test/web.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 583[2mms[22m[39m
- [32m✓[39m packages/godot/test/run-headless.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m packages/godot/test/run-screenshot.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m packages/cli/test/unity.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 310[2mms[22m[39m
+   [33m[2m✓[22m[39m unity commands[2m > [22mcomposes and verifies a project, then reports a stripped one [33m309[2mms[22m[39m
+ [32m✓[39m packages/cli/test/mcp.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 292[2mms[22m[39m
+ [32m✓[39m packages/cli/test/screenshot-command.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m packages/cli/test/web.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 477[2mms[22m[39m
  [32m✓[39m packages/agent/test/fake-provider.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
- [32m✓[39m packages/cli/test/benchmark.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 3494[2mms[22m[39m
-   [33m[2m✓[22m[39m case benchmark[2m > [22mdistinguishes playable from fallback [33m3486[2mms[22m[39m
- [32m✓[39m packages/cli/test/verify-retry.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 385[2mms[22m[39m
-   [33m[2m✓[22m[39m verify transient Godot crashes[2m > [22mretries a Windows import crash once instead of failing G2 [33m384[2mms[22m[39m
+ [32m✓[39m packages/godot/test/run-headless.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 8[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/map-e2e.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
- [32m✓[39m packages/core/test/export-presets.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 555[2mms[22m[39m
-   [33m[2m✓[22m[39m export presets[2m > [22mcreates Windows/Linux/Web presets and preserves user edits [33m553[2mms[22m[39m
- [32m✓[39m packages/web/test/camera.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 25[2mms[22m[39m
- [32m✓[39m packages/cli/test/cross-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 294[2mms[22m[39m
+ [32m✓[39m packages/cli/test/benchmark.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 3639[2mms[22m[39m
+   [33m[2m✓[22m[39m case benchmark[2m > [22mdistinguishes playable from fallback [33m3622[2mms[22m[39m
+ [32m✓[39m packages/core/test/export-presets.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 842[2mms[22m[39m
+   [33m[2m✓[22m[39m export presets[2m > [22mcreates Windows/Linux/Web presets and preserves user edits [33m840[2mms[22m[39m
+ [32m✓[39m packages/cli/test/cross-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 427[2mms[22m[39m
+   [33m[2m✓[22m[39m P1 cross-engine matrix[2m > [22mkeeps the survivor slice playable on Web and Unity [33m425[2mms[22m[39m
+ [32m✓[39m packages/web/test/camera.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m packages/cli/test/verify-retry.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 965[2mms[22m[39m
+   [33m[2m✓[22m[39m verify transient Godot crashes[2m > [22mretries a Windows import crash once instead of failing G2 [33m963[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/screenshot-e2e.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
- [32m✓[39m packages/cli/test/m0-verify.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2594[2mms[22m[39m
-   [33m[2m✓[22m[39m m0 verify markers[2m > [22mfails G3 when an M0 template marker is missing [33m819[2mms[22m[39m
-   [33m[2m✓[22m[39m m0 verify markers[2m > [22mfails G3 when an M1 template marker is missing [33m1774[2mms[22m[39m
+ [32m✓[39m packages/cli/test/m0-verify.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2506[2mms[22m[39m
+   [33m[2m✓[22m[39m m0 verify markers[2m > [22mfails G3 when an M0 template marker is missing [33m532[2mms[22m[39m
+   [33m[2m✓[22m[39m m0 verify markers[2m > [22mfails G3 when an M1 template marker is missing [33m1972[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/e2e.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
- [32m✓[39m packages/godot/test/detect.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m packages/godot/test/detect.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 19[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/m0-e2e.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m packages/cli/test/web-survivor.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 165[2mms[22m[39m
  [2m[90m↓[39m[22m packages/cli/test/create-e2e.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
- [32m✓[39m packages/cli/test/web-survivor.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 188[2mms[22m[39m
- [32m✓[39m packages/cli/test/web-genres.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 578[2mms[22m[39m
- [32m✓[39m packages/cli/test/create.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 7361[2mms[22m[39m
-   [33m[2m✓[22m[39m createCommand[2m > [22mcreates a project and verifies it [33m1604[2mms[22m[39m
-   [33m[2m✓[22m[39m createCommand[2m > [22mpreserves user content on a second create [33m3536[2mms[22m[39m
-   [33m[2m✓[22m[39m createCommand[2m > [22mnotices when auto falls back to the fake provider [33m2055[2mms[22m[39m
- [32m✓[39m packages/cli/test/web-platformer.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 182[2mms[22m[39m
- [32m✓[39m packages/cli/test/web-shooter.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 191[2mms[22m[39m
- [32m✓[39m packages/core/test/version.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 4[2mms[22m[39m
- [32m✓[39m packages/cli/test/unity-survivor.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 121[2mms[22m[39m
- [32m✓[39m packages/cli/test/unity-genres.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 803[2mms[22m[39m
- [32m✓[39m packages/cli/test/verify-visual.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 10063[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22madds a passing G6 only with --visual [33m2372[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22mruns a fake vision review and implies --visual [33m1343[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22mpasses the copied PNG path to the provider [33m1964[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 on missing OpenAI keys and provider errors [33m1305[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 when the vision review is not readable [33m2143[2mms[22m[39m
-   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 on invalid metrics [33m934[2mms[22m[39m
- [32m✓[39m packages/agent/test/create-project.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 7633[2mms[22m[39m
-   [33m[2m✓[22m[39m createProject[2m > [22mwrites gamedream.yaml and composes the fixture project [33m1956[2mms[22m[39m
-   [33m[2m✓[22m[39m createProject[2m > [22mpreserves user files on a second create [33m3549[2mms[22m[39m
-   [33m[2m✓[22m[39m createProject[2m > [22mbacks up a changed gamedream.yaml on re-create [33m1968[2mms[22m[39m
- [32m✓[39m packages/web/test/screenshot.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 12134[2mms[22m[39m
-   [33m[2m✓[22m[39m web screenshot[2m > [22mvalidates project and browser precedence [33m617[2mms[22m[39m
-   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures the flat default M0 renderer and passes the visual gate [33m6214[2mms[22m[39m
-   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures a narrow mobile viewport with touch layout [33m2838[2mms[22m[39m
-   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures a non-blank M1 Phaser screenshot [33m2406[2mms[22m[39m
+ [32m✓[39m packages/cli/test/web-genres.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 616[2mms[22m[39m
+ [32m✓[39m packages/cli/test/web-platformer.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 178[2mms[22m[39m
+ [32m✓[39m packages/cli/test/web-shooter.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 219[2mms[22m[39m
+ [32m✓[39m packages/core/test/version.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m packages/cli/test/unity-survivor.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 103[2mms[22m[39m
+ [32m✓[39m packages/cli/test/create.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 6913[2mms[22m[39m
+   [33m[2m✓[22m[39m createCommand[2m > [22mcreates a project and verifies it [33m1684[2mms[22m[39m
+   [33m[2m✓[22m[39m createCommand[2m > [22mpreserves user content on a second create [33m3466[2mms[22m[39m
+   [33m[2m✓[22m[39m createCommand[2m > [22mnotices when auto falls back to the fake provider [33m1689[2mms[22m[39m
+ [32m✓[39m packages/cli/test/unity-genres.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 720[2mms[22m[39m
+ [32m✓[39m packages/cli/test/verify-visual.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 9431[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22madds a passing G6 only with --visual [33m1800[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22mruns a fake vision review and implies --visual [33m1457[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22mpasses the copied PNG path to the provider [33m1943[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 on missing OpenAI keys and provider errors [33m1433[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 when the vision review is not readable [33m1515[2mms[22m[39m
+   [33m[2m✓[22m[39m visual gate[2m > [22mfails G6 on invalid metrics [33m1280[2mms[22m[39m
+ [32m✓[39m packages/agent/test/create-project.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 7334[2mms[22m[39m
+   [33m[2m✓[22m[39m createProject[2m > [22mwrites gamedream.yaml and composes the fixture project [33m2140[2mms[22m[39m
+   [33m[2m✓[22m[39m createProject[2m > [22mpreserves user files on a second create [33m3391[2mms[22m[39m
+   [33m[2m✓[22m[39m createProject[2m > [22mbacks up a changed gamedream.yaml on re-create [33m1703[2mms[22m[39m
+ [32m✓[39m packages/web/test/screenshot.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 11573[2mms[22m[39m
+   [33m[2m✓[22m[39m web screenshot[2m > [22mvalidates project and browser precedence [33m530[2mms[22m[39m
+   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures the flat default M0 renderer and passes the visual gate [33m5664[2mms[22m[39m
+   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures a narrow mobile viewport with touch layout [33m2803[2mms[22m[39m
+   [33m[2m✓[22m[39m web screenshot browser[2m > [22mcaptures a non-blank M1 Phaser screenshot [33m2528[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m55 passed[39m[22m[2m | [22m[33m6 skipped[39m[90m (61)[39m
 [2m      Tests [22m [1m[32m222 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (231)[39m
-[2m   Start at [22m 18:54:42
-[2m   Duration [22m 14.00s[2m (transform 3.29s, setup 0ms, collect 23.13s, tests 66.43s, environment 19ms, prepare 13.27s)[22m
+[2m   Start at [22m 18:58:49
+[2m   Duration [22m 13.32s[2m (transform 3.55s, setup 0ms, collect 21.04s, tests 66.54s, environment 18ms, prepare 12.17s)[22m
 
-EXIT=0
+EXIT=0 
