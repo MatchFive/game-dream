@@ -32,6 +32,7 @@ function inferGenre(prompt: string): string {
 
 export class FakeProvider implements ModelProvider {
   readonly name = 'fake';
+  readonly model = 'fake';
   private readonly responses: string[];
 
   constructor(options: FakeProviderOptions = {}) {

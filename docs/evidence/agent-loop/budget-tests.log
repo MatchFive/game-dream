@@ -1,11 +1,11 @@
 ﻿
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/agent/test/harness-loop.test.ts (3 tests) 7ms
+ ✓ packages/agent/test/harness-loop.test.ts (4 tests) 6ms
 
  Test Files  1 passed (1)
-      Tests  3 passed (3)
-   Start at  19:16:11
-   Duration  832ms (transform 109ms, setup 0ms, collect 184ms, tests 7ms, environment 0ms, prepare 244ms)
+      Tests  4 passed (4)
+   Start at  21:18:10
+   Duration  638ms (transform 82ms, setup 0ms, collect 135ms, tests 6ms, environment 0ms, prepare 165ms)
 
 EXIT=0

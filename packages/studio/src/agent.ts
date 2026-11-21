@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import {
   appendFileSync,
   cpSync,
@@ -38,9 +38,18 @@ export const AGENT_POLICY_TOOLS = [
   'finish',
 ] as const;
 
+export interface AgentPolicyRule {
+  tool: string;
+  mode: AgentToolMode;
+  arg?: string;
+  prefix?: string;
+  reason?: string;
+}
+
 export interface AgentPolicy {
   default?: AgentToolMode;
   tools?: Record<string, AgentToolMode>;
+  rules?: AgentPolicyRule[];
 }
 
 export interface AgentEvent {
@@ -87,10 +96,11 @@ export interface AgentUsage {
   promptTokens?: number;
   completionTokens?: number;
   cachedTokens?: number;
+  costUsd?: number;
 }
 
 export interface AgentBudgetExceeded {
-  kind: 'total-tokens' | 'prompt-tokens';
+  kind: 'total-tokens' | 'prompt-tokens' | 'cost';
   limit: number;
   used: number;
 }
@@ -126,6 +136,7 @@ export interface AgentRun {
   error?: string;
   score?: number;
   exitCode?: number;
+  pid?: number;
   log?: string;
 }
 
@@ -143,8 +154,10 @@ export interface AgentBatch {
   maxSteps?: number;
   maxTokens?: number;
   maxPromptTokens?: number;
+  maxCostUsd?: number;
   approvalTools?: string[];
   resume?: boolean;
+  retryOf?: string;
   lastBackup?: AgentBackup;
   permissions?: string;
 }
@@ -159,6 +172,7 @@ interface AgentStartInput {
   approvalTools?: string[];
   maxTokens?: number;
   maxPromptTokens?: number;
+  maxCostUsd?: number;
 }
 
 interface AgentManagerOptions {
@@ -257,6 +271,65 @@ function optionalTokenLimit(value: unknown): number | undefined {
   return Math.trunc(number);
 }
 
+function optionalCostLimit(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return undefined;
+  return number;
+}
+
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function processCommandLine(pid: number): string | undefined {
+  try {
+    if (process.platform === 'win32') {
+      const result = spawnSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`,
+        ],
+        { encoding: 'utf8', timeout: 5000, windowsHide: true },
+      );
+      return result.stdout?.trim() || undefined;
+    }
+    if (process.platform === 'linux') {
+      return readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ').trim();
+    }
+    const result = spawnSync('ps', ['-p', String(pid), '-o', 'command='], {
+      encoding: 'utf8',
+      timeout: 5000,
+    });
+    return result.stdout?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function killPidTree(pid: number): void {
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], {
+      timeout: 10_000,
+      windowsHide: true,
+    });
+  } else {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      // The process may have exited between the identity check and kill.
+    }
+  }
+}
+
 function listCandidateFiles(root: string, prefix = ''): string[] {
   if (!existsSync(root)) return [];
   const files: string[] = [];
@@ -347,6 +420,40 @@ export class AgentManager {
     return policy;
   }
 
+  addPolicyRule(rule: AgentPolicyRule): AgentPolicy {
+    if (
+      !rule
+      || typeof rule.tool !== 'string'
+      || !rule.tool.trim()
+      || !['allow', 'ask', 'deny'].includes(rule.mode)
+      || (rule.arg !== undefined && typeof rule.arg !== 'string')
+      || (rule.prefix !== undefined && typeof rule.prefix !== 'string')
+    ) {
+      throw new Error('invalid permission rule');
+    }
+    const policy = this.getPolicy();
+    policy.rules = [...(policy.rules ?? []), {
+      tool: rule.tool.trim(),
+      mode: rule.mode,
+      ...(rule.arg?.trim() ? { arg: rule.arg.trim() } : {}),
+      ...(rule.prefix !== undefined ? { prefix: rule.prefix } : {}),
+      ...(rule.reason?.trim() ? { reason: rule.reason.trim().slice(0, 300) } : {}),
+    }];
+    policy.default ??= 'allow';
+    this.writePolicy(policy);
+    return policy;
+  }
+
+  removePolicyRule(index: number): AgentPolicy {
+    const policy = this.getPolicy();
+    if (!Array.isArray(policy.rules) || !Number.isInteger(index) || index < 0 || index >= policy.rules.length) {
+      throw new Error('permission rule not found');
+    }
+    policy.rules.splice(index, 1);
+    this.writePolicy(policy);
+    return policy;
+  }
+
   private writePolicy(policy: AgentPolicy): void {
     const path = this.policyPath();
     mkdirSync(dirname(path), { recursive: true });
@@ -363,6 +470,7 @@ export class AgentManager {
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || 12));
     const maxTokens = optionalTokenLimit(input.maxTokens);
     const maxPromptTokens = optionalTokenLimit(input.maxPromptTokens);
+    const maxCostUsd = optionalCostLimit(input.maxCostUsd);
     const policyPath = this.policyPath();
     const hasPolicy = existsSync(policyPath);
     const approvalTools = input.approvalTools ?? (hasPolicy ? [] : ['scaffold', 'mcp']);
@@ -400,6 +508,7 @@ export class AgentManager {
       maxSteps,
       maxTokens,
       maxPromptTokens,
+      maxCostUsd,
       approvalTools,
       resume: input.resume === true,
       permissions: hasPolicy ? policyPath : undefined,
@@ -436,6 +545,29 @@ export class AgentManager {
     this.persist(batch);
     this.notify();
     return approval;
+  }
+
+  async retry(batchId: string): Promise<AgentBatch> {
+    const previous = this.batches.get(batchId);
+    if (!previous) throw new Error('agent batch not found');
+    if (!['failed', 'canceled', 'budget-exceeded'].includes(previous.status)) {
+      throw new Error('only failed, canceled, or budget-exceeded batches can be retried');
+    }
+    const batch = await this.start({
+      prompt: previous.prompt,
+      provider: previous.provider,
+      skill: previous.skill,
+      maxSteps: previous.maxSteps,
+      maxTokens: previous.maxTokens,
+      maxPromptTokens: previous.maxPromptTokens,
+      maxCostUsd: previous.maxCostUsd,
+      approvalTools: previous.approvalTools,
+      resume: false,
+    });
+    batch.retryOf = previous.id;
+    this.persist(batch);
+    this.notify();
+    return batch;
   }
 
   cancel(batchId: string): AgentBatch {
@@ -548,6 +680,32 @@ export class AgentManager {
     return batch;
   }
 
+  deleteBatch(batchId: string): string[] {
+    const batch = this.batches.get(batchId);
+    if (!batch) throw new Error('agent batch not found');
+    if (this.activeBatchId === batchId || ['running', 'awaiting-approval', 'queued'].includes(batch.status)) {
+      throw new Error('cannot delete an active or queued batch');
+    }
+    rmSync(this.batchRoot(batch.id), { recursive: true, force: true });
+    this.batches.delete(batch.id);
+    this.queue.splice(0, this.queue.length, ...this.queue.filter((id) => id !== batch.id));
+    this.notify();
+    return [batch.id];
+  }
+
+  clearFinished(): string[] {
+    const removed: string[] = [];
+    for (const batch of [...this.batches.values()]) {
+      if (batch.id === this.activeBatchId) continue;
+      if (['running', 'awaiting-approval', 'queued'].includes(batch.status)) continue;
+      rmSync(this.batchRoot(batch.id), { recursive: true, force: true });
+      this.batches.delete(batch.id);
+      removed.push(batch.id);
+    }
+    if (removed.length > 0) this.notify();
+    return removed;
+  }
+
   close(): void {
     for (const timer of this.timers.values()) clearInterval(timer);
     this.timers.clear();
@@ -590,6 +748,7 @@ export class AgentManager {
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || batch.maxSteps || 12));
     const maxTokens = optionalTokenLimit(input.maxTokens ?? batch.maxTokens);
     const maxPromptTokens = optionalTokenLimit(input.maxPromptTokens ?? batch.maxPromptTokens);
+    const maxCostUsd = optionalCostLimit(input.maxCostUsd ?? batch.maxCostUsd);
     const approvalTools = input.approvalTools ?? batch.approvalTools ?? ['scaffold', 'mcp'];
     const permissions = batch.permissions;
     const args = [
@@ -616,6 +775,7 @@ export class AgentManager {
     ];
     if (maxTokens !== undefined) args.push('--max-tokens', String(maxTokens));
     if (maxPromptTokens !== undefined) args.push('--max-prompt-tokens', String(maxPromptTokens));
+    if (maxCostUsd !== undefined) args.push('--max-cost', String(maxCostUsd));
     if (permissions) args.push('--permissions', permissions);
     if (eventSeqStart > 0) args.push('--event-seq-start', String(eventSeqStart));
     if (input.resume) args.push('--resume');
@@ -635,6 +795,8 @@ export class AgentManager {
       return;
     }
     this.children.set(run.id, child);
+    run.pid = child.pid;
+    this.persist(batch);
     const log: string[] = [];
     child.stdout?.on('data', (chunk) => {
       log.push(String(chunk));
@@ -649,12 +811,14 @@ export class AgentManager {
     child.once('error', (error) => {
       run.status = 'failed';
       run.error = error.message;
+      run.pid = undefined;
       this.children.delete(run.id);
       this.stopTimer(run.id);
       this.reconcile(batch);
     });
     child.once('close', (code) => {
       run.exitCode = code ?? undefined;
+      run.pid = undefined;
       this.children.delete(run.id);
       this.readRun(batch, run);
       this.stopTimer(run.id);
@@ -686,7 +850,10 @@ export class AgentManager {
         run.score = scoreReport(run.report);
         if (run.report?.budgetExceeded) {
           run.status = 'budget-exceeded';
-          run.error = `token budget exceeded: ${run.report.budgetExceeded.used}/${run.report.budgetExceeded.limit}`;
+          const budget = run.report.budgetExceeded;
+          run.error = budget.kind === 'cost'
+            ? `cost budget exceeded: $${budget.used.toFixed(6)}/$${budget.limit.toFixed(6)}`
+            : `token budget exceeded: ${budget.used}/${budget.limit}`;
         } else {
           run.status = run.report?.finished === false ? 'failed' : 'finished';
         }
@@ -762,6 +929,7 @@ export class AgentManager {
           maxSteps: batch.maxSteps,
           maxTokens: batch.maxTokens,
           maxPromptTokens: batch.maxPromptTokens,
+          maxCostUsd: batch.maxCostUsd,
           approvalTools: batch.approvalTools,
           resume: batch.resume,
         });
@@ -835,10 +1003,49 @@ export class AgentManager {
         }
         raw.status = batchStatus(raw.candidates);
         this.batches.set(raw.id, raw);
+        if (this.reapStaleBatch(raw)) this.persist(raw);
       } catch {
         // Ignore malformed history entries.
       }
     }
+  }
+
+  private reapStaleBatch(batch: AgentBatch): boolean {
+    let changed = false;
+    for (const run of batch.candidates) {
+      if (!Number.isInteger(run.pid) || (run.pid as number) <= 0) continue;
+      const pid = run.pid as number;
+      let killed = false;
+      let verified = false;
+      if (processAlive(pid)) {
+        const command = processCommandLine(pid);
+        verified = Boolean(command && command.includes(run.id));
+        if (verified) {
+          killPidTree(pid);
+          killed = true;
+        }
+      }
+      const events = readEvents(run.eventsFile);
+      const seq = events.reduce((max, event) => Math.max(max, event.seq), 0) + 1;
+      appendFileSync(
+        run.eventsFile,
+        `${JSON.stringify({
+          seq,
+          at: new Date().toISOString(),
+          runId: run.id,
+          type: 'run/reaped',
+          pid,
+          killed,
+          verified,
+        })}\n`,
+        'utf8',
+      );
+      run.pid = undefined;
+      run.events = readEvents(run.eventsFile);
+      if (killed) run.error = 'stale agent process reaped on restart';
+      changed = true;
+    }
+    return changed;
   }
 
   private recoverInterrupted(): void {
@@ -887,6 +1094,9 @@ export class AgentManager {
             provider: batch.provider,
             skill: batch.skill,
             maxSteps: batch.maxSteps,
+            maxTokens: batch.maxTokens,
+            maxPromptTokens: batch.maxPromptTokens,
+            maxCostUsd: batch.maxCostUsd,
             approvalTools: batch.approvalTools,
             resume: true,
           },

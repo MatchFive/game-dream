@@ -19,9 +19,11 @@ export interface OpenAICompatibleOptions {
 
 export class OpenAICompatibleProvider implements ModelProvider {
   readonly name = 'openai';
+  readonly model: string;
   private readonly fetchImpl: typeof fetch;
 
   constructor(private readonly options: OpenAICompatibleOptions) {
+    this.model = options.model;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 

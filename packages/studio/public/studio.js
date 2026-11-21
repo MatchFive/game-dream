@@ -10,6 +10,8 @@ const state = {
   verifying: false,
   agent: null,
   agentQueue: [],
+  agentHistory: [],
+  agentBatchId: null,
   agentRunId: null,
   agentPoll: null,
   agentSource: null,
@@ -119,11 +121,14 @@ function agentUsageText(report) {
   const cache = usage.promptTokens
     ? Math.round(((usage.cachedTokens ?? 0) / usage.promptTokens) * 100)
     : 0;
-  return t('studio.agentUsage', {
+  const text = t('studio.agentUsage', {
     calls: usage.calls,
     tokens,
     cache,
   });
+  return usage.costUsd === undefined
+    ? text
+    : `${text} · ${t('studio.agentCost', { cost: usage.costUsd.toFixed(6) })}`;
 }
 
 function agentEventDetails(summary, body) {
@@ -175,6 +180,7 @@ function renderAgentPolicy() {
     ...Object.keys(policy.tools ?? {}),
   ])].sort();
   const defaultMode = policy.default ?? 'allow';
+  const rules = Array.isArray(policy.rules) ? policy.rules : [];
   panel.innerHTML = `
     <div class="studio-agent-policy-source">${escapeHtml(
       t('studio.agentPolicySource', { path: state.agentPolicySource ?? '.gamedream/studio/agent-policy.json' }),
@@ -190,6 +196,23 @@ function renderAgentPolicy() {
       </div>
     `).join('')}
     <div class="studio-agent-policy-note">${escapeHtml(t('studio.agentPolicyNote'))}</div>
+    <div class="studio-agent-policy-rule-head">${escapeHtml(t('studio.agentPolicyRules'))}</div>
+    ${rules.map((rule, index) => `
+      <div class="studio-agent-policy-rule">
+        <code>${escapeHtml(rule.tool)}${rule.arg ? ` · ${escapeHtml(rule.arg)}${rule.prefix ? ` → ${escapeHtml(rule.prefix)}` : ''}` : ''}</code>
+        <span>${escapeHtml(agentPolicyModeLabel(rule.mode))}</span>
+        <button type="button" data-policy-rule-delete="${index}" aria-label="${escapeHtml(t('studio.agentPolicyRuleDelete'))}">×</button>
+      </div>
+    `).join('')}
+    <div class="studio-agent-policy-rule-form">
+      <select data-policy-rule-tool aria-label="${escapeHtml(t('studio.agentPolicyRuleTool'))}">
+        ${tools.map((tool) => `<option value="${escapeHtml(tool)}">${escapeHtml(tool)}</option>`).join('')}
+      </select>
+      <input data-policy-rule-arg placeholder="${escapeHtml(t('studio.agentPolicyRuleArg'))}" aria-label="${escapeHtml(t('studio.agentPolicyRuleArg'))}">
+      <input data-policy-rule-prefix placeholder="${escapeHtml(t('studio.agentPolicyRulePrefix'))}" aria-label="${escapeHtml(t('studio.agentPolicyRulePrefix'))}">
+      <select data-policy-rule-mode aria-label="${escapeHtml(t('studio.agentPolicyRuleMode'))}">${agentPolicyOptions('ask')}</select>
+      <button class="button secondary" type="button" data-policy-rule-add>${escapeHtml(t('studio.agentPolicyRuleAdd'))}</button>
+    </div>
   `;
   $('[data-agent-policy-default]', panel)?.addEventListener('change', (event) => {
     saveAgentPolicy('', event.target.value, true);
@@ -198,6 +221,16 @@ function renderAgentPolicy() {
     select.addEventListener('change', () => {
       saveAgentPolicy(select.dataset.agentPolicyTool, select.value, false);
     });
+  });
+  $$('[data-policy-rule-delete]', panel).forEach((button) => {
+    button.addEventListener('click', () => deleteAgentPolicyRule(Number(button.dataset.policyRuleDelete)));
+  });
+  $('[data-policy-rule-add]', panel)?.addEventListener('click', () => {
+    const tool = $('[data-policy-rule-tool]', panel)?.value;
+    const arg = $('[data-policy-rule-arg]', panel)?.value;
+    const prefix = $('[data-policy-rule-prefix]', panel)?.value;
+    const mode = $('[data-policy-rule-mode]', panel)?.value;
+    saveAgentPolicyRule({ tool, arg, prefix, mode });
   });
 }
 
@@ -223,6 +256,38 @@ async function saveAgentPolicy(tool, mode, isDefault) {
   } catch (error) {
     toast(t('studio.agentPolicyFailed', { message: error.message }));
     await loadAgentPolicy(true);
+  }
+}
+
+async function saveAgentPolicyRule({ tool, arg, prefix, mode }) {
+  if (!tool) return;
+  try {
+    const data = await request('/api/agent/policy/rules', {
+      method: 'POST',
+      body: JSON.stringify({
+        tool,
+        mode: mode || 'ask',
+        arg: arg?.trim() || undefined,
+        prefix: prefix || undefined,
+      }),
+    });
+    state.agentPolicy = data.policy ?? state.agentPolicy;
+    state.agentPolicyTools = data.availableTools ?? state.agentPolicyTools;
+    renderAgentPolicy();
+    toast(t('studio.agentPolicyRuleSaved'));
+  } catch (error) {
+    toast(t('studio.agentPolicyFailed', { message: error.message }));
+  }
+}
+
+async function deleteAgentPolicyRule(index) {
+  try {
+    const data = await request(`/api/agent/policy/rules/${index}`, { method: 'DELETE' });
+    state.agentPolicy = data.policy ?? state.agentPolicy;
+    renderAgentPolicy();
+    toast(t('studio.agentPolicyRuleSaved'));
+  } catch (error) {
+    toast(t('studio.agentPolicyFailed', { message: error.message }));
   }
 }
 
@@ -266,10 +331,15 @@ function agentThreadMarkup(run) {
         .map(([name, gate]) => `${name}:${t(`common.${gate?.status === 'pass' ? 'pass' : gate?.status === 'fail' ? 'fail' : 'skip'}`)}`)
         .join(' ');
       const summary = report.budgetExceeded
-        ? t('studio.agentBudgetStopped', {
-            used: report.budgetExceeded.used,
-            limit: report.budgetExceeded.limit,
-          })
+        ? report.budgetExceeded.kind === 'cost'
+          ? t('studio.agentCostStopped', {
+              used: report.budgetExceeded.used.toFixed(6),
+              limit: report.budgetExceeded.limit.toFixed(6),
+            })
+          : t('studio.agentBudgetStopped', {
+              used: report.budgetExceeded.used,
+              limit: report.budgetExceeded.limit,
+            })
         : report.finished === false
           ? t('studio.agentRunIncomplete', { steps: report.steps ?? 0 })
           : t('studio.agentRunEnd', {
@@ -286,6 +356,15 @@ function agentThreadMarkup(run) {
     }
     if (event.type === 'approval/request') {
       items.push(`<div class="studio-agent-progress">${escapeHtml(t('studio.agentApprovalRequest', { tool: String(event.tool ?? '') }))}</div>`);
+      continue;
+    }
+    if (event.type === 'permission/audit') {
+      items.push(`<div class="studio-agent-step">${escapeHtml(t('studio.agentAudit', {
+        tool: String(event.tool ?? ''),
+        mode: String(event.mode ?? ''),
+        source: String(event.source ?? ''),
+        result: event.allowed === true ? t('common.pass') : t('common.fail'),
+      }))}</div>`);
       continue;
     }
     if (event.type === 'approval/decision') {
@@ -349,6 +428,28 @@ function renderAgent() {
   }`;
   $('#agentStart').disabled = false;
   $('#agentCancel').hidden = !(status === 'running' || status === 'awaiting-approval');
+  $('#agentRetry').hidden = !batch || !['failed', 'canceled', 'budget-exceeded'].includes(status);
+  const history = state.agentHistory ?? [];
+  const historyElement = $('#agentHistory');
+  historyElement.hidden = history.length === 0;
+  historyElement.innerHTML = history.length === 0 ? '' : `
+    ${history.slice(0, 8).map((item) => `
+      <button type="button" data-agent-history="${escapeHtml(item.id)}" aria-selected="${item.id === state.agentBatchId ? 'true' : 'false'}" title="${escapeHtml(item.prompt)}">
+        ${escapeHtml(agentStatusLabel(item.status))} · ${escapeHtml(item.prompt.slice(0, 32))}
+      </button>
+    `).join('')}
+    ${history.some((item) => !['running', 'awaiting-approval', 'queued'].includes(item.status))
+      ? `<button type="button" class="studio-history-clear" data-agent-clear-history>${t('studio.agentClearHistory')}</button>`
+      : ''}
+  `;
+  $$('[data-agent-history]', historyElement).forEach((button) => {
+    button.addEventListener('click', () => {
+      state.agentBatchId = button.dataset.agentHistory;
+      state.agentRunId = null;
+      renderAgent();
+    });
+  });
+  $('[data-agent-clear-history]', historyElement)?.addEventListener('click', clearAgentHistory);
   const candidateCount = Number($('#agentCandidateCount').value) || 1;
   $('#agentResume').disabled = candidateCount > 1;
   const queued = state.agentQueue ?? [];
@@ -501,7 +602,12 @@ function scheduleAgentPoll() {
 
 async function applyAgentData(data) {
   const previousStatus = state.agentLastStatus;
-  const batch = data.active ?? data.batches?.[0] ?? null;
+  state.agentHistory = data.batches ?? [];
+  const selected = state.agentBatchId
+    ? state.agentHistory.find((item) => item.id === state.agentBatchId)
+    : undefined;
+  if (!selected) state.agentBatchId = null;
+  const batch = selected ?? data.active ?? state.agentHistory[0] ?? null;
   state.agent = batch;
   state.agentQueue = data.queued ?? [];
   state.agentLastStatus = batch?.status ?? null;
@@ -583,6 +689,10 @@ async function startAgent() {
   const maxTokens = Number.isFinite(maxTokensValue) && maxTokensValue > 0
     ? Math.trunc(maxTokensValue)
     : undefined;
+  const maxCostValue = Number($('#agentMaxCost').value);
+  const maxCostUsd = Number.isFinite(maxCostValue) && maxCostValue > 0
+    ? maxCostValue
+    : undefined;
   $('#agentStart').disabled = true;
   try {
     await request('/api/agent/start', {
@@ -592,11 +702,13 @@ async function startAgent() {
         candidates,
         maxSteps,
         maxTokens,
+        maxCostUsd,
         resume: candidates === 1 && $('#agentResume').checked,
         provider: 'auto',
       }),
     });
     state.agentRunId = null;
+    state.agentBatchId = null;
     toast(t('studio.agentStarted'));
     await loadAgent();
   } catch (error) {
@@ -641,6 +753,33 @@ async function decideAgentApproval(allowed, remember = false) {
     $('#agentAllow').disabled = false;
     $('#agentAllowAlways').disabled = false;
     $('#agentDeny').disabled = false;
+  }
+}
+
+async function retryAgent() {
+  if (!state.agent) return;
+  try {
+    await request(`/api/agent/batches/${encodeURIComponent(state.agent.id)}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    state.agentBatchId = null;
+    state.agentRunId = null;
+    toast(t('studio.agentRetryStarted'));
+    await loadAgent(true);
+  } catch (error) {
+    toast(t('studio.agentStartFailed', { message: error.message }));
+  }
+}
+
+async function clearAgentHistory() {
+  try {
+    await request('/api/agent/batches/clear', { method: 'DELETE' });
+    state.agentBatchId = null;
+    toast(t('studio.agentHistoryCleared'));
+    await loadAgent(true);
+  } catch (error) {
+    toast(t('studio.agentStartFailed', { message: error.message }));
   }
 }
 
@@ -975,6 +1114,7 @@ $('#playBtn').addEventListener('click', startPlaytest);
 $('#playClose').addEventListener('click', stopPlaytest);
 $('#agentStart').addEventListener('click', startAgent);
 $('#agentCancel').addEventListener('click', cancelAgent);
+$('#agentRetry').addEventListener('click', retryAgent);
 $('#agentPolicyToggle').addEventListener('click', toggleAgentPolicy);
 $('#agentAllow').addEventListener('click', () => decideAgentApproval(true));
 $('#agentAllowAlways').addEventListener('click', () => decideAgentApproval(true, true));

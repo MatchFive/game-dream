@@ -5,20 +5,23 @@
 
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/studio/test/agent.test.ts (7 tests) 3714ms
-   ✓ streams approval and completion for a Studio agent run 491ms
-   ✓ runs candidates and applies the selected candidate 571ms
-   ✓ marks a run stopped by the token budget 388ms
-   ✓ queues batches, cancels a queued batch, and starts the next one 1197ms
-   ✓ resumes an interrupted run after a Studio restart 952ms
- ✓ packages/cli/test/develop.test.ts (4 tests) 2453ms
-   ✓ development case > loads a case and develops a project through tools 805ms
-   ✓ development case > generates and selects among candidates 948ms
-   ✓ development case > streams structured events and resolves Studio approvals 638ms
+ ✓ packages/cli/test/develop.test.ts (6 tests) 2465ms
+   ✓ development case > loads a case and develops a project through tools 1003ms
+   ✓ development case > generates and selects among candidates 722ms
+   ✓ development case > streams structured events and resolves Studio approvals 639ms
+ ✓ packages/studio/test/agent.test.ts (11 tests) 9411ms
+   ✓ streams approval and completion for a Studio agent run 461ms
+   ✓ runs candidates and applies the selected candidate 587ms
+   ✓ marks a run stopped by the cost budget 439ms
+   ✓ retries a terminal batch into a linked new generation 321ms
+   ✓ queues batches, cancels a queued batch, and starts the next one 1016ms
+   ✓ reaps a persisted stale agent process after restart 2229ms
+   ✓ does not kill a reused pid whose command line does not match 2009ms
+   ✓ resumes an interrupted run after a Studio restart 1949ms
 
  Test Files  2 passed (2)
-      Tests  11 passed (11)
-   Start at  20:57:33
-   Duration  6.72s (transform 2.18s, setup 0ms, collect 3.86s, tests 6.17s, environment 1ms, prepare 532ms)
+      Tests  17 passed (17)
+   Start at  21:15:25
+   Duration  10.66s (transform 2.65s, setup 0ms, collect 4.16s, tests 11.88s, environment 1ms, prepare 533ms)
 
 EXIT=0

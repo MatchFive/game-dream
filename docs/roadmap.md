@@ -21,8 +21,8 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**234 passed / 9 skipped**
-- Agent focused tests：**11 passed**
+- 全量测试：**244 passed / 9 skipped**
+- Agent focused tests：**17 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图 **3/3 pass**
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -47,7 +47,7 @@
 
 | 阶段 | 目标 | 主要产出 | 状态 |
 |---|---|---|---|
-| M1 | Agent 运行生产化 | 硬预算、队列、策略编辑、崩溃恢复 | In progress |
+| M1 | Agent 运行生产化 | 硬预算、费用预算、队列、策略编辑/参数规则、崩溃回收、历史、重试 | Done |
 | M2 | 验证与试玩闭环 | 真实 playtest、Unity runtime、G6 集成 | Next |
 | M3 | 资产管线完整化 | 动画序列、音频 UI、SFX、构建素材落地 | In progress |
 | M4 | 游戏内容深度 | survivor/roguelike/模板内容提升 | Backlog |
@@ -58,21 +58,23 @@
 | ID | 事项 | 当前缺口 | 验收标准 | 状态 |
 |---|---|---|---|---|
 | A1 | Token 硬预算 | 已实现总 token 和 prompt token 停止；provider 不返回 usage 时无法约束 | 达预算前停止、`run/budget` 事件、`budget-exceeded` 状态、CLI/Studio 测试 | Done |
-| A1b | 费用/金额预算 | 尚无模型价格表和货币预算 | 按模型价格估算成本，达到预算前停止；未知价格显式标记 | Backlog |
+| A1b | 费用/金额预算 | 已支持模型价格表/环境覆盖、`--max-cost`、成本停止与 usage 展示；未知价格显式失败 | 按价格估算成本，达到预算前停止；未知价格显式标记 | Done |
 | A2 | Agent 队列与并发 | 已支持 FIFO 批次队列、取消排队、自动接续；批级别并发上限为 1 | 连续提交不阻塞、queued 状态进入 SSE/UI、取消队列、当前批次结束后自动启动下一项 | Done |
-| A3 | 审批策略编辑器 | 已支持按工具和默认模式的 allow/ask/deny 编辑、来源展示；参数级规则未实现 | 可按工具编辑、保存到 policy 文件、来源可见、未来 run 生效 | Done |
-| A3b | 参数级审批规则 | 目前规则粒度只有工具名和默认模式 | 可按参数/路径范围匹配；越界操作仍走 ask/deny；审计记录 | Backlog |
-| A4 | 硬崩溃子进程回收 | graceful restart 可恢复，hard crash 遗留进程不回收 | 持久化 PID/启动标识；重启时安全判断并回收旧进程 | Backlog |
-| A5 | 运行历史 UI | API 有 batch history，Studio 主要显示 latest | 历史列表、切换查看、清理旧 batch | Backlog |
-| A6 | Agent 失败重试 | 失败后需重新发起 | 支持 retry 当前 prompt、保留旧事件、明确新 generation | Backlog |
+| A3 | 审批策略编辑器 | 已支持按工具和默认模式的 allow/ask/deny 编辑、来源展示 | 可按工具编辑、保存到 policy 文件、来源可见、未来 run 生效 | Done |
+| A3b | 参数级审批规则 | 已支持工具 + arg + path prefix 匹配；最后匹配规则优先；越界回退到工具/默认；`permission/audit` 事件 | 参数/路径规则、越界 ask/deny、审计记录 | Done |
+| A4 | 硬崩溃子进程回收 | 已持久化 PID，重启时校验命令行包含 run id 后再 tree-kill；不匹配的 PID 不杀 | 安全回收 stale child，PID 复用不误杀 | Done |
+| A5 | 运行历史 UI | 已显示历史批次、切换查看、清理已结束批次 | 历史列表、切换查看、清理旧 batch | Done |
+| A6 | Agent 失败重试 | 已支持 failed/canceled/budget-exceeded 批次重试，新批次带 `retryOf`，旧批次与事件保留 | 失败后重试、保留旧事件、明确新 generation | Done |
 
 ### A1 预算语义
 
 - `maxSteps` 限制工具/模型步数，不限制成本。
 - `maxTokens` 在累计 `prompt + completion` 达到上限后、下一次工具/模型动作前停止。
 - `maxPromptTokens` 在累计 prompt token 达到上限后停止。
+- `maxCostUsd` 按 prompt/cached/completion 单价估算美元，达到上限后停止；价格来自模型表或 `GAMEDREAM_PRICE_*_PER_MTOK` 覆盖。
+- 未知价格时设置费用预算会显式失败，不用 0 成本假装预算生效。
 - 触发时写入 `run/budget`，报告 `budgetExceeded`，Studio 状态为 `budget-exceeded`。
-- 不把未返回 usage 的 provider 当作“预算已生效”；金额预算仍待 A1b。
+- 不把未返回 usage 的 provider 当作“预算已生效”。
 
 ## 5. P0 · 验证与试玩
 

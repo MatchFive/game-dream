@@ -32,6 +32,7 @@ import {
   loadPermissionPolicy,
   mergePermissionLists,
 } from './permissions.js';
+import { resolveTokenPricing, tokenCostRates, type TokenPricing } from '../pricing.js';
 
 export interface DevelopmentCase {
   id: string;
@@ -54,6 +55,8 @@ export interface DevelopOptions {
   maxSteps?: number;
   maxTokens?: number;
   maxPromptTokens?: number;
+  maxCostUsd?: number;
+  pricing?: TokenPricing;
   visual?: boolean;
   expectedMarkers?: string[];
   mcpConfig?: string;
@@ -91,10 +94,11 @@ export interface UsageTotals {
   promptTokens: number;
   completionTokens: number;
   cachedTokens: number;
+  costUsd?: number;
 }
 
 export interface ManageBudgetExceeded {
-  kind: 'total-tokens' | 'prompt-tokens';
+  kind: 'total-tokens' | 'prompt-tokens' | 'cost';
   limit: number;
   used: number;
 }
@@ -113,6 +117,7 @@ export interface DevelopReport {
   forked?: string;
   generation: number;
   usage: UsageTotals;
+  pricing?: { model: string; source: string; known: boolean };
   budgetExceeded?: ManageBudgetExceeded;
   verify: VerifyReport;
 }
@@ -585,6 +590,13 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
           env,
           fetchImpl: options.fetchImpl,
         }));
+  const pricing = options.pricing ?? resolveTokenPricing(provider, env);
+  if (options.maxCostUsd !== undefined && !pricing.known) {
+    throw new Error(
+      `cost pricing unavailable for model "${pricing.model}"; set GAMEDREAM_PRICE_PROMPT_PER_MTOK and GAMEDREAM_PRICE_COMPLETION_PER_MTOK`,
+    );
+  }
+  const costRates = tokenCostRates(pricing);
   let mcp: McpClient | undefined;
   const discoveredMcp =
     options.mcpConfig ??
@@ -749,6 +761,18 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     autoApprove: options.yes,
     interactive: options.approvalDir ? true : undefined,
     prompt: options.approvalDir ? requestApproval : undefined,
+    onDecision: (audit) => {
+      emitEvent({
+        type: 'permission/audit',
+        tool: audit.tool,
+        args: audit.args,
+        mode: audit.mode,
+        source: audit.source,
+        allowed: audit.allowed,
+        reason: audit.reason,
+        rule: audit.rule,
+      });
+    },
   });
   let finished = false;
   let steps = 0;
@@ -824,6 +848,8 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     maxSteps: options.maxSteps ?? 12,
     maxTokens: options.maxTokens,
     maxPromptTokens: options.maxPromptTokens,
+    maxCostUsd: options.maxCostUsd,
+    costRates,
     compactChars: 80_000,
     nativeTools,
     stream: Boolean(provider.completeChatStream),
@@ -898,6 +924,7 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
       forked,
       generation: session.generation,
       usage,
+      pricing: { model: pricing.model, source: pricing.source, known: pricing.known },
       budgetExceeded,
       verify,
     };

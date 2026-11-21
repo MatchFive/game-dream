@@ -8,9 +8,9 @@ Commit: implementation commits `805c7e7`, `d2bb120`, and the token-budget, queue
 |---|---|
 | `typecheck.log` | `corepack pnpm typecheck` exit `0` |
 | `build.log` | `corepack pnpm build` exit `0` |
-| `vitest.log` | 55 files passed, 6 skipped; **234 tests passed**, 9 skipped; exit `0` |
-| `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, policy, SSE, recovery, budget, queueing, and Studio AgentManager tests; **11 passed**; exit `0` |
-| `budget-tests.log` | AgentLoop native-tool, total-token, and prompt-token budget tests; **3 passed**; exit `0` |
+| `vitest.log` | 56 files passed, 6 skipped; **244 tests passed**, 9 skipped; exit `0` |
+| `agent-tests.log` | `corepack pnpm test:agent`; Agent CLI/Studio budgets, queue, policy/rules, recovery, history, retry, and reaping; **17 passed**; exit `0` |
+| `budget-tests.log` | AgentLoop native-tool, total-token, prompt-token, and cost budget tests; **4 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
 Real Godot runtime evidence is separate: `docs/evidence/runtime/README.md` and
@@ -49,7 +49,7 @@ depending on an installed editor. Real-engine validation remains separate.
   server, starts a new server on the same root, and verifies the persisted batch
   is resumed to `finished` with the pending approval expired and `run/end`
   present.
-- `agent-tests.log` records all 11 focused tests passing.
+- `agent-tests.log` records all 17 focused tests passing.
 
 ## Playtest
 
@@ -151,7 +151,44 @@ depending on an installed editor. Real-engine validation remains separate.
   `allow` / `ask` / `deny`; see `agent-policy-editor.png`.
 - The Studio “Always allow” button applies the current approval and records the
   policy for subsequent runs; the current child keeps its loaded gate.
-- Parameter/argument-scoped rules are not implemented; that remains A3b.
+
+## Cost budget
+
+- `AgentLoop` accumulates prompt, cached, and completion cost from explicit
+  per-token rates and stops before the next tool/model action when `maxCostUsd`
+  is reached. The result includes `usage.costUsd` and a `cost` budget marker.
+- CLI pricing is table-based for `gpt-4o-mini`/`gpt-4o` with
+  `GAMEDREAM_PRICE_*_PER_MTOK` overrides; unknown pricing fails explicitly when a
+  cap is requested (no fake zero-cost enforcement).
+- Tests cover the loop, pricing resolution, CLI report/events, and Studio
+  `budget-exceeded` status with cost metadata.
+
+## Parameter rules and audit
+
+- Rules match tool + argument + normalized path prefix, last match wins, and
+  out-of-prefix paths fall back to the tool/default mode.
+- Every `authorize()` call invokes `permission/audit`; `dream develop` writes the
+  event into JSONL and the Studio timeline renders it.
+- Studio exposes add/delete rule APIs and a compact editor in the Policy panel.
+- Tests cover allow inside `src/`, ask outside it, audit records, and Studio
+  rule persistence.
+
+## Stale process recovery
+
+- `AgentRun.pid` is persisted with the batch. On startup, the manager checks the
+  PID, reads its command line, and only kills the process tree when the line
+  contains the run id.
+- A reused PID with a non-matching command line is left alive; both verified
+  reaping and mismatch safety are covered by Studio tests.
+- `run/reaped` is appended to the run event stream.
+
+## History and retry
+
+- Studio history lists persisted batches and switches transcript/candidate state
+  by selection; terminal-only cleanup deletes batch directories.
+- Retry accepts failed/canceled/budget-exceeded batches, preserves the old batch,
+  and creates a new linked batch with `retryOf`.
+- Tests cover terminal deletion and linked retry creation.
 
 ## Token budget
 

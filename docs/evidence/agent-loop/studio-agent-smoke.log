@@ -2,8 +2,8 @@
 > gamedream@ smoke:agent D:\project\game_dream
 > node scripts/studio-agent-smoke.mjs
 
-AGENT_BATCH=agent-mwqcpo2x-642ac8
-AGENT_RUN=agent-mwqcpo2x-642ac8-1
+AGENT_BATCH=agent-mwqfoerf-befc20
+AGENT_RUN=agent-mwqfoerf-befc20-1
 AGENT_APPROVAL_STATUS=awaiting-approval
 AGENT_TOOL_COUNT=1
 AGENT_EVENT_TYPES=approval/request,run/start,session/event,tool/start
@@ -12,7 +12,7 @@ AGENT_FINAL_STATUS=finished
 AGENT_REPORT_FINISHED=true
 AGENT_REPORT_STEPS=3
 AGENT_SCORE=1400
-AGENT_FINAL_EVENT_TYPES=approval/decision,approval/request,run/end,run/start,session/event,tool/end,tool/start
+AGENT_FINAL_EVENT_TYPES=approval/decision,approval/request,permission/audit,run/end,run/start,session/event,tool/end,tool/start
 AGENT_APPROVAL_FLOW_OK=1
 AGENT_SMOKE_EXIT=0
 EXIT=0

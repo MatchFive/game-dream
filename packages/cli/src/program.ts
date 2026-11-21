@@ -224,6 +224,7 @@ export function createProgram(): Command {
     .option('--max-steps <count>', 'maximum tool steps', '12')
     .option('--max-tokens <count>', 'stop before the next model call after this total token usage')
     .option('--max-prompt-tokens <count>', 'stop when prompt token usage reaches this limit')
+    .option('--max-cost <usd>', 'stop before the next model call after this estimated USD cost')
     .option('--candidates <count>', 'generate and select among N candidates', '1')
     .option('--mcp-config <file>', 'MCP server config for Godot tools')
     .option('--mcp-server <name>', 'MCP server name', 'godot')
@@ -253,6 +254,7 @@ export function createProgram(): Command {
           maxSteps: string;
           maxTokens?: string;
           maxPromptTokens?: string;
+          maxCost?: string;
           candidates: string;
           mcpConfig?: string;
           mcpServer: string;
@@ -292,6 +294,7 @@ export function createProgram(): Command {
             maxPromptTokens: options.maxPromptTokens === undefined
               ? undefined
               : Number(options.maxPromptTokens),
+            maxCostUsd: options.maxCost === undefined ? undefined : Number(options.maxCost),
             visual: options.visual,
             expectedMarkers: selected?.expected_markers,
             mcpConfig: options.mcpConfig,

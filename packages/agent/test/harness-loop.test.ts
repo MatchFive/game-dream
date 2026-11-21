@@ -119,6 +119,51 @@ describe('AgentLoop native tools', () => {
     });
   });
 
+  it('stops when the cost budget is exceeded', async () => {
+    const provider: ModelProvider = {
+      name: 'cost-test',
+      async complete() {
+        throw new Error('legacy complete should not be used');
+      },
+      async completeChatWithUsage(): Promise<ChatResult> {
+        return {
+          content: '',
+          toolCalls: [{ id: 'call_1', name: 'echo', arguments: '{}' }],
+          usage: { promptTokens: 10, completionTokens: 5, cachedTokens: 0 },
+        };
+      },
+    };
+    let tools = 0;
+    const loop = new AgentLoop<{ value: string }>({
+      system: 'system',
+      initialUser: 'build',
+      provider,
+      tools: [{
+        name: 'echo',
+        description: 'Echo',
+        async execute() {
+          tools += 1;
+          return { ok: true, output: 'echo' };
+        },
+      }],
+      context: { value: 'ctx' },
+      maxSteps: 4,
+      maxCostUsd: 0.02,
+      costRates: { promptPerToken: 0.001, completionPerToken: 0.002 },
+      nativeTools: true,
+      canFinish: () => ({ ok: true }),
+    });
+    const result = await loop.run();
+    expect(result.finished).toBe(false);
+    expect(tools).toBe(0);
+    expect(result.usage.costUsd).toBeCloseTo(0.02);
+    expect(result.budgetExceeded).toEqual({
+      kind: 'cost',
+      limit: 0.02,
+      used: 0.02,
+    });
+  });
+
   it('stops when the prompt token budget is exceeded', async () => {
     const provider: ModelProvider = {
       name: 'prompt-budget-test',

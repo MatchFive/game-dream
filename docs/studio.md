@@ -93,9 +93,9 @@ remains as a fallback when `EventSource` is unavailable.
 
 The CLI flags used by the Studio are:
 
-- `--events-file <file>` writes `run/start`, session events, `tool/start`,
-  `tool/end`, `approval/request`, `approval/decision`, `run/budget`, `run/end`,
-  and `run/error`.
+- `--events-file <file>` writes `run/start`, session events, `permission/audit`,
+  `tool/start`, `tool/end`, `approval/request`, `approval/decision`,
+  `run/budget`, `run/reaped`, `run/end`, and `run/error`.
 - `--approval-dir <dir>` exchanges approval request and decision JSON files.
   The studio writes a decision when the user clicks Allow or Deny.
 - `--run-id <id>` attaches the batch/run id to every event.
@@ -106,6 +106,8 @@ The CLI flags used by the Studio are:
   prompt + completion usage reaches the limit.
 - `--max-prompt-tokens <n>` stops when cumulative prompt usage reaches the
   limit.
+- `--max-cost <usd>` stops before the next model/tool action once the estimated
+  prompt + cached + completion cost reaches the USD limit.
 
 Each Agent batch is persisted under `.gamedream/studio/agent/<batch-id>/`.
 Candidates run in separate `<candidate-N>/project` directories; applying a
@@ -120,29 +122,41 @@ before they start. Candidate fan-out inside one batch still runs in parallel.
 
 Approval policy is persisted at `.gamedream/studio/agent-policy.json`.
 The Agent header's **Policy** button opens an editor listing the available Agent
-tools with `allow` / `ask` / `deny` selectors and a default mode. Changes are
-saved through `POST /api/agent/policy` and apply to future runs; a child process
-that is already running keeps the policy it loaded. `GET /api/agent/policy`
-also returns `availableTools` and `source` so the UI can show what is editable
-and where the policy lives.
+tools with `allow` / `ask` / `deny` selectors and a default mode. It also manages
+argument rules: a tool plus argument name and path prefix with a mode. The last
+matching rule wins; paths outside the prefix fall back to the tool/default mode.
+Changes are saved through `POST /api/agent/policy` and
+`POST /api/agent/policy/rules`, and apply to future runs; a child process that
+is already running keeps the policy it loaded. Every permission decision emits
+`permission/audit` with tool, mode, source, rule, and allow/deny result.
+`GET /api/agent/policy` also returns `availableTools` and `source`.
 
 The approval card's **Always allow** action writes
 `{ "tools": { "<tool>": "allow" } }` there and applies the current decision.
 Future runs pass the file through `dream develop --permissions`; the server does
 not inject the default `--ask-tool scaffold,mcp` once the policy file exists.
 
-The Studio Agent panel accepts a maximum step count and an optional token
-budget before starting a run. When total provider-reported usage reaches the
-token budget, the CLI emits `run/budget`, stops before the next tool/model
-action, and the run is marked **budget-exceeded** rather than finished. Finished
-runs show model calls, total tokens, and cache-hit percentage from the CLI
-report in both the run log and the Agent meta line.
+The Studio Agent panel accepts a maximum step count, optional token budget, and
+optional USD budget before starting a run. When provider-reported usage reaches
+a limit, the CLI emits `run/budget`, stops before the next tool/model action,
+and the run is marked **budget-exceeded** rather than finished. Cost pricing
+comes from the built-in model table or `GAMEDREAM_PRICE_PROMPT_PER_MTOK`,
+`GAMEDREAM_PRICE_COMPLETION_PER_MTOK`, and `GAMEDREAM_PRICE_CACHED_PER_MTOK`;
+unknown pricing fails explicitly when a cost budget is requested. Finished runs
+show model calls, total tokens, cache-hit percentage, and estimated cost.
 
 If the Studio server restarts while a run is active, it loads the persisted
 batch, expires any old pending approvals, and starts the interrupted run again
-with `dream develop --resume`. The event sequence continues rather than
-restarting at one. This recovery is process-level; a stale child left by a hard
-crash is not reaped automatically.
+with `dream develop --resume`. Before resuming, persisted child PIDs are checked;
+if the process still exists and its command line contains the run id, its process
+tree is killed. A reused PID whose command line does not match is never killed.
+The event sequence continues rather than restarting at one.
+
+The Agent panel shows a batch history strip with status and prompt. Selecting an
+entry switches the transcript/candidates to that batch; **Clear finished** deletes
+only terminal batches and their directories. Failed, canceled, and
+budget-exceeded batches expose **Retry**, which starts a new batch with the same
+options and a `retryOf` link while preserving the old batch/events.
 
 ## Playtest
 
@@ -184,14 +198,19 @@ binding.
 | `GET /api/agent` | Active, queued, and historical Agent batches |
 | `GET /api/agent/policy` | Read the Studio approval policy, available tools, and source path |
 | `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) or the default mode |
+| `POST /api/agent/policy/rules` | Append an argument/path-prefix approval rule |
+| `DELETE /api/agent/policy/rules/:index` | Delete an approval rule |
 | `GET /api/agent/events` | Server-Sent Events snapshots of Agent state |
 | `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
 | `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
+| `POST /api/agent/batches/:id/retry` | Retry failed/canceled/budget-exceeded as a linked new batch |
+| `DELETE /api/agent/batches/:id` | Delete a terminal batch and its files |
+| `DELETE /api/agent/batches/clear` | Delete all terminal batches |
 | `POST /api/agent/batches/:id/runs/:runId/approval` | Allow or deny a pending tool approval |
 | `GET /api/agent/batches/:id/candidates/:runId/diff` | Compare a candidate with the Studio project |
 | `POST /api/agent/batches/:id/apply` | Back up touched files and copy a finished candidate into the Studio project |
 | `POST /api/agent/batches/:id/rollback` | Restore the files replaced by the last candidate apply |
-| `GET /api/playtest/capabilities` | Detect Web/Godot playtest availability |
+| `GET /api/playtest/capabilities` | Detect Web/Godot/Unity playtest availability |
 | `POST /api/playtest/start` | Serve a Web iframe or launch a Godot window |
 | `POST /api/playtest/stop` | Stop the launched playtest process |
 | `GET /play/` | Serve the generated Web build for the Studio playtest frame |
@@ -209,20 +228,22 @@ expose it on a public interface.
 - Build selection stages assets under `game/build-assets/`; it does not
   automatically rewrite sprite configs or template content to reference them.
 - Generated jobs are not resumed after a server restart.
-- Agent children are resumed with `--resume` after a Studio restart; a child
-  left behind by a hard crash is not reaped automatically.
+- Agent children are resumed with `--resume` after a Studio restart. Persisted
+  PIDs are verified against the run id before a stale process tree is reaped; a
+  reused PID with a non-matching command line is left alone.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
 - Agent batches are capped at one active batch; additional submissions queue in
   memory and as persisted `batch.json` records. Candidate fan-out inside one
   batch is not capped separately.
-- Token budgets are enforced only when the provider reports usage. A provider
-  that returns zero or no usage cannot be hard-capped; the Studio does not
-  pretend the budget was enforced. There is no currency/pricing budget yet.
+- Token/cost budgets are enforced only when the provider reports usage and
+  pricing is known. Unknown pricing with a cost cap fails explicitly instead of
+  pretending the budget was enforced. Pricing is table/env based, not a live
+  billing feed.
 - “Always allow” and the Policy editor write policy for future runs; neither
   retroactively changes the permission gate already loaded by the current child
   process.
-- Policy is per tool plus a default; argument/parameter-scoped rules are not
-  implemented yet.
+- Policy rules are tool + argument + path-prefix scoped; there is no glob or
+  arbitrary expression language.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
 - Web playtest rewrites HTML/CSS asset paths and injects a base path. Runtime

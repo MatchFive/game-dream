@@ -123,6 +123,7 @@ describe('development case', () => {
     expect(types).toContain('run/start');
     expect(types).toContain('approval/request');
     expect(types).toContain('approval/decision');
+    expect(types).toContain('permission/audit');
     expect(types).toContain('tool/start');
     expect(types).toContain('tool/end');
     expect(types).toContain('session/event');
@@ -173,4 +174,72 @@ describe('development case', () => {
       .map((line) => (JSON.parse(line) as { type: string }).type);
     expect(types).toContain('run/budget');
   }, 30_000);
+
+  it('stops a development run when the cost budget is exceeded', async () => {
+    const developmentCase = loadDevelopmentCase(
+      join(root, 'cases/development/survivor-demo.json'),
+    );
+    const outDir = join(makeTempDir('gamedream cost '), 'survivor-demo');
+    const eventsFile = join(outDir, 'events.jsonl');
+    const provider: ModelProvider = {
+      name: 'cost-test',
+      async complete() {
+        throw new Error('legacy complete should not be used');
+      },
+      async completeChatWithUsage() {
+        return {
+          content: '',
+          toolCalls: [{ id: 'call_1', name: 'scaffold', arguments: '{}' }],
+          usage: { promptTokens: 10, completionTokens: 5, cachedTokens: 0 },
+        };
+      },
+    };
+    const report = await developCommand({
+      prompt: developmentCase.prompt,
+      outDir,
+      skillsDir: join(root, 'skills'),
+      skill: developmentCase.skill,
+      provider,
+      providerKind: 'fake',
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      maxSteps: 4,
+      maxCostUsd: 0.01,
+      pricing: {
+        known: true,
+        model: 'cost-test',
+        source: 'env',
+        promptPerMTok: 1000,
+        completionPerMTok: 1000,
+        cachedPerMTok: 1000,
+      },
+      eventsFile,
+    });
+    expect(report.finished).toBe(false);
+    expect(report.budgetExceeded?.kind).toBe('cost');
+    expect(report.usage.costUsd).toBeCloseTo(0.015);
+    const types = readFileSync(eventsFile, 'utf8')
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => (JSON.parse(line) as { type: string }).type);
+    expect(types).toContain('run/budget');
+  }, 30_000);
+
+  it('fails fast when a cost budget is requested without pricing', async () => {
+    const developmentCase = loadDevelopmentCase(
+      join(root, 'cases/development/survivor-demo.json'),
+    );
+    const outDir = join(makeTempDir('gamedream cost unknown '), 'survivor-demo');
+    await expect(developCommand({
+      prompt: developmentCase.prompt,
+      outDir,
+      skillsDir: join(root, 'skills'),
+      skill: developmentCase.skill,
+      providerKind: 'fake',
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      maxCostUsd: 0.01,
+      pricing: { known: false, model: 'mystery', source: 'unknown' },
+    })).rejects.toThrow('cost pricing unavailable');
+  });
 });

@@ -26,10 +26,17 @@ export interface HarnessTool<TContext> {
 
 export interface HarnessUsage extends ChatUsage {
   calls: number;
+  costUsd?: number;
+}
+
+export interface TokenCostRates {
+  promptPerToken: number;
+  completionPerToken: number;
+  cachedPerToken?: number;
 }
 
 export interface BudgetExceeded {
-  kind: 'total-tokens' | 'prompt-tokens';
+  kind: 'total-tokens' | 'prompt-tokens' | 'cost';
   limit: number;
   used: number;
 }
@@ -43,6 +50,8 @@ export interface HarnessLoopOptions<TContext> {
   maxSteps: number;
   maxTokens?: number;
   maxPromptTokens?: number;
+  maxCostUsd?: number;
+  costRates?: TokenCostRates;
   compactChars?: number;
   nativeTools?: boolean;
   stream?: boolean;
@@ -109,6 +118,13 @@ export class AgentLoop<TContext> {
     let budgetExceeded: BudgetExceeded | undefined;
     const checkBudget = (): BudgetExceeded | undefined => {
       const total = usage.promptTokens + usage.completionTokens;
+      if (options.costRates) {
+        const cached = Math.min(usage.cachedTokens, usage.promptTokens);
+        const uncached = usage.promptTokens - cached;
+        usage.costUsd = uncached * options.costRates.promptPerToken
+          + cached * (options.costRates.cachedPerToken ?? options.costRates.promptPerToken)
+          + usage.completionTokens * options.costRates.completionPerToken;
+      }
       if (
         options.maxTokens !== undefined
         && Number.isFinite(options.maxTokens)
@@ -128,6 +144,14 @@ export class AgentLoop<TContext> {
           limit: options.maxPromptTokens,
           used: usage.promptTokens,
         };
+      }
+      if (
+        options.maxCostUsd !== undefined
+        && Number.isFinite(options.maxCostUsd)
+        && options.maxCostUsd > 0
+        && (usage.costUsd ?? 0) >= options.maxCostUsd
+      ) {
+        return { kind: 'cost', limit: options.maxCostUsd, used: usage.costUsd ?? 0 };
       }
       return undefined;
     };

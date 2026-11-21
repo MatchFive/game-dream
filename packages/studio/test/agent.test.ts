@@ -1,7 +1,9 @@
+import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import { AgentManager } from '../src/agent.js';
 import { startStudioServer, type StudioServerHandle } from '../src/server.js';
 
 let studio: StudioServerHandle | undefined;
@@ -22,9 +24,16 @@ const runId = arg('run-id');
 const outDir = arg('out');
 const resume = process.argv.includes('--resume');
 const maxTokens = arg('max-tokens');
+const maxCost = arg('max-cost');
 let seq = Number(arg('event-seq-start', '0')) || 0;
 const write = (event) => appendFileSync(eventsFile, JSON.stringify({ seq: ++seq, at: new Date().toISOString(), runId, ...event }) + '\\n', 'utf8');
 write({ type: 'run/start', prompt: 'fixture' });
+if (maxCost) {
+  const limit = Number(maxCost);
+  write({ type: 'run/budget', kind: 'cost', limit, used: limit + 0.01 });
+  write({ type: 'run/end', report: { finished: false, steps: 1, actions: [], missingMarkers: [], budgetExceeded: { kind: 'cost', limit, used: limit + 0.01 }, usage: { calls: 1, promptTokens: 100, completionTokens: 10, cachedTokens: 0, costUsd: limit + 0.01 }, verify: { gates: { G1: { status: 'fail' }, G2: { status: 'skip' }, G3: { status: 'skip' } } } } });
+  process.exit(0);
+}
 if (maxTokens) {
   write({ type: 'run/budget', kind: 'total-tokens', limit: Number(maxTokens), used: Number(maxTokens) + 1 });
   write({ type: 'run/end', report: { finished: false, steps: 1, actions: [], missingMarkers: [], budgetExceeded: { kind: 'total-tokens', limit: Number(maxTokens), used: Number(maxTokens) + 1 }, usage: { calls: 1, promptTokens: Number(maxTokens) + 1, completionTokens: 0, cachedTokens: 0 }, verify: { gates: { G1: { status: 'fail' }, G2: { status: 'skip' }, G3: { status: 'skip' } } } } });
@@ -63,10 +72,10 @@ write({ type: 'run/end', report: { finished: true, steps: 1, actions: ['finish']
 
 async function getAgent(url: string): Promise<{
   active?: { id: string; status: string; candidates: Array<{
-    id: string; status: string; score?: number; approvals: Array<{ id: string; status: string }>;
+    id: string; status: string; score?: number; error?: string; report?: { usage?: { costUsd?: number } }; approvals: Array<{ id: string; status: string }>;
     events: Array<{ type: string }>;
   }> };
-  batches: Array<{ id: string; status: string; candidates: Array<{ id: string; status: string; score?: number; approvals: Array<{ id: string; status: string }>; events: Array<{ type: string }> }> }>;
+  batches: Array<{ id: string; status: string; candidates: Array<{ id: string; status: string; score?: number; error?: string; report?: { usage?: { costUsd?: number } }; approvals: Array<{ id: string; status: string }>; events: Array<{ type: string }> }> }>;
   queued?: Array<{ id: string; status: string }>;
 }> {
   const response = await fetch(`${url}/api/agent`);
@@ -223,6 +232,32 @@ it('persists an always-allow approval policy', async () => {
   expect(withDefault.policy.default).toBe('deny');
   expect(withDefault.policy.tools.scaffold).toBe('allow');
   expect(JSON.parse(readFileSync(policyFile, 'utf8')).default).toBe('deny');
+
+  const ruled = await fetch(`${studio.url}/api/agent/policy/rules`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      tool: 'write_file',
+      mode: 'allow',
+      arg: 'path',
+      prefix: 'src/',
+      reason: 'source tree',
+    }),
+  });
+  expect(ruled.status).toBe(200);
+  const withRule = (await ruled.json()) as {
+    policy: { rules: Array<{ tool: string; arg?: string; prefix?: string; mode: string }> };
+  };
+  expect(withRule.policy.rules[0]).toMatchObject({
+    tool: 'write_file',
+    arg: 'path',
+    prefix: 'src/',
+    mode: 'allow',
+  });
+  expect(JSON.parse(readFileSync(policyFile, 'utf8')).rules).toHaveLength(1);
+  const removed = await fetch(`${studio.url}/api/agent/policy/rules/0`, { method: 'DELETE' });
+  expect(removed.status).toBe(200);
+  expect((await removed.json() as { policy: { rules: unknown[] } }).policy.rules).toEqual([]);
 });
 
 it('pushes agent snapshots over SSE', async () => {
@@ -272,6 +307,29 @@ it('pushes agent snapshots over SSE', async () => {
   controller.abort();
 });
 
+it('marks a run stopped by the cost budget', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-cost-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: 'cost fixture', candidates: 1, maxCostUsd: 0.01 }),
+  });
+  expect(started.status).toBe(202);
+
+  let data = await getAgent(studio.url);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.batches[0]?.status === 'budget-exceeded') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const batch = data.batches[0];
+  expect(batch?.status).toBe('budget-exceeded');
+  expect(batch?.candidates[0]?.error).toContain('cost budget exceeded');
+  expect(batch?.candidates[0]?.report?.usage?.costUsd).toBeCloseTo(0.02);
+});
+
 it('marks a run stopped by the token budget', async () => {
   const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-budget-'));
   const cliEntry = fakeAgent(root);
@@ -293,6 +351,48 @@ it('marks a run stopped by the token budget', async () => {
   expect(batch?.status).toBe('budget-exceeded');
   expect(batch?.candidates[0]?.status).toBe('budget-exceeded');
   expect(batch?.candidates[0]?.events.some((event) => event.type === 'run/budget')).toBe(true);
+  const deleted = await fetch(`${studio.url}/api/agent/batches/${batch?.id}`, {
+    method: 'DELETE',
+  });
+  expect(deleted.status).toBe(200);
+  data = await getAgent(studio.url);
+  expect(data.batches.some((item) => item.id === batch?.id)).toBe(false);
+  expect(existsSync(join(root, '.gamedream', 'studio', 'agent', batch?.id ?? ''))).toBe(false);
+});
+
+it('retries a terminal batch into a linked new generation', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-retry-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: 'retry fixture', candidates: 1, maxCostUsd: 0.01 }),
+  });
+  expect(started.status).toBe(202);
+  let data = await getAgent(studio.url);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    data = await getAgent(studio.url);
+    if (data.batches[0]?.status === 'budget-exceeded') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const previous = data.batches[0];
+  expect(previous?.status).toBe('budget-exceeded');
+  const retried = await fetch(`${studio.url}/api/agent/batches/${previous?.id}/retry`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  expect(retried.status).toBe(202);
+  const payload = (await retried.json()) as {
+    batch: { id: string; retryOf?: string; prompt: string; status: string };
+  };
+  expect(payload.batch.retryOf).toBe(previous?.id);
+  expect(payload.batch.prompt).toBe('retry fixture');
+  expect(payload.batch.id).not.toBe(previous?.id);
+  data = await getAgent(studio.url);
+  expect(data.batches.some((item) => item.id === previous?.id)).toBe(true);
+  expect(data.batches.some((item) => item.id === payload.batch.id)).toBe(true);
 });
 
 it('queues batches, cancels a queued batch, and starts the next one', async () => {
@@ -366,6 +466,117 @@ it('queues batches, cancels a queued batch, and starts the next one', async () =
   expect(data.batches.find((item) => item.id === second?.id)?.status).toBe('canceled');
   expect(data.batches.find((item) => item.id === third?.id)?.status).toBe('finished');
 }, 30_000);
+
+it('reaps a persisted stale agent process after restart', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-reap-'));
+  const runId = 'agent-stale-1';
+  const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)', runId], {
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  const pid = child.pid as number;
+  const batchId = 'agent-stale';
+  const batchRoot = join(root, '.gamedream', 'studio', 'agent', batchId);
+  mkdirSync(batchRoot, { recursive: true });
+  const eventsFile = join(batchRoot, 'events.jsonl');
+  writeFileSync(eventsFile, '', 'utf8');
+  const now = new Date().toISOString();
+  writeFileSync(join(batchRoot, 'batch.json'), JSON.stringify({
+    id: batchId,
+    prompt: 'stale fixture',
+    provider: 'fake',
+    skill: 'survivor-demo',
+    createdAt: now,
+    status: 'running',
+    candidates: [{
+      id: runId,
+      index: 1,
+      count: 1,
+      outDir: root,
+      eventsFile,
+      approvalDir: join(batchRoot, 'approvals'),
+      startedAt: now,
+      status: 'running',
+      events: [],
+      approvals: [],
+      pid,
+    }],
+  }), 'utf8');
+  const manager = new AgentManager({ root });
+  try {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      try {
+        process.kill(pid, 0);
+      } catch {
+        break;
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+    }
+    expect(() => process.kill(pid, 0)).toThrow();
+    const persisted = JSON.parse(readFileSync(join(batchRoot, 'batch.json'), 'utf8')) as {
+      candidates: Array<{ pid?: number }>;
+    };
+    expect(persisted.candidates[0]?.pid).toBeUndefined();
+    expect(readFileSync(eventsFile, 'utf8')).toContain('run/reaped');
+  } finally {
+    manager.close();
+    try {
+      process.kill(pid, 0);
+      process.kill(pid, 'SIGKILL');
+    } catch {
+      // Already reaped.
+    }
+  }
+});
+
+it('does not kill a reused pid whose command line does not match', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-reap-safe-'));
+  const runId = 'agent-not-this-process';
+  const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], {
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  const pid = child.pid as number;
+  const batchId = 'agent-stale-other';
+  const batchRoot = join(root, '.gamedream', 'studio', 'agent', batchId);
+  mkdirSync(batchRoot, { recursive: true });
+  const eventsFile = join(batchRoot, 'events.jsonl');
+  writeFileSync(eventsFile, '', 'utf8');
+  const now = new Date().toISOString();
+  writeFileSync(join(batchRoot, 'batch.json'), JSON.stringify({
+    id: batchId,
+    prompt: 'safe fixture',
+    provider: 'fake',
+    skill: 'survivor-demo',
+    createdAt: now,
+    status: 'running',
+    candidates: [{
+      id: runId,
+      index: 1,
+      count: 1,
+      outDir: root,
+      eventsFile,
+      approvalDir: join(batchRoot, 'approvals'),
+      startedAt: now,
+      status: 'running',
+      events: [],
+      approvals: [],
+      pid,
+    }],
+  }), 'utf8');
+  const manager = new AgentManager({ root });
+  try {
+    expect(() => process.kill(pid, 0)).not.toThrow();
+    expect(readFileSync(eventsFile, 'utf8')).toContain('"verified":false');
+  } finally {
+    manager.close();
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch {
+      // Already exited.
+    }
+  }
+});
 
 it('resumes an interrupted run after a Studio restart', async () => {
   const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-resume-'));

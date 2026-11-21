@@ -565,6 +565,79 @@ async function handleApi(
     return;
   }
 
+  if (method === 'POST' && pathname === '/api/agent/policy/rules') {
+    try {
+      const body = (await readJson(request)) as {
+        tool?: unknown;
+        mode?: unknown;
+        arg?: unknown;
+        prefix?: unknown;
+        reason?: unknown;
+      };
+      if (typeof body.tool !== 'string' || (body.mode !== 'allow' && body.mode !== 'ask' && body.mode !== 'deny')) {
+        json(response, 400, { error: 'tool and mode allow|ask|deny are required' });
+        return;
+      }
+      json(response, 200, {
+        policy: agent.addPolicyRule({
+          tool: body.tool,
+          mode: body.mode,
+          arg: typeof body.arg === 'string' ? body.arg : undefined,
+          prefix: typeof body.prefix === 'string' ? body.prefix : undefined,
+          reason: typeof body.reason === 'string' ? body.reason : undefined,
+        }),
+        availableTools: AGENT_POLICY_TOOLS,
+        source: '.gamedream/studio/agent-policy.json',
+      });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const policyRuleMatch = pathname.match(/^\/api\/agent\/policy\/rules\/(\d+)$/);
+  if (method === 'DELETE' && policyRuleMatch) {
+    try {
+      json(response, 200, {
+        policy: agent.removePolicyRule(Number(policyRuleMatch[1])),
+        availableTools: AGENT_POLICY_TOOLS,
+        source: '.gamedream/studio/agent-policy.json',
+      });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'DELETE' && pathname === '/api/agent/batches/clear') {
+    try {
+      json(response, 200, { removed: agent.clearFinished() });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const batchDeleteMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)$/);
+  if (method === 'DELETE' && batchDeleteMatch) {
+    try {
+      json(response, 200, { removed: agent.deleteBatch(batchDeleteMatch[1]) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const retryMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)\/retry$/);
+  if (method === 'POST' && retryMatch) {
+    try {
+      json(response, 202, { batch: await agent.retry(retryMatch[1]) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
   if (method === 'GET' && pathname === '/api/agent') {
     json(response, 200, agent.list());
     return;
@@ -590,6 +663,7 @@ async function handleApi(
         maxSteps?: unknown;
         maxTokens?: unknown;
         maxPromptTokens?: unknown;
+        maxCostUsd?: unknown;
         candidates?: unknown;
         resume?: unknown;
         approvalTools?: unknown;
@@ -603,6 +677,7 @@ async function handleApi(
         maxPromptTokens: typeof body.maxPromptTokens === 'number'
           ? body.maxPromptTokens
           : undefined,
+        maxCostUsd: typeof body.maxCostUsd === 'number' ? body.maxCostUsd : undefined,
         candidates: typeof body.candidates === 'number' ? body.candidates : undefined,
         resume: body.resume === true,
         approvalTools: Array.isArray(body.approvalTools)

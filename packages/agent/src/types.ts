@@ -56,6 +56,7 @@ export interface ChatResult {
 
 export interface ModelProvider {
   readonly name: string;
+  readonly model?: string;
   complete(request: ModelRequest): Promise<string>;
   /**
    * Optional structured chat API. Providers that can preserve an append-only

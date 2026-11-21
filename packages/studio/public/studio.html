@@ -56,6 +56,7 @@
         </div>
       </div>
       <div class="studio-agent-policy" id="agentPolicyPanel" hidden></div>
+      <div class="studio-agent-history" id="agentHistory" hidden></div>
       <div class="studio-agent-queue" id="agentQueue" hidden></div>
       <div class="studio-agent-candidates" id="agentCandidates" hidden></div>
       <div class="studio-agent-diff" id="agentDiff" hidden>
@@ -87,9 +88,12 @@
           <label class="studio-agent-count"><span data-i18n="studio.agentTokenBudget">Token 预算</span>
             <input id="agentMaxTokens" type="number" min="0" step="1000" placeholder="∞" aria-label="Token 预算">
           </label>
+          <label class="studio-agent-count"><span data-i18n="studio.agentCostBudget">费用 $</span>
+            <input id="agentMaxCost" type="number" min="0" step="0.01" placeholder="∞" aria-label="费用预算（美元）">
+          </label>
           <button class="button primary" id="agentStart" type="button"><svg class="icon"><use href="#i-play"></use></svg> <span data-i18n="studio.agentStart">启动</span></button>
         </div>
-        <div class="studio-agent-foot"><span id="agentMeta" data-i18n="studio.agentIdle">空闲 · auto provider</span><button class="button secondary" id="agentCancel" type="button" hidden data-i18n="studio.agentStop">停止</button></div>
+        <div class="studio-agent-foot"><span id="agentMeta" data-i18n="studio.agentIdle">空闲 · auto provider</span><button class="button secondary" id="agentRetry" type="button" hidden data-i18n="studio.agentRetry">重试</button><button class="button secondary" id="agentCancel" type="button" hidden data-i18n="studio.agentStop">停止</button></div>
       </div>
     </section>
     <div class="studio-head">

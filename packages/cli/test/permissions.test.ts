@@ -45,6 +45,28 @@ describe('tool permissions', () => {
     expect(seen).toEqual(['compose']);
   });
 
+  it('applies path-prefix rules and falls back outside the prefix', async () => {
+    const audits: Array<{ source: string; allowed: boolean; rule?: unknown }> = [];
+    const gate = new ToolPermissionGate({
+      policy: {
+        default: 'ask',
+        tools: { write_file: 'ask' },
+        rules: [
+          { tool: 'write_file', arg: 'path', prefix: 'src/', mode: 'allow', reason: 'source tree' },
+        ],
+      },
+      interactive: false,
+      onDecision: (audit) => audits.push(audit),
+    });
+    const inside = await gate.authorize('write_file', { path: 'src/main.ts' });
+    expect(inside).toMatchObject({ allowed: true, source: 'rule', mode: 'allow' });
+    expect(inside.reason).toBe('source tree');
+    const outside = await gate.authorize('write_file', { path: '../.env' });
+    expect(outside).toMatchObject({ allowed: false, source: 'tool', mode: 'ask' });
+    expect(audits).toHaveLength(2);
+    expect(audits[0]).toMatchObject({ source: 'rule', allowed: true });
+  });
+
   it('loads a policy file and merges CLI deny/ask lists', () => {
     const file = join(makeTempDir('gamedream permissions '), 'permissions.json');
     writeFileSync(
