@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { PNG } from 'pngjs';
 import { assetIdFor, findAsset } from './assets.js';
@@ -15,6 +15,9 @@ export interface AnimationAtlasResult {
   assetId: string;
   file: string;
   manifest: string;
+  buildFile: string;
+  webManifest: string;
+  godotResource: string;
   frameWidth: number;
   frameHeight: number;
   frameCount: number;
@@ -83,11 +86,63 @@ export function createAnimationAtlas(
     createdAt: new Date().toISOString(),
   };
   writeFileSync(manifest, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
+
+  const buildDirectory = join(root, 'game', 'build-assets', 'animations');
+  mkdirSync(buildDirectory, { recursive: true });
+  const buildName = `${slug}-${digest}`;
+  const buildFile = join(buildDirectory, `${buildName}.png`);
+  copyFileSync(file, buildFile);
+  const descriptor = {
+    image: `game/build-assets/animations/${buildName}.png`,
+    frameWidth,
+    frameHeight,
+    frameCount: frames.length,
+    fps: metadata.fps,
+    loop: metadata.loop,
+    animations: {
+      idle: {
+        frames: Array.from({ length: frames.length }, (_, index) => index),
+        fps: metadata.fps,
+        loop: metadata.loop,
+      },
+    },
+  };
+  const webManifest = join(buildDirectory, `${buildName}.web.json`);
+  writeFileSync(webManifest, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
+  const regions = Array.from({ length: frames.length }, (_, index) => [
+    `[sub_resource type="AtlasTexture" id="AtlasTexture_${index + 1}"]`,
+    'atlas = ExtResource("1")',
+    `region = Rect2(${index * frameWidth}, 0, ${frameWidth}, ${frameHeight})`,
+  ].join('\n')).join('\n\n');
+  const frameRefs = Array.from(
+    { length: frames.length },
+    (_, index) => `{"duration": 1.0, "texture": SubResource("AtlasTexture_${index + 1}")}`,
+  ).join(', ');
+  const godotResource = join(buildDirectory, `${buildName}.tres`);
+  writeFileSync(
+    godotResource,
+    [
+      `[gd_resource type="SpriteFrames" load_steps=${frames.length + 2} format=3]`,
+      '',
+      `[ext_resource type="Texture2D" path="res://game/build-assets/animations/${buildName}.png" id="1"]`,
+      '',
+      regions,
+      '',
+      '[resource]',
+      `animations = [{"frames": [${frameRefs}], "loop": ${metadata.loop ? 'true' : 'false'}, "name": "idle", "speed": ${metadata.fps}.0}]`,
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
   const relativeFile = relative(root, file).split('\\').join('/');
   return {
     assetId: assetIdFor(relativeFile),
     file: relativeFile,
     manifest: relative(root, manifest).split('\\').join('/'),
+    buildFile: relative(root, buildFile).split('\\').join('/'),
+    webManifest: relative(root, webManifest).split('\\').join('/'),
+    godotResource: relative(root, godotResource).split('\\').join('/'),
     frameWidth,
     frameHeight,
     frameCount: frames.length,

@@ -105,6 +105,18 @@ describe('studio assets', () => {
     });
     const metadata = JSON.parse(readFileSync(join(root, result.manifest), 'utf8'));
     expect(metadata).toMatchObject({ kind: 'animation-atlas', frameCount: 2, fps: 10 });
+    expect(existsSync(join(root, result.buildFile))).toBe(true);
+    const web = JSON.parse(readFileSync(join(root, result.webManifest), 'utf8'));
+    expect(web.image).toContain('game/build-assets/animations/Walk-atlas-');
+    expect(web).toMatchObject({
+      frameWidth: 2,
+      frameHeight: 2,
+      frameCount: 2,
+      fps: 10,
+    });
+    const godot = readFileSync(join(root, result.godotResource), 'utf8');
+    expect(godot).toContain('[gd_resource type="SpriteFrames"');
+    expect(godot).toContain('region = Rect2(2, 0, 2, 2)');
   });
 
   it('stages selected assets into the project build and removes them on unselect', () => {

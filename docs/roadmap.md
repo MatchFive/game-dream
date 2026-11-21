@@ -95,7 +95,8 @@
 |---|---|---|---|---|
 | AS1 | 动画关键帧序列 | 已支持 2–4 帧透明关键帧、动画节点播放/重生成；图集见 AS1b | 生成序列、节点预览、可重生成 | Done |
 | AS1b | 动画图集 | 已支持 2–8 个同尺寸 PNG 横向打包、透明通道、frame/FPS/loop 元数据 | 图集文件、元数据、素材索引 | Done |
-| AS1c | 引擎动画资源 | 图集不会自动生成 SpriteFrames/Web 描述 | 按引擎生成动画资源并接入模板 | Backlog |
+| AS1c | 引擎动画描述 | 已生成 Web JSON 与 Godot SpriteFrames `.tres`，并写入 `game/build-assets/animations/` | 图集、frame 元数据、引擎描述文件 | Done |
+| AS1d | 模板动画接入 | 描述文件不会自动被模板加载 | 模板自动发现/播放动画资源 | Backlog |
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听；SFX/重命名未做 | UI 内生成、显示进度、试听、加入构建 | Done |
 | AS2b | 音频 SFX/重命名 | 固定 30 秒 BGM，无文本 SFX、无素材重命名 | 自定义时长、SFX 生成、重命名和元数据编辑 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
@@ -136,7 +137,7 @@
 ## 10. 建议的下一步顺序
 
 1. **V1 Unity runtime**：本机无 Unity，先补 self-hosted/本地可执行 job，不能伪造通过。
-2. **AS1c 引擎动画资源**：把 atlas 元数据生成 Godot/Web 动画描述。
+2. **AS1d 模板动画接入**：让 Web/Godot 模板自动发现图集描述并播放。
 3. **AS4 BGM 全模板覆盖**：把现有 BGM 接入 Web/Unity survivor 及音量/循环设置。
 
 ## 11. Definition of Done

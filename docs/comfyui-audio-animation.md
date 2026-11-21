@@ -34,12 +34,12 @@ Implemented in Studio:
 - The frames are ordinary PNG assets and are grouped into an animation canvas
   node with playback and regenerate controls.
 - **Pack atlas** creates a horizontal transparent PNG with frame dimensions,
-  count, FPS, and loop metadata.
+  count, FPS, and loop metadata, plus Web JSON and Godot `SpriteFrames` files
+  under `game/build-assets/animations/`.
 - Build selection can stage the frames or atlas under `game/build-assets/`.
 
 Still pending:
 
-1. Emit engine-specific animation config (for example Godot `SpriteFrames` or
-   Web sprite-sheet descriptors).
+1. Wire the generated descriptors into templates automatically.
 2. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
    motion module; video output still needs alpha cleanup and frame extraction.

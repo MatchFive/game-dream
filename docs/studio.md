@@ -67,7 +67,9 @@ and creates an animation canvas node that plays the frames and can regenerate
 the sequence from its prompt. Each frame is an ordinary PNG asset. **Pack
 atlas** combines equal-sized frames into a horizontal transparent PNG with
 `frameWidth`, `frameHeight`, `frameCount`, `fps`, and `loop` metadata; the atlas
-is indexed as a normal asset that can be added to the build.
+is indexed as a normal asset and also written to
+`game/build-assets/animations/` with a Web JSON descriptor and a Godot
+`SpriteFrames` `.tres` resource.
 
 The **BGM** chip generates a 30-second MiniMax Music 3 track through ComfyUI.
 The job is written to `.gamedream/studio/generated/<job-id>.mp3` with a JSON
@@ -165,7 +167,7 @@ binding.
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
-| `POST /api/animation/atlas` | Pack 2–8 equal-sized PNG frames into a horizontal transparent atlas + metadata |
+| `POST /api/animation/atlas` | Pack PNG frames into an atlas + Web/Godot descriptors |
 | `POST /api/generate` | Start image/animation jobs or a BGM job (`audio: true, duration: 10-60`) |
 | `GET /api/jobs/:id` | Poll a generation job |
 | `GET /api/agent` | Active, queued, and historical Agent batches |
@@ -218,7 +220,7 @@ expose it on a public interface.
 - Godot playtest requires a local display and a 4.x `GODOT_BIN`; Unity playtest
   is not available from the Studio server.
 - Animation generation produces a 2–4 frame keyframe sequence with playback,
-  regeneration, and horizontal PNG atlas packing. There is no AnimateDiff node,
-  automatic engine animation resource, or per-frame scaling.
+  regeneration, horizontal PNG atlas packing, and Web/Godot descriptors. There
+  is no AnimateDiff node, automatic template wiring, or per-frame scaling.
 - BGM generation is a fixed 30-second UI mode; SFX generation, custom duration,
   and generated-asset renaming are not implemented yet.

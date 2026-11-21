@@ -96,8 +96,10 @@ depending on an installed editor. Real-engine validation remains separate.
 - `POST /api/animation/atlas` packs equal-sized PNG frames into a horizontal
   transparent atlas; `createAnimationAtlas` writes a sidecar with frame size,
   count, FPS, loop, and source frame ids.
-- The studio test decodes the generated atlas and asserts 4×2 dimensions for two
-  2×2 frames.
+- It also writes the atlas to `game/build-assets/animations/` with a Web JSON
+  descriptor and a Godot `SpriteFrames` `.tres` resource.
+- The studio test decodes the generated atlas, asserts 4×2 dimensions for two
+  2×2 frames, and checks both descriptor files.
 
 ## Build selection
 
