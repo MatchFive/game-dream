@@ -2,8 +2,8 @@
 > gamedream@ smoke:agent D:\project\game_dream
 > node scripts/studio-agent-smoke.mjs
 
-AGENT_BATCH=agent-mwqh77qr-a58417
-AGENT_RUN=agent-mwqh77qr-a58417-1
+AGENT_BATCH=agent-mwqiffml-8285ad
+AGENT_RUN=agent-mwqiffml-8285ad-1
 AGENT_APPROVAL_STATUS=awaiting-approval
 AGENT_TOOL_COUNT=1
 AGENT_EVENT_TYPES=approval/request,run/start,session/event,tool/start
