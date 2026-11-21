@@ -1,3 +1,5 @@
+import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=1';
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -37,6 +39,10 @@ function formatBytes(bytes) {
   return `${bytes} B`;
 }
 
+function formatWhen(value) {
+  return formatDate(value);
+}
+
 function assetById(id) {
   return state.assets.find((asset) => asset.id === id);
 }
@@ -56,7 +62,6 @@ function setSaveState(text, error = false) {
   $('#saveState').textContent = text;
   $('#saveDot').style.background = error ? 'var(--coral)' : 'var(--lime)';
 }
-
 function toast(message) {
   const element = $('#toast');
   element.textContent = message;
@@ -79,7 +84,7 @@ async function request(path, options = {}) {
 }
 
 async function load() {
-  setSaveState('Loading');
+  setSaveState(t('assets.saveLoading'));
   try {
     const data = await request('/api/state');
     state.project = data.project;
@@ -108,15 +113,16 @@ async function load() {
         ?? null;
     }
     renderAll();
-    setSaveState('Saved');
+    setSaveState(t('assets.saveSaved'));
     updateComfyStatus();
+    if (!$('#promptInput').dataset.touched) $('#promptInput').value = t('assets.defaultPrompt');
     const focusId = new URLSearchParams(window.location.search).get('focus');
     if (focusId && assetById(focusId)) {
       setTimeout(() => activateAsset(focusId), 80);
     }
   } catch (error) {
-    setSaveState('Error', true);
-    toast(`Could not load studio: ${error.message}`);
+    setSaveState(t('assets.saveFailed'), true);
+    toast(t('assets.loadFailed', { message: error.message }));
     state.assets = [];
     state.canvas = { nodes: [], inBuild: [] };
     renderAll();
@@ -208,23 +214,24 @@ async function saveNow() {
       body: JSON.stringify({ nodes, inBuild: state.canvas.inBuild }),
     });
     state.canvas.inBuild = result.canvas.inBuild;
-    setSaveState('Saved');
+    setSaveState(t('assets.saveSaved'));
   } catch (error) {
-    setSaveState('Save failed', true);
-    toast(`Canvas save failed: ${error.message}`);
+    setSaveState(t('assets.saveFailed'), true);
+    toast(t('assets.canvasSaveFailed', { message: error.message }));
   }
 }
 
 function scheduleSave() {
-  setSaveState('Saving');
+  setSaveState(t('assets.saveSaving'));
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 400);
 }
 
 function renderAll() {
+  document.title = t('assets.title');
   $('#projectName').textContent = state.project.name;
   $('#projectLabel').textContent = state.project.name.toUpperCase();
-  $('#assetCount').textContent = `${state.assets.length} asset${state.assets.length === 1 ? '' : 's'}`;
+  $('#assetCount').textContent = t('common.assetCount', { count: state.assets.length });
   updateComfyStatus();
   renderLibrary();
   renderCanvas();
@@ -238,12 +245,12 @@ function updateComfyStatus() {
   const element = $('#comfyState');
   element.classList.toggle('online', Boolean(health.online));
   element.classList.toggle('offline', !health.online);
-  element.innerHTML = `<span class="dot"></span>${health.online ? 'ComfyUI online' : 'ComfyUI offline'}`;
+  element.innerHTML = `<span class="dot"></span>${health.online ? t('assets.comfyOnline') : t('assets.comfyOffline')}`;
   $('#libraryEndpoint').textContent = health.url || 'ComfyUI';
   $('#libraryWorkflow').textContent = health.workflowExists
-    ? (health.online ? 'Workflow ready' : 'Workflow found · ComfyUI offline')
-    : 'Workflow missing';
-  $('#dockRefs').textContent = health.online ? 'COMFYUI · LOCAL' : 'COMFYUI · OFFLINE';
+    ? (health.online ? t('assets.workflowReady') : t('assets.workflowFoundOffline'))
+    : t('assets.workflowMissing');
+  $('#dockRefs').textContent = health.online ? t('assets.comfyLocal') : t('assets.comfyOfflineLabel');
 }
 
 function thumbFor(asset) {
@@ -273,15 +280,15 @@ function renderLibrary() {
         ${thumbFor(asset)}
         <span>
           <span class="asset-item-name">${escapeHtml(asset.name)}</span>
-          <span class="asset-item-meta">${escapeHtml(asset.kind)} · ${escapeHtml(asset.source)} · ${formatBytes(asset.bytes)}</span>
+          <span class="asset-item-meta">${t('assets.assetKind', { kind: t(`common.${asset.kind}`), source: t(`common.${asset.source}`) })} · ${formatBytes(asset.bytes)}</span>
         </span>
-        <span class="asset-item-mark">${asset.inBuild ? '<span class="dot"></span>IN' : ''}</span>
+        <span class="asset-item-mark">${asset.inBuild ? `<span class="dot"></span>${t('common.inBuild')}` : ''}</span>
       </button>
     `;
   }).join('');
-  $('#libraryCount').textContent = `${assets.length} ITEM${assets.length === 1 ? '' : 'S'}`;
+  $('#libraryCount').textContent = t('common.items', { count: assets.length });
   $('#libraryEmpty').hidden = assets.length > 0;
-  $('#collectionLabel').textContent = `IN BUILD / ${state.canvas.inBuild.length}`;
+  $('#collectionLabel').textContent = t('assets.inBuildCount', { count: state.canvas.inBuild.length });
   $$('.filter').forEach((filter) => {
     filter.setAttribute('aria-pressed', String(filter.dataset.filter === state.filter));
   });
@@ -329,34 +336,34 @@ function waveformBars(count = 16) {
 
 function nodeMarkup(node) {
   if (node.empty) {
-    return `${nodeHead('EMPTY')}<div class="node-body"><div class="node-title">No assets yet</div><div class="node-sub">Generate an asset from the prompt bar, or add files under assets/.</div></div>`;
+    return `${nodeHead(t('assets.nodesEmpty'))}<div class="node-body"><div class="node-title">${t('assets.noProjectAssets')}</div><div class="node-sub">${t('assets.noProjectAssetsHint')}</div></div>`;
   }
   if (node.kind === 'brief') {
-    return `${nodeHead('BRIEF', state.project.name.toUpperCase())}<div class="brief-node"><p class="quote">“${escapeHtml(state.project.name)}：把角色、构建截图、BGM 和变体放在同一张画布上，先从可玩的构建开始。”</p><div class="tags"><span class="mini-tag">asset canvas</span><span class="mini-tag">local project</span><span class="mini-tag">verified build</span></div></div>`;
+    return `${nodeHead(t('assets.nodesBrief'), state.project.name.toUpperCase())}<div class="brief-node"><p class="quote">${t('assets.briefText', { name: state.project.name })}</p><div class="tags"><span class="mini-tag">${t('assets.tagCanvas')}</span><span class="mini-tag">${t('assets.tagLocal')}</span><span class="mini-tag">${t('assets.tagBuild')}</span></div></div>`;
   }
   if (node.kind === 'group') {
     const assets = (node.assetIds ?? []).map(assetById).filter(Boolean);
     const allInBuild = assets.length > 0 && assets.every((asset) => asset.inBuild);
-    return `${nodeHead('SPRITE SET', allInBuild ? 'IN BUILD' : 'SET')}
+    return `${nodeHead(t('assets.nodesSpriteSet'), allInBuild ? t('common.inBuild') : t('common.set'))}
       <div class="sprite-board">${assets.map((asset) => `<div class="sprite-pair"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)} sprite"><span>${escapeHtml(asset.name)}</span></div>`).join('')}</div>
-      <div class="node-body"><div class="node-title">Sprite set / ${assets.length}</div><div class="node-sub">RGBA · project assets</div></div>
-      <div class="node-foot"><span class="node-tag">${allInBuild ? 'IN BUILD' : 'SET'}</span><button class="button secondary" type="button" data-use-group>Manage</button></div>`;
+      <div class="node-body"><div class="node-title">${t('assets.spriteCount', { count: assets.length })}</div><div class="node-sub">${t('assets.rgba')}</div></div>
+      <div class="node-foot"><span class="node-tag">${allInBuild ? t('common.inBuild') : t('common.set')}</span><button class="button secondary" type="button" data-use-group>${t('common.manage')}</button></div>`;
   }
   if (node.generating) {
-    return `${nodeHead('GENERATING', 'JOB')}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">Generating asset…</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}</div></div>`;
+    return `${nodeHead(t('assets.nodesGenerating'), t('assets.job'))}<div class="node-media"><div class="shimmer"></div></div><div class="node-body"><div class="node-title">${t('assets.generatingAsset')}</div><div class="node-sub">${escapeHtml(node.progress ?? 'ComfyUI')}</div></div>`;
   }
   if (node.error) {
-    return `${nodeHead('GENERATION', 'ERROR', 'coral')}<div class="node-media">${escapeHtml(node.error)}</div><div class="node-body"><div class="node-title">Generation failed</div><div class="node-sub">Check the ComfyUI status, then retry.</div></div>`;
+    return `${nodeHead(t('assets.nodesError'), t('common.error'), 'coral')}<div class="node-media">${escapeHtml(node.error)}</div><div class="node-body"><div class="node-title">${t('assets.generationFailed')}</div><div class="node-sub">${t('assets.checkComfy')}</div></div>`;
   }
   const asset = assetById(node.assetId);
   if (!asset) return '';
   if (asset.kind === 'audio') {
-    return `${nodeHead('AUDIO', 'LOOP')}<div class="audio-node"><div class="waveform" aria-label="Audio waveform">${waveformBars(20)}</div><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${formatBytes(asset.bytes)} · ${escapeHtml(asset.source)}</div></div><div class="node-foot"><span class="node-tag">AUDIO</span><button class="button secondary" type="button" data-audio="${asset.id}">Preview</button></div>`;
+    return `${nodeHead(t('assets.nodesAudio'), t('assets.loop'))}<div class="audio-node"><div class="waveform" aria-label="音频波形">${waveformBars(20)}</div><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${formatBytes(asset.bytes)} · ${t(`common.${asset.source}`)}</div></div><div class="node-foot"><span class="node-tag">${t('assets.nodesAudio')}</span><button class="button secondary" type="button" data-audio="${asset.id}">${t('common.preview')}</button></div>`;
   }
   if (node.kind === 'build') {
-    return `${nodeHead('GAME BUILD', 'PLAYABLE')}<div class="node-media node-game"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div><div class="node-body"><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${escapeHtml(asset.file)}</div></div><div class="node-foot"><span class="node-tag">LINKED ASSET</span><a class="button secondary" href="${escapeHtml(asset.url)}" target="_blank" rel="noreferrer">Open</a></div>`;
+    return `${nodeHead(t('assets.nodesBuild'), t('studio.playable'))}<div class="node-media node-game"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div><div class="node-body"><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${escapeHtml(asset.file)}</div></div><div class="node-foot"><span class="node-tag">${t('assets.linkedAsset')}</span><a class="button secondary" href="${escapeHtml(asset.url)}" target="_blank" rel="noreferrer">${t('assets.openBuild')}</a></div>`;
   }
-  return `${nodeHead(asset.kind.toUpperCase(), asset.inBuild ? 'IN BUILD' : '')}<div class="node-media node-art"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div><div class="node-body"><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${escapeHtml(asset.source)} · ${formatBytes(asset.bytes)}</div></div><div class="node-foot"><span class="node-tag">${asset.inBuild ? 'IN BUILD' : 'ASSET'}</span><button class="button secondary" type="button" data-use="${asset.id}">${asset.inBuild ? 'Remove' : 'Use in build'}</button></div>`;
+  return `${nodeHead(t(`common.${asset.kind}`), asset.inBuild ? t('common.inBuild') : '')}<div class="node-media node-art"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div><div class="node-body"><div class="node-title">${escapeHtml(asset.name)}</div><div class="node-sub">${t(`common.${asset.source}`)} · ${formatBytes(asset.bytes)}</div></div><div class="node-foot"><span class="node-tag">${asset.inBuild ? t('common.inBuild') : t('assets.asset')}</span><button class="button secondary" type="button" data-use="${asset.id}">${asset.inBuild ? t('common.remove') : t('assets.useInBuild')}</button></div>`;
 }
 
 function renderCanvas() {
@@ -426,7 +433,7 @@ function bindNode(element, node) {
   $$('[data-menu]', element).forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
-      toast('Asset actions are available in the inspector.');
+      toast(t('assets.actionsInspector'));
     });
   });
 }
@@ -526,24 +533,24 @@ function renderInspector() {
   const node = nodeById(state.selectedId);
   const body = $('#inspectorBody');
   if (!node) {
-    body.innerHTML = '<div class="inspector-empty"><strong>NO SELECTION</strong>Select an asset on the canvas or in the library to inspect it.</div>';
+    body.innerHTML = `<div class="inspector-empty"><strong>${t('assets.noSelection')}</strong>${t('assets.noSelectionHint')}</div>`;
     return;
   }
   if (node.kind === 'brief') {
     body.innerHTML = `
-      <div class="inspect-preview brief-preview"><span class="preview-badge">BRIEF</span><div style="padding:22px 18px;color:#dbe2d1;font-size:12px;line-height:1.65">“${escapeHtml(state.project.name)}：把角色、构建截图、BGM 和变体放在同一张画布上，先从可玩的构建开始。”</div></div>
-      <h2 class="inspect-name">Creative brief</h2>
+      <div class="inspect-preview brief-preview"><span class="preview-badge">${t('common.brief')}</span><div style="padding:22px 18px;color:#dbe2d1;font-size:12px;line-height:1.65">${t('assets.briefText', { name: state.project.name })}</div></div>
+      <h2 class="inspect-name">${t('assets.creativeBrief')}</h2>
       <div class="inspect-sub">${escapeHtml(state.project.root)}</div>
-      <div class="inspect-tags"><span class="tag good">PROJECT</span><span class="tag">asset canvas</span></div>
+      <div class="inspect-tags"><span class="tag good">${t('assets.projectLabel')}</span><span class="tag">${t('assets.title')}</span></div>
       <div class="meta-grid">
-        <div class="meta-cell"><div class="k">PROJECT</div><div class="v">${escapeHtml(state.project.name)}</div></div>
-        <div class="meta-cell"><div class="k">ASSETS</div><div class="v">${state.assets.length}</div></div>
-        <div class="meta-cell"><div class="k">IN BUILD</div><div class="v">${state.canvas.inBuild.length}</div></div>
-        <div class="meta-cell"><div class="k">COMFYUI</div><div class="v">${state.comfyui.online ? 'online' : 'offline'}</div></div>
+        <div class="meta-cell"><div class="k">${t('assets.projectLabel')}</div><div class="v">${escapeHtml(state.project.name)}</div></div>
+        <div class="meta-cell"><div class="k">${t('common.assets')}</div><div class="v">${state.assets.length}</div></div>
+        <div class="meta-cell"><div class="k">${t('assets.inBuildLabel')}</div><div class="v">${state.canvas.inBuild.length}</div></div>
+        <div class="meta-cell"><div class="k">${t('assets.comfyLabel')}</div><div class="v">${state.comfyui.online ? t('common.online') : t('common.offline')}</div></div>
       </div>
-      <div class="section-label"><span>NEXT</span><span>LOCAL</span></div>
-      <div class="prompt-box" style="min-height:64px;color:var(--muted)">Type a prompt in the bottom bar to create a game-ready asset. Every generated image is saved to .gamedream/studio/generated and appears in the library.</div>
-      <div class="inspect-actions"><button class="button primary full" type="button" data-focus-prompt>Open generation prompt</button></div>
+      <div class="section-label"><span>${t('assets.nextLabel')}</span><span>${t('assets.localLabel')}</span></div>
+      <div class="prompt-box" style="min-height:64px;color:var(--muted)">${t('assets.promptHint')}</div>
+      <div class="inspect-actions"><button class="button primary full" type="button" data-focus-prompt>${t('assets.openPrompt')}</button></div>
     `;
     $('[data-focus-prompt]', body)?.addEventListener('click', () => $('#promptInput').focus());
     return;
@@ -551,70 +558,70 @@ function renderInspector() {
   if (node.kind === 'group') {
     const assets = (node.assetIds ?? []).map(assetById).filter(Boolean);
     body.innerHTML = `
-      <div class="inspect-preview sprites-preview"><span class="preview-badge">SPRITE SET</span>${assets.map((asset) => `<div class="sprite-pair"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"><span>${escapeHtml(asset.name)}</span></div>`).join('')}</div>
-      <h2 class="inspect-name">Sprite set</h2>
-      <div class="inspect-sub">${assets.length} sprites · project assets</div>
-      <div class="inspect-tags"><span class="tag good">IN BUILD</span><span class="tag">RGBA</span><span class="tag">sprite</span></div>
+      <div class="inspect-preview sprites-preview"><span class="preview-badge">${t('assets.nodesSpriteSet')}</span>${assets.map((asset) => `<div class="sprite-pair"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"><span>${escapeHtml(asset.name)}</span></div>`).join('')}</div>
+      <h2 class="inspect-name">${t('assets.spriteSetTitle')}</h2>
+      <div class="inspect-sub">${t('assets.spriteSetSub', { count: assets.length })}</div>
+      <div class="inspect-tags"><span class="tag good">${t('common.inBuild')}</span><span class="tag">RGBA</span><span class="tag">${t('common.sprite')}</span></div>
       <div class="meta-grid">
-        <div class="meta-cell"><div class="k">TYPE</div><div class="v">Sprite set</div></div>
-        <div class="meta-cell"><div class="k">COUNT</div><div class="v">${assets.length}</div></div>
-        <div class="meta-cell"><div class="k">SOURCE</div><div class="v">project modules</div></div>
-        <div class="meta-cell"><div class="k">IN BUILD</div><div class="v">${assets.filter((asset) => asset.inBuild).length}/${assets.length}</div></div>
+        <div class="meta-cell"><div class="k">${t('common.type')}</div><div class="v">${t('assets.spriteSetTitle')}</div></div>
+        <div class="meta-cell"><div class="k">${t('common.items', { count: assets.length })}</div><div class="v">${assets.length}</div></div>
+        <div class="meta-cell"><div class="k">${t('common.source')}</div><div class="v">${t('assets.sourceModules')}</div></div>
+        <div class="meta-cell"><div class="k">${t('assets.inBuildLabel')}</div><div class="v">${assets.filter((asset) => asset.inBuild).length}/${assets.length}</div></div>
       </div>
-      <div class="inspect-actions"><button class="button primary full" type="button" data-use-set>${assets.every((asset) => asset.inBuild) ? 'Remove set from build' : 'Use set in build'}</button></div>
+      <div class="inspect-actions"><button class="button primary full" type="button" data-use-set>${assets.every((asset) => asset.inBuild) ? t('assets.removeSet') : t('assets.useSet')}</button></div>
     `;
     $('[data-use-set]', body)?.addEventListener('click', () => toggleUse(node.assetIds ?? []));
     return;
   }
   if (node.generating) {
     body.innerHTML = `
-      <div class="inspect-preview audio-preview"><span class="preview-badge">GENERATING</span><div class="shimmer" style="width:96px;height:96px"></div></div>
-      <h2 class="inspect-name">Generating asset</h2>
-      <div class="inspect-sub">ComfyUI job · local workflow</div>
-      <div class="job-progress">${escapeHtml(node.progress ?? 'Queued')}</div>
-      <div class="inspect-actions"><button class="button secondary full" type="button" data-focus-selected>Focus canvas</button></div>
+      <div class="inspect-preview audio-preview"><span class="preview-badge">${t('assets.generating')}</span><div class="shimmer" style="width:96px;height:96px"></div></div>
+      <h2 class="inspect-name">${t('assets.generatingAsset')}</h2>
+      <div class="inspect-sub">${t('assets.comfyJob')}</div>
+      <div class="job-progress">${escapeHtml(node.progress ?? t('assets.queued'))}</div>
+      <div class="inspect-actions"><button class="button secondary full" type="button" data-focus-selected>${t('assets.focusCanvas')}</button></div>
     `;
     $('[data-focus-selected]', body)?.addEventListener('click', () => focusNode(node.id));
     return;
   }
   if (node.error) {
     body.innerHTML = `
-      <div class="inspect-preview audio-preview"><span class="preview-badge" style="color:var(--coral)">GENERATION FAILED</span><div style="padding:20px;color:var(--coral);font:9px/1.5 var(--mono)">${escapeHtml(node.error)}</div></div>
-      <h2 class="inspect-name">Generation failed</h2>
-      <div class="inspect-sub">The asset was not saved.</div>
-      <div class="inspect-actions"><button class="button secondary full" type="button" data-retry>Edit prompt and retry</button></div>
+      <div class="inspect-preview audio-preview"><span class="preview-badge" style="color:var(--coral)">${t('assets.generationFailed')}</span><div style="padding:20px;color:var(--coral);font:9px/1.5 var(--mono)">${escapeHtml(node.error)}</div></div>
+      <h2 class="inspect-name">${t('assets.generationFailed')}</h2>
+      <div class="inspect-sub">${t('assets.assetNotSaved')}</div>
+      <div class="inspect-actions"><button class="button secondary full" type="button" data-retry>${t('assets.editRetry')}</button></div>
     `;
     $('[data-retry]', body)?.addEventListener('click', () => $('#promptInput').focus());
     return;
   }
   const asset = assetById(node.assetId);
   if (!asset) {
-    body.innerHTML = '<div class="inspector-empty"><strong>MISSING ASSET</strong>This canvas node points to a file that is no longer present.</div>';
+    body.innerHTML = `<div class="inspector-empty"><strong>${t('assets.missingAsset')}</strong>${t('assets.missingAssetHint')}</div>`;
     return;
   }
   const preview = asset.kind === 'audio'
-    ? `<div class="inspect-preview audio-preview"><span class="preview-badge">AUDIO</span><div class="waveform">${waveformBars(18)}</div></div>`
-    : `<div class="inspect-preview"><span class="preview-badge">${asset.kind.toUpperCase()}</span><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div>`;
-  const prompt = asset.prompt ?? (asset.source === 'generated' ? 'Prompt metadata missing.' : 'No prompt metadata for this imported asset.');
+    ? `<div class="inspect-preview audio-preview"><span class="preview-badge">${t('common.audio')}</span><div class="waveform">${waveformBars(18)}</div></div>`
+    : `<div class="inspect-preview"><span class="preview-badge">${t(`common.${asset.kind}`)}</span><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}"></div>`;
+  const prompt = asset.prompt ?? (asset.source === 'generated' ? t('assets.promptMissing') : t('assets.noPromptImported'));
   body.innerHTML = `
     ${preview}
     <h2 class="inspect-name">${escapeHtml(asset.name)}</h2>
     <div class="inspect-sub">${escapeHtml(asset.file)}</div>
-    <div class="inspect-tags">${asset.inBuild ? '<span class="tag good">IN BUILD</span>' : ''}<span class="tag">${escapeHtml(asset.kind)}</span><span class="tag">${escapeHtml(asset.source)}</span></div>
+    <div class="inspect-tags">${asset.inBuild ? `<span class="tag good">${t('common.inBuild')}</span>` : ''}<span class="tag">${t(`common.${asset.kind}`)}</span><span class="tag">${t(`common.${asset.source}`)}</span></div>
     <div class="meta-grid">
-      <div class="meta-cell"><div class="k">TYPE</div><div class="v">${escapeHtml(asset.kind)}</div></div>
-      <div class="meta-cell"><div class="k">SIZE</div><div class="v">${formatBytes(asset.bytes)}</div></div>
-      <div class="meta-cell"><div class="k">SOURCE</div><div class="v">${escapeHtml(asset.source)}</div></div>
-      <div class="meta-cell"><div class="k">SEED</div><div class="v">${escapeHtml(asset.seed ?? '—')}</div></div>
-      <div class="meta-cell"><div class="k">FILE</div><div class="v">${escapeHtml(asset.file.split('/').pop())}</div></div>
-      <div class="meta-cell"><div class="k">MODEL</div><div class="v">${asset.source === 'generated' ? 'Qwen / ComfyUI' : 'project'}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.type')}</div><div class="v">${t(`common.${asset.kind}`)}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.size')}</div><div class="v">${formatBytes(asset.bytes)}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.source')}</div><div class="v">${t(`common.${asset.source}`)}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.seed')}</div><div class="v">${escapeHtml(asset.seed ?? '—')}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.file')}</div><div class="v">${escapeHtml(asset.file.split('/').pop())}</div></div>
+      <div class="meta-cell"><div class="k">${t('common.model')}</div><div class="v">${asset.source === 'generated' ? t('assets.modelQwen') : t('common.project')}</div></div>
     </div>
-    <div class="section-label"><span>PROMPT</span><span>READ-ONLY</span></div>
-    <textarea class="prompt-box" readonly aria-label="Asset prompt">${escapeHtml(prompt)}</textarea>
+    <div class="section-label"><span>${t('common.prompt')}</span><span>${t('common.readOnly')}</span></div>
+    <textarea class="prompt-box" readonly aria-label="${t('common.prompt')}">${escapeHtml(prompt)}</textarea>
     <div class="inspect-actions">
-      <button class="button primary full" type="button" data-use-selected>${asset.inBuild ? 'Remove from build' : 'Use in build'}</button>
-      <a class="button secondary" href="${escapeHtml(asset.url)}" download>Download</a>
-      ${asset.kind === 'audio' ? '<button class="button secondary" type="button" data-audio-inspector>Preview</button>' : '<button class="button secondary" type="button" data-focus-selected>Focus</button>'}
+      <button class="button primary full" type="button" data-use-selected>${asset.inBuild ? t('assets.removeFromBuild') : t('assets.useInBuild')}</button>
+      <a class="button secondary" href="${escapeHtml(asset.url)}" download>${t('assets.download')}</a>
+      ${asset.kind === 'audio' ? `<button class="button secondary" type="button" data-audio-inspector>${t('common.preview')}</button>` : `<button class="button secondary" type="button" data-focus-selected>${t('common.focus')}</button>`}
     </div>
   `;
   $('[data-use-selected]', body)?.addEventListener('click', () => toggleUse([asset.id]));
@@ -643,10 +650,10 @@ async function toggleUse(assetIds) {
     state.canvas.inBuild = canvas.inBuild;
     syncBuildFlags();
     renderAssetState();
-    setSaveState('Saved');
-    toast(desired ? 'Asset marked for the build.' : 'Asset removed from the build.');
+    setSaveState(t('assets.saveSaved'));
+    toast(desired ? t('assets.assetMarked') : t('assets.assetRemoved'));
   } catch (error) {
-    toast(`Could not update build selection: ${error.message}`);
+    toast(t('assets.updateFailed', { message: error.message }));
   }
 }
 
@@ -659,22 +666,24 @@ function previewAudio(assetId) {
   }
   const audio = new Audio(asset.url);
   state.audio = audio;
-  audio.play().then(() => toast(`Playing ${asset.name}`)).catch(() => toast('Audio preview is unavailable.'));
+  audio.play().then(() => toast(t('assets.playing', { name: asset.name }))).catch(() => toast(t('assets.audioFailed')));
 }
 
 function setGenerating(active, message = '') {
   state.generating = active;
   const button = $('#generateBtn');
   button.disabled = active;
-  button.innerHTML = active ? 'Generating…' : 'Generate <span aria-hidden="true">↵</span>';
-  $('#queueLabel').textContent = active ? message || 'COMFYUI · QUEUED' : 'LOCAL SANDBOX';
+  button.innerHTML = active
+    ? t('assets.generatingButton')
+    : `${t('assets.generateButton')} <span aria-hidden="true">↵</span>`;
+  $('#queueLabel').textContent = active ? message || t('assets.comfyQueued') : t('assets.localSandbox');
 }
 
 async function generateAsset() {
   if (state.generating) return;
   const prompt = $('#promptInput').value.trim();
   if (!prompt) {
-    toast('Describe the asset before generating.');
+    toast(t('assets.promptRequired'));
     $('#promptInput').focus();
     return;
   }
@@ -695,7 +704,7 @@ async function generateAsset() {
   renderLibrary();
   renderInspector();
   focusNode(jobNode.id);
-  setGenerating(true, 'COMFYUI · SUBMITTING');
+  setGenerating(true, t('assets.comfySubmitting'));
   try {
     const result = await request('/api/generate', {
       method: 'POST',
@@ -708,7 +717,7 @@ async function generateAsset() {
     renderCanvas();
     renderInspector();
     setGenerating(false);
-    toast(`Generation failed: ${error.message}`);
+    toast(t('assets.generationFailedToast', { message: error.message }));
   }
 }
 
@@ -725,7 +734,7 @@ async function pollJob(node, jobId) {
       renderCanvas();
       renderInspector();
       setGenerating(false);
-      toast(`Job polling failed: ${error.message}`);
+      toast(t('assets.jobPollFailed', { message: error.message }));
       return;
     }
     node.progress = job.progress;
@@ -747,7 +756,7 @@ async function pollJob(node, jobId) {
         node.progress = 'ready';
         node.prompt = asset.prompt ?? node.prompt;
       } else {
-        node.error = 'Generated image was saved but could not be indexed.';
+        node.error = t('assets.indexFailed');
       }
       setGenerating(false);
       renderAssetState();
@@ -755,9 +764,9 @@ async function pollJob(node, jobId) {
       if (asset) {
         state.selectedId = node.id;
         focusNode(node.id);
-        toast(`Generated ${asset.name}.`);
+        toast(t('assets.generationReady', { name: asset.name }));
       } else {
-        toast('Generation finished, but the asset index was not updated.');
+        toast(t('assets.indexFailed'));
       }
       scheduleSave();
       return;
@@ -782,7 +791,7 @@ $('#uploadInput').addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
   if (file.size > 12 * 1024 * 1024) {
-    toast('Asset is larger than the 12 MB upload limit.');
+    toast(t('assets.tooLarge'));
     return;
   }
   try {
@@ -799,9 +808,9 @@ $('#uploadInput').addEventListener('change', async (event) => {
     await load();
     const uploaded = state.assets.find((asset) => asset.file === result.file);
     if (uploaded) activateAsset(uploaded.id);
-    toast(`Imported ${file.name}.`);
+    toast(t('assets.imported', { name: file.name }));
   } catch (error) {
-    toast(`Import failed: ${error.message}`);
+    toast(t('assets.importFailed', { message: error.message }));
   } finally {
     event.target.value = '';
   }
@@ -812,7 +821,7 @@ $$('.filter').forEach((filter) => filter.addEventListener('click', () => {
 }));
 $('#refreshBtn').addEventListener('click', () => {
   if (state.generating) {
-    toast('A generation job is still running.');
+    toast(t('assets.jobRunning'));
     return;
   }
   load();
@@ -820,6 +829,7 @@ $('#refreshBtn').addEventListener('click', () => {
 $('#focusGenerate').addEventListener('click', () => {
   $('#promptInput').focus();
   if (window.innerWidth <= 760) setScreen('canvas');
+  toast(t('assets.promptFocused'));
 });
 $('#generateBtn').addEventListener('click', generateAsset);
 $('#promptInput').addEventListener('keydown', (event) => {
@@ -831,9 +841,9 @@ $('#promptInput').addEventListener('keydown', (event) => {
 $('#transparentChip').addEventListener('click', () => {
   $('#transparentChip').classList.toggle('accent');
 });
-$('#modelChip').addEventListener('click', () => toast('Generation uses the configured local ComfyUI workflow.'));
-$('#countChip').addEventListener('click', () => toast('This workflow returns one image per job. Generate again for another variant.'));
-$('#refChip').addEventListener('click', () => toast('The project asset library is the reference context for this canvas.'));
+$('#modelChip').addEventListener('click', () => toast(t('assets.modelHint')));
+$('#countChip').addEventListener('click', () => toast(t('assets.variantHint')));
+$('#refChip').addEventListener('click', () => toast(t('assets.refHint')));
 
 $$('[data-tool]').forEach((button) => button.addEventListener('click', () => {
   state.tool = button.dataset.tool;
@@ -936,5 +946,18 @@ document.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('resize', applyView);
-applyView();
+$('#promptInput').addEventListener('input', () => {
+  $('#promptInput').dataset.touched = 'true';
+});
+
+initLocale();
+document.title = t('assets.title');
+window.addEventListener('localechange', () => {
+  document.title = t('assets.title');
+  if (state.project.name) {
+    if (!$('#promptInput').dataset.touched) $('#promptInput').value = t('assets.defaultPrompt');
+    if (state.canvas.nodes.length) renderAll();
+  }
+});
+
 load();

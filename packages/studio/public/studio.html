@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>GameDream Studio</title>
 <link rel="stylesheet" href="/styles.css?v=2">
-<link rel="stylesheet" href="/studio.css?v=1">
+<link rel="stylesheet" href="/studio.css?v=2">
 </head>
 <body data-screen="preview">
 <svg class="sprite" aria-hidden="true">
@@ -31,40 +31,41 @@
     <span class="brand-name">GAMEDREAM</span>
     <span class="brand-sub">STUDIO</span>
   </a>
-  <div class="crumb"><strong id="projectName">Project</strong><span class="sep">/</span><span>build</span><span class="sep">·</span><span id="projectMeta">loading</span></div>
+  <div class="crumb"><strong id="projectName">Project</strong><span class="sep">/</span><span data-i18n="studio.build">构建</span><span class="sep">·</span><span id="projectMeta">加载中</span></div>
   <nav class="studio-nav" aria-label="Studio sections">
-    <a href="/" aria-current="page">MISSION</a>
-    <a href="/assets">ASSETS</a>
+    <a href="/" aria-current="page" data-i18n="studio.mission">MISSION</a>
+    <a href="/assets" data-i18n="studio.assets">ASSETS</a>
   </nav>
   <div class="top-actions">
-    <span class="saved"><span class="dot" id="studioDot"></span><span id="studioState">Loading</span></span>
-    <span class="connection" id="studioComfy"><span class="dot"></span>ComfyUI checking</span>
-    <button class="button primary" id="verifyTop" type="button"><svg class="icon"><use href="#i-check"></use></svg> Verify</button>
+    <span class="saved"><span class="dot" id="studioDot"></span><span id="studioState">加载中</span></span>
+    <span class="connection" id="studioComfy"><span class="dot"></span>ComfyUI 检查中</span>
+    <button class="icon-btn" data-locale-toggle type="button">EN</button>
+    <button class="button primary" id="verifyTop" type="button"><svg class="icon"><use href="#i-check"></use></svg> <span data-i18n="studio.verify">验证</span></button>
     <div class="avatar">GD</div>
   </div>
 </header>
 
 <main class="studio-workspace">
-  <aside class="studio-left" aria-label="Project and build history">
+  <aside class="studio-left" aria-label="项目与构建历史">
     <div class="studio-head">
-      <div class="eyebrow">PROJECT <span class="accent">/</span> BUILD</div>
+      <div class="eyebrow"><span data-i18n="studio.projectBuild">PROJECT / BUILD</span></div>
       <h1 id="projectTitle">Project</h1>
       <div class="meta"><span id="engineLabel">unknown engine</span><span class="sep">/</span><span id="assetLabel">0 assets</span><span class="sep">/</span><span id="rootLabel">—</span></div>
       <div class="actions">
-        <a class="button primary" href="/assets" style="text-decoration:none"><svg class="icon"><use href="#i-folder"></use></svg> Asset canvas</a>
-        <button class="button secondary" id="refreshBtn" type="button"><svg class="icon"><use href="#i-refresh"></use></svg> Refresh</button>
+        <a class="button primary" href="/assets" style="text-decoration:none"><svg class="icon"><use href="#i-folder"></use></svg> <span data-i18n="studio.assetCanvas">素材画布</span></a>
+        <button class="button secondary" id="refreshBtn" type="button"><svg class="icon"><use href="#i-refresh"></use></svg> <span data-i18n="studio.refresh">刷新</span></button>
       </div>
     </div>
     <section class="studio-section">
-      <div class="studio-section-title"><span>BUILD CONTRACT</span><span id="contractState">—</span></div>
-      <div class="studio-section-copy" id="contractCopy">Reading manifest and lockfile…</div>
+      <div class="studio-section-title"><span data-i18n="studio.buildContract">构建契约</span><span id="contractState">—</span></div>
+      <div class="studio-section-copy" id="contractCopy">正在读取 manifest 和 lockfile…</div>
     </section>
     <section class="studio-section">
-      <div class="studio-section-title"><span>DEVELOPMENT SESSION</span><span id="sessionState">—</span></div>
+      <div class="studio-section-title"><span data-i18n="studio.session">开发会话</span><span id="sessionState">—</span></div>
       <div id="sessionBody"></div>
     </section>
     <section class="studio-section">
-      <div class="studio-section-title"><span>RECENT RUNS</span><span id="runCount">0</span></div>
+      <div class="studio-section-title"><span data-i18n="studio.recentRuns">最近运行</span><span id="runCount">0</span></div>
       <div id="runList"></div>
     </section>
     <div class="studio-right-foot" id="studioFoot">Local project · read-only view</div>
@@ -72,43 +73,43 @@
 
   <section class="studio-center" aria-label="Build preview">
     <div class="studio-toolbar">
-      <div class="studio-tabs" role="tablist" aria-label="Preview mode">
-        <button class="studio-tab" type="button" role="tab" aria-selected="true" data-view="build">BUILD</button>
-        <button class="studio-tab" type="button" role="tab" aria-selected="false" data-view="evidence">EVIDENCE</button>
+      <div class="studio-tabs" role="tablist" aria-label="预览模式">
+        <button class="studio-tab" type="button" role="tab" aria-selected="true" data-view="build" data-i18n="studio.buildTab">构建</button>
+        <button class="studio-tab" type="button" role="tab" aria-selected="false" data-view="evidence" data-i18n="studio.evidenceTab">证据</button>
       </div>
       <div class="studio-toolbar-actions">
-        <button class="icon-btn" id="refreshPreview" type="button" aria-label="Refresh preview"><svg class="icon"><use href="#i-refresh"></use></svg></button>
-        <button class="icon-btn" id="studioGatesToggle" type="button" aria-label="Open release gates"><svg class="icon"><use href="#i-layers"></use></svg></button>
+        <button class="icon-btn" id="refreshPreview" type="button" aria-label="刷新预览"><svg class="icon"><use href="#i-refresh"></use></svg></button>
+        <button class="icon-btn" id="studioGatesToggle" type="button" aria-label="打开发布闸门"><svg class="icon"><use href="#i-layers"></use></svg></button>
       </div>
     </div>
     <div class="preview-wrap">
       <div class="preview-frame">
         <img id="previewImage" alt="" hidden>
         <div class="preview-empty" id="previewEmpty">
-          <div><strong>No build screenshot yet</strong><span>Run a generated project through `dream verify --visual` to capture a playable frame.</span></div>
+          <div><strong data-i18n="studio.noScreenshot">还没有构建截图</strong><span data-i18n="studio.noScreenshotHint">运行生成项目的 `dream verify --visual`，即可捕获可玩画面。</span></div>
         </div>
       </div>
       <div class="preview-meta"><span id="previewFile">—</span><span class="spacer"></span><span id="previewStatus">NO RUN</span><span class="sep">·</span><span id="previewEngine">—</span></div>
     </div>
 
-    <section class="studio-log" aria-label="Verification output">
-      <div class="studio-log-head"><span>LATEST VERIFICATION</span><span id="logState">NOT RUN</span></div>
+    <section class="studio-log" aria-label="验证输出">
+      <div class="studio-log-head"><span data-i18n="studio.latestVerification">最近一次验证</span><span id="logState">未运行</span></div>
       <pre id="logOutput">No verification run yet. Use Verify to spawn `dream verify --path . --json`.</pre>
     </section>
   </section>
 
   <aside class="studio-right" id="studioRight" aria-label="Release gates and assets">
     <div class="studio-gate-head">
-      <div class="eyebrow">RELEASE GATE <span class="accent">/</span> <span id="gateRunLabel">NO RUN</span></div>
-      <div class="studio-score"><strong id="gateScore">0</strong><span id="gateTotal">/3</span><span class="studio-gate-word none" id="gateWord">NOT VERIFIED</span></div>
+      <div class="eyebrow"><span data-i18n="studio.releaseGate">发布闸门</span> <span class="accent">/</span> <span id="gateRunLabel">NO RUN</span></div>
+      <div class="studio-score"><strong id="gateScore">0</strong><span id="gateTotal">/3</span><span class="studio-gate-word none" id="gateWord">未验证</span></div>
     </div>
     <div class="studio-gate-list" id="gateList"></div>
-    <div class="studio-verify"><button class="button primary" id="verifyBtn" type="button"><svg class="icon"><use href="#i-check"></use></svg> Run verification</button></div>
-    <div class="studio-last" id="gateLast">No verification run recorded.</div>
-    <div class="studio-right-tabs" role="tablist" aria-label="Right panel">
-      <button class="studio-right-tab" type="button" role="tab" aria-selected="true" data-right="gates">RUNS</button>
-      <button class="studio-right-tab" type="button" role="tab" aria-selected="false" data-right="assets">ASSETS</button>
-      <button class="studio-right-tab" type="button" role="tab" aria-selected="false" data-right="evidence">EVIDENCE</button>
+    <div class="studio-verify"><button class="button primary" id="verifyBtn" type="button"><svg class="icon"><use href="#i-check"></use></svg> <span data-i18n="studio.runVerification">运行验证</span></button></div>
+    <div class="studio-last" id="gateLast">还没有验证记录。</div>
+    <div class="studio-right-tabs" role="tablist" aria-label="右侧面板">
+      <button class="studio-right-tab" type="button" role="tab" aria-selected="true" data-right="runs" data-i18n="studio.runsTab">运行</button>
+      <button class="studio-right-tab" type="button" role="tab" aria-selected="false" data-right="assets" data-i18n="studio.assetsTab">素材</button>
+      <button class="studio-right-tab" type="button" role="tab" aria-selected="false" data-right="evidence" data-i18n="studio.evidenceTab2">证据</button>
     </div>
     <div class="studio-right-body" id="rightBody"></div>
     <div class="studio-right-foot" id="comfyFoot">—</div>
@@ -116,12 +117,12 @@
 </main>
 
 <nav class="studio-mobile-tabs" aria-label="Studio sections">
-  <button class="studio-mobile-tab" type="button" data-screen="mission" aria-selected="false"><svg class="icon"><use href="#i-folder"></use></svg>MISSION</button>
-  <button class="studio-mobile-tab" type="button" data-screen="preview" aria-selected="true"><svg class="icon"><use href="#i-play"></use></svg>PREVIEW</button>
-  <button class="studio-mobile-tab" type="button" data-screen="gates" aria-selected="false"><svg class="icon"><use href="#i-check"></use></svg>GATES</button>
+  <button class="studio-mobile-tab" type="button" data-screen="mission" aria-selected="false"><svg class="icon"><use href="#i-folder"></use></svg><span data-i18n="studio.mission">任务</span></button>
+  <button class="studio-mobile-tab" type="button" data-screen="preview" aria-selected="true"><svg class="icon"><use href="#i-play"></use></svg><span data-i18n="studio.buildTab">构建</span></button>
+  <button class="studio-mobile-tab" type="button" data-screen="gates" aria-selected="false"><svg class="icon"><use href="#i-check"></use></svg><span data-i18n="common.gates">闸门</span></button>
 </nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="/studio.js?v=1"></script>
+<script type="module" src="/studio.js?v=3"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=1';
 
 const state = {
   snapshot: null,
@@ -57,15 +58,25 @@ function gateCounts(run) {
   };
 }
 
+function translateGateMessage(message) {
+  if (locale !== 'zh' || !message) return message;
+  if (message.includes('Godot 4.4+ not found')) {
+    return '未找到 Godot 4.4+。请设置 GODOT_BIN 为 console 可执行文件，或把 godot 加入 PATH。';
+  }
+  if (message.includes('modules.lock.json')) return '缺少 modules.lock.json：当前目录还不是完整的生成项目。';
+  if (message.startsWith('missing ')) return `缺少验收标记：${message.slice(8)}`;
+  if (message.startsWith('exit ')) return `进程退出码：${message.slice(5)}`;
+  if (message.includes('timed out')) return '运行超时。';
+  return message;
+}
+
 function shortRoot(root) {
   const parts = String(root).split(/[\\/]/);
   return parts.slice(-2).join('/');
 }
 
 function formatWhen(value) {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return formatDate(value);
 }
 
 async function load() {
@@ -75,33 +86,37 @@ async function load() {
     if (!state.selectedRunId) state.selectedRunId = snapshot.build.latestRun?.id ?? null;
     renderAll();
   } catch (error) {
-    $('#studioState').textContent = 'Error';
+    $('#studioState').textContent = t('common.error');
     $('#studioDot').style.background = 'var(--coral)';
-    toast(`Could not load project: ${error.message}`);
+    toast(t('assets.loadFailed', { message: error.message }));
   }
 }
 
 function renderAll() {
   if (!state.snapshot) return;
   const { project, build, assets, comfyui } = state.snapshot;
+  document.title = t('studio.title');
   $('#projectName').textContent = project.name;
   $('#projectTitle').textContent = project.name;
-  $('#projectMeta').textContent = `${build.engine} · ${assets.length} assets`;
-  $('#engineLabel').textContent = build.engine;
-  $('#assetLabel').textContent = `${assets.length} assets`;
+  $('#projectMeta').textContent = t('studio.projectMeta', {
+    engine: build.engine === 'unknown' ? t('studio.unknownEngine') : build.engine,
+    count: assets.length,
+  });
+  $('#engineLabel').textContent = build.engine === 'unknown' ? t('studio.unknownEngine') : build.engine;
+  $('#assetLabel').textContent = t('common.assetCount', { count: assets.length });
   $('#rootLabel').textContent = shortRoot(project.root);
-  $('#previewEngine').textContent = build.engine.toUpperCase();
-  $('#runCount').textContent = String(build.runs.length);
-  $('#contractState').textContent = build.manifest && build.lockfile ? 'READY' : 'INCOMPLETE';
-  $('#contractCopy').innerHTML = build.manifest && build.lockfile
-    ? 'Manifest and lockfile are present. Verification reads the manifest marker contract and imports the project.'
-    : 'No complete generated build in this directory. Create or compose a project first; the studio still indexes assets and generated images.';
+  $('#previewEngine').textContent = build.engine === 'unknown' ? t('studio.unknownEngine') : build.engine.toUpperCase();
+  $('#runCount').textContent = t('studio.runCount', { count: build.runs.length });
+  $('#contractState').textContent = build.manifest && build.lockfile ? t('studio.ready') : t('studio.incomplete');
+  $('#contractCopy').textContent = build.manifest && build.lockfile
+    ? t('studio.contractReady')
+    : t('studio.contractIncomplete');
   $('#studioComfy').classList.toggle('online', Boolean(comfyui.online));
   $('#studioComfy').classList.toggle('offline', !comfyui.online);
-  $('#studioComfy').innerHTML = `<span class="dot"></span>${comfyui.online ? 'ComfyUI online' : 'ComfyUI offline'}`;
-  $('#comfyFoot').textContent = `${comfyui.url || 'ComfyUI'} · ${comfyui.workflowExists ? 'workflow ready' : 'workflow missing'}`;
-  $('#studioFoot').textContent = `${project.root} · local server`;
-  $('#studioState').textContent = build.latestRun ? (build.latestRun.ok ? 'Verified' : 'Attention') : 'Not verified';
+  $('#studioComfy').innerHTML = `<span class="dot"></span>${comfyui.online ? t('assets.comfyOnline') : t('assets.comfyOffline')}`;
+  $('#comfyFoot').textContent = `${comfyui.url || 'ComfyUI'} · ${comfyui.workflowExists ? t('assets.workflowReady') : t('assets.workflowMissing')}`;
+  $('#studioFoot').textContent = `${project.root} · ${t('studio.localServer')}`;
+  $('#studioState').textContent = build.latestRun ? (build.latestRun.ok ? t('studio.verified') : t('studio.attention')) : t('studio.notVerifiedStatus');
   $('#studioDot').style.background = build.latestRun ? (build.latestRun.ok ? 'var(--lime)' : 'var(--coral)') : 'var(--dim)';
   renderSession();
   renderRuns();
@@ -112,15 +127,15 @@ function renderAll() {
 
 function renderSession() {
   const session = state.snapshot.build.session;
-  $('#sessionState').textContent = session ? 'ATTACHED' : 'NONE';
+  $('#sessionState').textContent = session ? t('studio.sessionAttached') : t('studio.sessionNoneState');
   if (!session) {
-    $('#sessionBody').innerHTML = '<div class="studio-section-empty">No active agent session. <code>dream develop</code> writes <code>.gamedream/session.json</code>, which will appear here with its step and generation metadata.</div>';
+    $('#sessionBody').innerHTML = `<div class="studio-section-empty">${t('studio.sessionNone')}</div>`;
     return;
   }
   $('#sessionBody').innerHTML = `
     <div class="studio-section-copy">
-      <div>Generation <strong>${session.generation ?? 1}</strong> · ${session.eventCount ?? 0} events</div>
-      <div>${session.steps ?? 0} steps · ${session.finished ? 'finished' : 'in progress'}</div>
+      <div>${t('studio.generation', { value: session.generation ?? 1 })} · ${t('studio.events', { count: session.eventCount ?? 0 })}</div>
+      <div>${t('studio.steps', { count: session.steps ?? 0 })} · ${session.finished ? t('studio.finished') : t('studio.inProgress')}</div>
       <div style="margin-top:6px;color:var(--dim)">${escapeHtml(session.path)}</div>
     </div>
   `;
@@ -129,7 +144,7 @@ function renderSession() {
 function renderRuns() {
   const runs = state.snapshot.build.runs;
   if (runs.length === 0) {
-    $('#runList').innerHTML = '<div class="studio-section-empty">No verification runs yet. Run Verify to create a durable run record.</div>';
+    $('#runList').innerHTML = `<div class="studio-section-empty">${t('studio.noRuns')}</div>`;
     return;
   }
   $('#runList').innerHTML = runs.map((run) => {
@@ -137,7 +152,7 @@ function renderRuns() {
     return `
       <button class="studio-run" type="button" data-run="${run.id}" aria-selected="${run.id === state.selectedRunId ? 'true' : 'false'}">
         <span class="run-main"><span class="run-id">${run.id.slice(0, 8)}</span><span class="run-time">${formatWhen(run.createdAt)}</span></span>
-        <span class="run-state ${run.ok ? '' : 'fail'}">${counts.passed}/${counts.total} ${run.ok ? 'PASS' : 'FAIL'}</span>
+        <span class="run-state ${run.ok ? '' : 'fail'}">${counts.passed}/${counts.total} ${run.ok ? t('common.pass') : t('common.fail')}</span>
       </button>
     `;
   }).join('');
@@ -157,33 +172,37 @@ function renderGates() {
   const counts = gateCounts(run);
   const names = gateNames(run);
   const gates = run?.gates ?? {};
-  $('#gateRunLabel').textContent = run ? `RUN ${run.id.slice(0, 8)}` : 'NO RUN';
+  $('#gateRunLabel').textContent = run ? `RUN ${run.id.slice(0, 8)}` : t('studio.noRun');
   $('#gateScore').textContent = String(counts.passed);
   $('#gateTotal').textContent = `/${counts.total}`;
-  $('#gateWord').textContent = !run ? 'NOT VERIFIED' : counts.failed > 0 ? 'NEEDS FIX' : counts.passed === counts.total ? 'PLAYABLE' : 'INCOMPLETE';
+  $('#gateWord').textContent = !run ? t('studio.notVerified') : counts.failed > 0 ? t('studio.needsFix') : counts.passed === counts.total ? t('studio.playable') : t('studio.incompleteState');
   $('#gateWord').className = `studio-gate-word ${!run ? 'none' : counts.failed > 0 ? 'fail' : ''}`;
   const labels = {
-    G1: 'G1 · Project contract',
-    G2: 'G2 · Import & compile',
-    G3: 'G3 · Core loop',
-    G6: 'G6 · Visual review',
+    G1: t('studio.gateG1'),
+    G2: t('studio.gateG2'),
+    G3: t('studio.gateG3'),
+    G6: t('studio.gateG6'),
   };
   $('#gateList').innerHTML = names.map((name) => {
-    const gate = gates[name] ?? { status: 'skip', message: 'not run' };
+    const gate = gates[name] ?? { status: 'skip', message: t('common.notRun') };
     const mark = gate.status === 'pass' ? '✓' : gate.status === 'fail' ? '×' : '·';
     return `
       <div class="studio-gate ${gate.status}">
         <span class="studio-gate-mark">${mark}</span>
-        <span><span class="studio-gate-name">${labels[name] ?? name}</span><span class="studio-gate-detail">${escapeHtml(gate.message ?? '')}</span></span>
-        <span class="studio-gate-status">${gate.status.toUpperCase()}</span>
+        <span><span class="studio-gate-name">${labels[name] ?? name}</span><span class="studio-gate-detail">${escapeHtml(translateGateMessage(gate.message ?? ''))}</span></span>
+        <span class="studio-gate-status">${gate.status === 'pass' ? t('common.pass') : gate.status === 'fail' ? t('common.fail') : t('common.skip')}</span>
       </div>
     `;
   }).join('');
   $('#gateLast').textContent = run
-    ? `Last run ${formatWhen(run.createdAt)} · ${run.durationMs}ms · ${run.engine === 'present' ? 'engine present' : 'engine missing'}`
-    : 'No verification run recorded.';
-  $('#logState').textContent = run ? (run.ok ? 'PASS' : 'FAIL') : 'NOT RUN';
-  $('#logOutput').textContent = run?.output ?? 'No verification run yet. Use Verify to spawn `dream verify --path . --json`.';
+    ? t('studio.lastRun', {
+        when: formatWhen(run.createdAt),
+        duration: run.durationMs,
+        engine: run.engine === 'present' ? t('studio.enginePresent') : t('studio.engineMissing'),
+      })
+    : t('studio.noRunRecorded');
+  $('#logState').textContent = run ? (run.ok ? t('common.pass') : t('common.fail')) : t('common.notRun');
+  $('#logOutput').textContent = run?.output ?? t('studio.noVerifyLog');
 }
 
 function renderPreview() {
@@ -198,15 +217,15 @@ function renderPreview() {
     empty.hidden = false;
     empty.innerHTML = `
       <div style="text-align:start;max-width:440px">
-        <strong>Evidence bundle</strong>
-        <span style="display:block;margin-bottom:10px">Everything the run can prove from local files.</span>
-        <div class="studio-evidence-row"><span>modules.lock.json</span><span class="${build.lockfile ? 'ok' : ''}">${build.lockfile ? 'PRESENT' : 'MISSING'}</span></div>
-        <div class="studio-evidence-row"><span>game.manifest.json</span><span class="${build.manifest ? 'ok' : ''}">${build.manifest ? 'PRESENT' : 'MISSING'}</span></div>
-        <div class="studio-evidence-row"><span>build screenshot</span><span class="${screenshot ? 'ok' : ''}">${screenshot ? 'CAPTURED' : 'MISSING'}</span></div>
-        <div class="studio-evidence-row"><span>verification run</span><span class="${run ? 'ok' : ''}">${run ? run.id.slice(0, 8) : 'NONE'}</span></div>
+        <strong>${t('studio.evidenceBundle')}</strong>
+        <span style="display:block;margin-bottom:10px">${t('studio.evidenceCopy')}</span>
+        <div class="studio-evidence-row"><span>modules.lock.json</span><span class="${build.lockfile ? 'ok' : ''}">${build.lockfile ? t('common.present') : t('common.missing')}</span></div>
+        <div class="studio-evidence-row"><span>game.manifest.json</span><span class="${build.manifest ? 'ok' : ''}">${build.manifest ? t('common.present') : t('common.missing')}</span></div>
+        <div class="studio-evidence-row"><span>${t('studio.screenshot')}</span><span class="${screenshot ? 'ok' : ''}">${screenshot ? t('common.captured') : t('common.missing')}</span></div>
+        <div class="studio-evidence-row"><span>${t('studio.run')}</span><span class="${run ? 'ok' : ''}">${run ? run.id.slice(0, 8) : t('common.none')}</span></div>
       </div>
     `;
-    $('#previewFile').textContent = 'evidence / local files';
+    $('#previewFile').textContent = t('studio.evidenceLocal');
   } else if (screenshot) {
     image.hidden = false;
     empty.hidden = true;
@@ -215,10 +234,10 @@ function renderPreview() {
   } else {
     image.hidden = true;
     empty.hidden = false;
-    empty.innerHTML = '<div><strong>No build screenshot yet</strong><span>Run a generated project through `dream verify --visual` to capture a playable frame.</span></div>';
+    empty.innerHTML = `<div><strong>${t('studio.noScreenshot')}</strong><span>${t('studio.noScreenshotHint')}</span></div>`;
     $('#previewFile').textContent = '—';
   }
-  $('#previewStatus').textContent = run ? (run.ok ? 'VERIFIED' : 'FAIL') : 'NO RUN';
+  $('#previewStatus').textContent = run ? (run.ok ? t('studio.verified') : t('common.fail')) : t('studio.noRun');
   $('#previewStatus').className = run ? (run.ok ? 'good' : 'bad') : '';
 }
 
@@ -230,21 +249,21 @@ function renderRight() {
       ? `<div class="studio-asset-list">${assets.map((asset) => `
           <a class="studio-asset" href="/assets?focus=${encodeURIComponent(asset.id)}" style="text-decoration:none">
             <span class="studio-asset-thumb">${asset.kind === 'audio' ? '<svg class="icon" style="color:var(--lime)"><use href="#i-wave"></use></svg>' : `<img src="${escapeHtml(asset.url)}" alt="" loading="lazy">`}</span>
-            <span><span class="studio-asset-name">${escapeHtml(asset.name)}</span><span class="studio-asset-meta">${escapeHtml(asset.kind)} · ${escapeHtml(asset.source)}</span></span>
+            <span><span class="studio-asset-name">${escapeHtml(asset.name)}</span><span class="studio-asset-meta">${t('assets.assetKind', { kind: t(`common.${asset.kind}`), source: t(`common.${asset.source}`) })}</span></span>
             <span class="studio-asset-mark">${asset.inBuild ? 'IN' : ''}</span>
           </a>`).join('')}</div>`
-      : '<div class="studio-section-empty">No assets indexed for this project.</div>';
+      : `<div class="studio-section-empty">${t('assets.emptyFilter')}</div>`;
     return;
   }
   if (state.right === 'evidence') {
     const run = selectedRun();
     const build = state.snapshot.build;
     body.innerHTML = `
-      <div class="studio-evidence-row"><span>manifest</span><span class="${build.manifest ? 'ok' : ''}">${build.manifest ? 'PRESENT' : 'MISSING'}</span></div>
-      <div class="studio-evidence-row"><span>lockfile</span><span class="${build.lockfile ? 'ok' : ''}">${build.lockfile ? 'PRESENT' : 'MISSING'}</span></div>
-      <div class="studio-evidence-row"><span>screenshot</span><span class="${build.screenshot ? 'ok' : ''}">${build.screenshot ? 'CAPTURED' : 'MISSING'}</span></div>
-      <div class="studio-evidence-row"><span>run</span><span class="${run ? 'ok' : ''}">${run ? run.id.slice(0, 8) : 'NONE'}</span></div>
-      <div class="studio-evidence-row"><span>duration</span><span>${run ? `${run.durationMs}ms` : '—'}</span></div>
+      <div class="studio-evidence-row"><span>${t('studio.manifest')}</span><span class="${build.manifest ? 'ok' : ''}">${build.manifest ? t('common.present') : t('common.missing')}</span></div>
+      <div class="studio-evidence-row"><span>${t('studio.lockfile')}</span><span class="${build.lockfile ? 'ok' : ''}">${build.lockfile ? t('common.present') : t('common.missing')}</span></div>
+      <div class="studio-evidence-row"><span>${t('studio.screenshot')}</span><span class="${build.screenshot ? 'ok' : ''}">${build.screenshot ? t('common.captured') : t('common.missing')}</span></div>
+      <div class="studio-evidence-row"><span>${t('studio.run')}</span><span class="${run ? 'ok' : ''}">${run ? run.id.slice(0, 8) : t('common.none')}</span></div>
+      <div class="studio-evidence-row"><span>${t('studio.duration')}</span><span>${run ? `${run.durationMs}ms` : '—'}</span></div>
     `;
     return;
   }
@@ -254,7 +273,7 @@ function renderRight() {
       const counts = gateCounts(run);
       return `<button class="studio-run" type="button" data-right-run="${run.id}" style="width:100%"><span class="run-main"><span class="run-id">${run.id.slice(0, 8)}</span><span class="run-time">${formatWhen(run.createdAt)}</span></span><span class="run-state ${run.ok ? '' : 'fail'}">${counts.passed}/${counts.total}</span></button>`;
     }).join('')
-    : '<div class="studio-section-empty">No verification runs. Run verification to record the first one.</div>';
+    : `<div class="studio-section-empty">${t('studio.noRuns')}</div>`;
   $$('[data-right-run]', body).forEach((button) => button.addEventListener('click', () => {
     state.selectedRunId = button.dataset.rightRun;
     renderAll();
@@ -266,19 +285,19 @@ async function verify() {
   state.verifying = true;
   const buttons = [$('#verifyBtn'), $('#verifyTop')];
   buttons.forEach((button) => { button.disabled = true; });
-  $('#logState').textContent = 'RUNNING';
-  $('#gateWord').textContent = 'VERIFYING';
+  $('#logState').textContent = t('studio.verifying');
+  $('#gateWord').textContent = t('studio.verifying');
   $('#gateWord').className = 'studio-gate-word';
-  toast('Verification started.');
+  toast(t('studio.verificationStarted'));
   try {
     const result = await request('/api/verify', { method: 'POST', body: JSON.stringify({}) });
     state.selectedRunId = result.run.id;
-    toast(result.run.ok ? 'Verification passed.' : 'Verification finished with failures.');
+    toast(result.run.ok ? t('studio.verificationPassed') : t('studio.verificationFinishedFailures'));
     await load();
   } catch (error) {
-    toast(`Verification failed: ${error.message}`);
-    $('#logState').textContent = 'ERROR';
-    $('#logOutput').textContent = `Verification request failed:\n${error.message}`;
+    toast(t('studio.verificationFailed', { message: error.message }));
+    $('#logState').textContent = t('common.error');
+    $('#logOutput').textContent = `${t('studio.verificationFailed', { message: error.message })}\n${error.message}`;
   } finally {
     state.verifying = false;
     buttons.forEach((button) => { button.disabled = false; });
@@ -309,6 +328,13 @@ document.addEventListener('keydown', (event) => {
 });
 window.addEventListener('resize', () => {
   if (window.innerWidth > 1180) $('#studioRight').classList.remove('open');
+});
+
+initLocale();
+document.title = t('studio.title');
+window.addEventListener('localechange', () => {
+  document.title = t('studio.title');
+  if (state.snapshot) renderAll();
 });
 
 load();
