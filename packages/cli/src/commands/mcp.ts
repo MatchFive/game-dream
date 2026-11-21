@@ -68,10 +68,10 @@ export class McpClient {
           capabilities: {},
           clientInfo: { name: 'gamedream', version: '0.0.0' },
         },
-        15_000,
+        30_000,
       );
       child.notify('notifications/initialized', {});
-      const listed = (await child.request('tools/list', {}, 15_000)) as {
+      const listed = (await child.request('tools/list', {}, 30_000)) as {
         tools?: McpTool[];
       };
       child.tools.push(...(listed.tools ?? []));
