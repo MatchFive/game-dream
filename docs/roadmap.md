@@ -84,8 +84,8 @@
 | V1 | Unity runtime/playtest | 真实 Unity 6000.6.9f1 已通过 EditorVerifier、build、smoke、截图；Studio 可启动已构建 player | 真实 build/runtime/screenshot，Studio 有构建时才播放 | Done |
 | V1b | Unity runtime CI | 已加可选 `unity-runtime` self-hosted job；仓库变量缺失时 skip | 可选 self-hosted job，缺 Unity 时明确 skip | Done |
 | V2 | Godot 内嵌试玩 | 当前打开独立 Godot 窗口 | 可行时提供内嵌/自动关闭和运行日志回传 | Backlog |
-| V3 | Web 绝对路径兼容 | 已注入 `/play/` base 并重写 HTML/CSS 根路径；JS 动态路径仍未拦截 | HTML/CSS 绝对资源正确加载；相对路径构建不受影响；测试覆盖 | Done |
-| V3b | JS 动态 URL 兼容 | 运行时 `fetch('/x')`、动态 `img.src` 等仍会落到 Studio 根 | 提供受限 runtime shim 或项目 base URL 注入；不破坏第三方脚本 | Backlog |
+| V3 | Web 绝对路径兼容 | 已注入 `/play/` base 并重写 HTML/CSS 根路径；JS 动态路径由 V3b runtime shim 处理 | HTML/CSS 绝对资源正确加载；相对路径构建不受影响；测试覆盖 | Done |
+| V3b | JS 动态 URL 兼容 | 已注入 runtime shim：`fetch`/`XMLHttpRequest`/`URL`/图片/媒体/script/link 根路径按 `/play/` base 改写；嵌套 `/play/<dir>/` 也已支持 | 提供受限 runtime shim 或项目 base URL 注入；不破坏第三方脚本 | Done |
 | V4 | G6 视觉门集成 | Playtest 与 G6 是两条路径 | Playtest 前后可触发截图/VLM 评审并记录 | Backlog |
 | V5 | 真实 MCP 回归 | CI 使用 fixture，真实 Godot MCP 仍手工 | CI 或专用 runner 跑真实 MCP 场景操作 | Backlog |
 
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
+1. **V2 内嵌 Godot playtest / V4 G6 视觉闸门**：把试玩闭环接进 Studio。
 2. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
-3. **V2 内嵌 Godot playtest / V4 G6 视觉闸门**：把试玩闭环接进 Studio。
+3. **R3 真实 MCP CI / V5**：把真实 MCP 场景保存回归放进 CI。
 
 ## 11. Definition of Done
 

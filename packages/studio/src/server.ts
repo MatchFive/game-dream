@@ -122,38 +122,84 @@ function serveFile(
   createReadStream(file).pipe(response);
 }
 
-function rewritePlaytestUrl(value: string): string {
+function rewritePlaytestUrl(value: string, base = '/play/'): string {
   if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/play/')) {
     return value;
   }
   if (value === '/play') return value;
-  return `/play${value}`;
+  return `${base}${value.slice(1)}`;
 }
 
-function rewritePlaytestCss(css: string): string {
+function rewritePlaytestCss(css: string, base = '/play/'): string {
   return css
     .replace(
       /url\(\s*(['"]?)(\/[^)'"]*)\1\s*\)/gi,
-      (_match, quote: string, value: string) => `url(${quote}${rewritePlaytestUrl(value)}${quote})`,
+      (_match, quote: string, value: string) =>
+        `url(${quote}${rewritePlaytestUrl(value, base)}${quote})`,
     )
     .replace(
       /@import\s+(['"])(\/[^'"]*)\1/gi,
-      (_match, quote: string, value: string) => `@import ${quote}${rewritePlaytestUrl(value)}${quote}`,
+      (_match, quote: string, value: string) =>
+        `@import ${quote}${rewritePlaytestUrl(value, base)}${quote}`,
     );
+}
+
+function playtestRuntimeShim(base: string): string {
+  return `<script>(function(){
+var base=${JSON.stringify(base)};
+function rewrite(value){
+  if(typeof value!=="string"||!value.startsWith("/")||value.startsWith("//")||value.startsWith("/play/")||value==="/play")return value;
+  return base+value.slice(1);
+}
+var nativeFetch=window.fetch;
+if(nativeFetch){
+  window.fetch=function(input,init){
+    if(typeof input==="string")input=rewrite(input);
+    else if(input instanceof Request){var url=rewrite(input.url);if(url!==input.url)input=new Request(url,input);}
+    return nativeFetch.call(this,input,init);
+  };
+}
+var NativeURL=window.URL;
+if(NativeURL){
+  window.URL=class extends NativeURL{constructor(url,baseUrl){super(rewrite(String(url)),baseUrl);}};
+}
+var nativeOpen=window.XMLHttpRequest&&XMLHttpRequest.prototype.open;
+if(nativeOpen){
+  XMLHttpRequest.prototype.open=function(method,url){var args=[].slice.call(arguments);args[1]=rewrite(args[1]);return nativeOpen.apply(this,args);};
+}
+function patch(ctor,property){
+  var descriptor=ctor&&Object.getOwnPropertyDescriptor(ctor.prototype,property);
+  if(!descriptor||!descriptor.set)return;
+  try{Object.defineProperty(ctor.prototype,property,{configurable:descriptor.configurable,enumerable:descriptor.enumerable,get:descriptor.get,set:function(value){descriptor.set.call(this,rewrite(value));}});}catch(error){}
+}
+patch(window.HTMLImageElement,"src");
+patch(window.HTMLMediaElement,"src");
+patch(window.HTMLScriptElement,"src");
+patch(window.HTMLLinkElement,"href");
+var NativeAudio=window.Audio;
+if(NativeAudio){
+  window.Audio=function(src){return new NativeAudio(src===undefined?undefined:rewrite(src));};
+  window.Audio.prototype=NativeAudio.prototype;
+}
+})();<\\/script>`;
 }
 
 function rewritePlaytestHtml(html: string, base: string): string {
   let output = html.replace(
     /(\b(?:src|href|poster|data-src)=)(["'])(\/[^"']*)\2/gi,
     (_match, attribute: string, quote: string, value: string) =>
-      `${attribute}${quote}${rewritePlaytestUrl(value)}${quote}`,
+      `${attribute}${quote}${rewritePlaytestUrl(value, base)}${quote}`,
   );
-  output = rewritePlaytestCss(output);
+  output = rewritePlaytestCss(output, base);
   if (!/<base\s/i.test(output)) {
     output = /<head[^>]*>/i.test(output)
       ? output.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`)
       : `<base href="${base}">${output}`;
   }
+  const shim = playtestRuntimeShim(base);
+  output = /<\/head>/i.test(output)
+    ? output.replace(/<\/head>/i, `${shim}</head>`)
+    : `${shim}${output}`;
   return output;
 }
 
@@ -342,8 +388,15 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           : pathname.slice('/play/'.length);
         const file = safeProjectFile(root, relativePath);
         if (!file || !existsSync(file) || !statSync(file).isFile()) {
-          response.writeHead(404);
-          response.end('Playtest build not found');
+          const indexFile = file && existsSync(file) && statSync(file).isDirectory()
+            ? safeProjectFile(root, join(relativePath, 'index.html'))
+            : undefined;
+          if (!indexFile || !existsSync(indexFile) || !statSync(indexFile).isFile()) {
+            response.writeHead(404);
+            response.end('Playtest build not found');
+            return;
+          }
+          servePlaytestFile(request, response, indexFile, join(relativePath, 'index.html'));
           return;
         }
         servePlaytestFile(request, response, file, relativePath);

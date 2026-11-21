@@ -441,6 +441,11 @@ describe('studio assets', () => {
     writeFileSync(join(playRoot, 'style.css'), 'body { background: url("/bg.png"); }');
     writeFileSync(join(playRoot, 'bg.png'), 'not-a-real-png');
     writeFileSync(join(playRoot, 'game.js'), 'console.log("playable");');
+    mkdirSync(join(playRoot, 'sub'), { recursive: true });
+    writeFileSync(
+      join(playRoot, 'sub', 'index.html'),
+      '<!doctype html><head></head><img src="/nested.png">',
+    );
     const playStudio = await startStudioServer({
       projectDir: playRoot,
       port: 0,
@@ -468,12 +473,22 @@ describe('studio assets', () => {
       expect(html).toContain('<base href="/play/">');
       expect(html).toContain('src="/play/game.js"');
       expect(html).toContain('href="/play/style.css"');
+      expect(html).toContain('window.fetch=function');
+      expect(html).toContain('HTMLImageElement');
+      expect(html).toContain('XMLHttpRequest.prototype.open');
+      expect(html).toContain('<\\/script>');
       const style = await fetch(`${playStudio.url}/play/style.css`);
       expect(style.status).toBe(200);
       expect(await style.text()).toContain('url("/play/bg.png")');
       const script = await fetch(`${playStudio.url}/play/game.js`);
       expect(script.status).toBe(200);
       expect(await script.text()).toContain('playable');
+
+      const nested = await fetch(`${playStudio.url}/play/sub/`);
+      expect(nested.status).toBe(200);
+      const nestedHtml = await nested.text();
+      expect(nestedHtml).toContain('<base href="/play/sub/">');
+      expect(nestedHtml).toContain('src="/play/sub/nested.png"');
 
       const stop = await fetch(`${playStudio.url}/api/playtest/stop`, {
         method: 'POST',

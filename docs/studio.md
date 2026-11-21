@@ -263,7 +263,7 @@ binding.
 | `GET /api/playtest/capabilities` | Detect Web/Godot/Unity playtest availability |
 | `POST /api/playtest/start` | Serve a Web iframe or launch a Godot window |
 | `POST /api/playtest/stop` | Stop the launched playtest process |
-| `GET /play/` | Serve the generated Web build for the Studio playtest frame |
+| `GET /play/` | Serve the generated Web build for the Studio playtest frame; nested `/play/<dir>/` serves its `index.html` |
 | `GET /api/health` | ComfyUI and workflow health |
 
 Verification uses the same CLI entry that launched `dream studio` (or
@@ -280,8 +280,8 @@ expose it on a public interface.
 - Project create uses the CLI `create` flow (automatic template/engine choice),
   not an arbitrary engine upload; opening a project starts another local Studio
   process inside the same server process.
-- Build selection stages assets under `game/build-assets/`; it does not
-  automatically rewrite sprite configs or template content to reference them.
+- Build selection stages assets under `game/build-assets/` and writes
+  `bindings.json`; it does not rewrite user-edited content sprite configs.
 - Generated jobs are not resumed after a server restart.
 - Agent children are resumed with `--resume` after a Studio restart. Persisted
   PIDs are verified against the run id before a stale process tree is reaped; a
@@ -301,13 +301,15 @@ expose it on a public interface.
   arbitrary expression language.
 - Candidate apply backs up only the top-level files it will touch; rollback
   removes/replaces those entries, not unrelated project files.
-- Web playtest rewrites HTML/CSS asset paths and injects a base path. Runtime
-  URLs constructed dynamically in JavaScript (for example `fetch('/data.json')`)
-  are not rewritten; generated apps should use relative paths.
+- Web playtest rewrites HTML/CSS asset paths and injects a base path plus a
+  runtime shim for `fetch`, `XMLHttpRequest`, `URL`, image/media/script/link
+  `src`/`href`, and nested `/play/<dir>/` pages. Root-absolute paths built in
+  JavaScript resolve under the playtest prefix.
 - Godot playtest requires a local display and a 4.x `GODOT_BIN`. Unity playtest
   requires a built player; it does not build Unity from the Studio server.
 - Animation generation produces a 2–4 frame keyframe sequence with playback,
-  regeneration, horizontal PNG atlas packing, and Web/Godot descriptors. There
-  is no AnimateDiff node, automatic template wiring, or per-frame scaling.
-- BGM generation is a fixed 30-second UI mode; SFX generation and custom
-  duration are not implemented yet.
+  regeneration, horizontal PNG atlas packing, and Web/Godot descriptors plus
+  automatic template discovery. There is no AnimateDiff node or per-frame
+  scaling.
+- BGM generation is a fixed 30-second UI mode. SFX generation is a local
+  procedural 0.1–3 second WAV mode; AI text-to-SFX is not implemented yet.
