@@ -1,5 +1,6 @@
 import { ARENA, TILE, createSim, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
+import { findPlayerBinding } from './bindings.mjs';
 
 const root = document.querySelector('#game');
 root.replaceChildren();
@@ -16,6 +17,25 @@ const keys = new Set();
 const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
+let playerSprite;
+
+async function loadPlayerSprite() {
+  try {
+    const response = await fetch(
+      new URL('./game/build-assets/bindings.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return;
+    const binding = findPlayerBinding(await response.json());
+    if (!binding) return;
+    const image = new Image();
+    image.src = new URL(binding.file, import.meta.url).href;
+    await image.decode();
+    playerSprite = image;
+  } catch {
+    // The vector player remains when no sprite is bound.
+  }
+}
 
 async function loadBgm() {
   try {
@@ -48,6 +68,7 @@ if (musicInput) {
 window.addEventListener('pointerdown', playBgm, { once: true });
 window.addEventListener('keydown', playBgm, { once: true });
 void loadBgm();
+void loadPlayerSprite();
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   keys.add(key);
@@ -78,10 +99,16 @@ function draw() {
     ctx.fillStyle = '#9a6b00';
     ctx.fillRect(box.x * TILE + 25, box.y * TILE + 25, TILE - 52, TILE - 52);
   }
-  ctx.fillStyle = '#55d6ff';
-  ctx.beginPath();
-  ctx.arc(state.player.x * TILE + TILE / 2, state.player.y * TILE + TILE / 2, 18, 0, Math.PI * 2);
-  ctx.fill();
+  const playerX = state.player.x * TILE + TILE / 2;
+  const playerY = state.player.y * TILE + TILE / 2;
+  if (playerSprite) {
+    ctx.drawImage(playerSprite, playerX - 22, playerY - 22, 44, 44);
+  } else {
+    ctx.fillStyle = '#55d6ff';
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.fillStyle = '#e8f5ee';
   ctx.font = '16px ui-monospace, monospace';

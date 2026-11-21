@@ -44,6 +44,7 @@ public sealed class GameBootstrap : MonoBehaviour
             0f
         );
         _player = CreateSquare("Player", new Color(0.28f, 0.78f, 1f), 0.32f, 2);
+        AssetBinding.ApplyPlayer(_player.gameObject);
         SyncPlayer();
     }
 

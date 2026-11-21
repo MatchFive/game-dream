@@ -7,6 +7,8 @@ import { makeTempDir } from '@gamedream/testing';
 import { clampMusicVolume, findBgmTrack } from '../../../templates/web-survivor/audio.mjs';
 // @ts-ignore - the template ships plain ESM without a declaration file
 import { atlasFrameRect, findAnimationEntry, frameAtTime } from '../../../templates/web-survivor/animation.mjs';
+// @ts-ignore - the template ships plain ESM without a declaration file
+import { findPlayerBinding } from '../../../templates/web-survivor/bindings.mjs';
 import { webComposeCommand, webVerifyCommand } from '../src/commands/web.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -34,6 +36,13 @@ describe('Web survivor', () => {
       ],
     };
     expect(findBgmTrack(manifest)?.file).toBe('game/build-assets/studio/bgm.mp3');
+    expect(
+      findPlayerBinding({
+        player: { file: 'game/build-assets/studio/hero.png' },
+      })?.file,
+    ).toBe('game/build-assets/studio/hero.png');
+    expect(findPlayerBinding({ player: { file: '' } })).toBeUndefined();
+    expect(findPlayerBinding({})).toBeUndefined();
     expect(findBgmTrack({ assets: [] })).toBeUndefined();
     expect(
       findBgmTrack({

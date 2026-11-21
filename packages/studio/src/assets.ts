@@ -239,6 +239,24 @@ export interface BuildAssetManifest {
   }>;
 }
 
+export interface BuildBinding {
+  id: string;
+  name: string;
+  file: string;
+  kind: StudioAssetKind;
+  mime: string;
+}
+
+export interface BuildBindings {
+  version: 1;
+  updatedAt: string;
+  bgm?: BuildBinding;
+  sfx: BuildBinding[];
+  player?: BuildBinding;
+  enemy?: BuildBinding;
+  animations?: string;
+}
+
 const BUILD_ASSET_ROOT = 'game/build-assets';
 const BUILD_ASSET_MANIFEST = `${BUILD_ASSET_ROOT}/manifest.json`;
 const ASSET_NAMES_FILE = '.gamedream/studio/asset-names.json';
@@ -263,13 +281,63 @@ function readBuildAssetManifest(root: string): BuildAssetManifest | undefined {
   }
 }
 
+function bindingOf(asset: BuildAssetManifest['assets'][number]): BuildBinding {
+  return {
+    id: asset.id,
+    name: asset.name,
+    file: asset.file,
+    kind: asset.kind,
+    mime: asset.mime,
+  };
+}
+
+export function buildBindings(root: string, manifest: BuildAssetManifest): BuildBindings {
+  const audio = manifest.assets.filter(
+    (asset) => asset.kind === 'audio' && !/(^|\/)sfx[-_]/i.test(asset.file),
+  );
+  const sfx = manifest.assets.filter(
+    (asset) => asset.kind === 'audio' && /(^|\/)sfx[-_]/i.test(asset.file),
+  );
+  const sprites = manifest.assets.filter((asset) => asset.kind === 'sprite');
+  const player = sprites.find((asset) =>
+    /(player|hero|protagonist)/i.test(`${asset.name} ${asset.file}`),
+  ) ?? sprites[0];
+  const enemy = sprites.find((asset) =>
+    /(enemy|boss|crawler|brute|monster)/i.test(`${asset.name} ${asset.file}`),
+  );
+  const animations = join(root, BUILD_ASSET_ROOT, 'animations', 'index.json');
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    ...(audio[0] ? { bgm: bindingOf(audio[0]) } : {}),
+    sfx: sfx.map(bindingOf),
+    ...(player ? { player: bindingOf(player) } : {}),
+    ...(enemy ? { enemy: bindingOf(enemy) } : {}),
+    ...(existsSync(animations)
+      ? { animations: `${BUILD_ASSET_ROOT}/animations/index.json` }
+      : {}),
+  };
+}
+
+function writeBuildBindings(root: string, manifest: BuildAssetManifest): void {
+  const target = join(root, BUILD_ASSET_ROOT, 'bindings.json');
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, `${JSON.stringify(buildBindings(root, manifest), null, 2)}\n`, 'utf8');
+}
+
 export function syncBuildAssets(root: string): BuildAssetManifest {
   const canvas = loadCanvas(root);
   const selected = scanAssets(root, canvas.inBuild).filter((asset) => asset.inBuild);
   const previous = readBuildAssetManifest(root);
   const manifestPath = join(root, BUILD_ASSET_MANIFEST);
   if (selected.length === 0 && !previous) {
-    return { version: 1, updatedAt: new Date().toISOString(), assets: [] };
+    const empty: BuildAssetManifest = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      assets: [],
+    };
+    writeBuildBindings(root, empty);
+    return empty;
   }
 
   for (const entry of previous?.assets ?? []) {
@@ -298,6 +366,7 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
   };
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  writeBuildBindings(root, manifest);
 
   if (existsSync(join(root, 'ProjectSettings', 'ProjectVersion.txt'))) {
     const streaming = join(root, 'Assets', 'StreamingAssets', 'game', 'build-assets');

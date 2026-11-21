@@ -42,6 +42,7 @@ public sealed class GameBootstrap : MonoBehaviour
         _mapRoot = new GameObject("MapRoot");
         SetupCamera();
         _player = CreateSquare("Player", new Color(0.35f, 0.75f, 1f), 0.32f, 0);
+        AssetBinding.ApplyPlayer(_player.gameObject);
         _enemy = CreateSquare("Enemy", new Color(0.95f, 0.3f, 0.25f), 0.5f, 1);
         BuildLevelVisuals();
         SyncActors();

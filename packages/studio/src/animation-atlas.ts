@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { PNG } from 'pngjs';
 import { assetIdFor, findAsset } from './assets.js';
+import { syncBuildAssets } from './assets.js';
 
 export interface AnimationAtlasOptions {
   assetIds: string[];
@@ -158,6 +159,7 @@ export function createAnimationAtlas(
     ].join('\n'),
     'utf8',
   );
+  syncBuildAssets(root);
 
   const relativeFile = relative(root, file).split('\\').join('/');
   return {

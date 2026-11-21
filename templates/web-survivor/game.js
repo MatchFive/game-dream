@@ -1,5 +1,6 @@
 import { ARENA, RUN_SECONDS, createSim, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
+import { findPlayerBinding } from './bindings.mjs';
 import { atlasFrameRect, findAnimationEntry, frameAtTime } from './animation.mjs';
 
 const root = document.querySelector('#game');
@@ -18,6 +19,25 @@ const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
 let playerAnimation;
+let playerSprite;
+
+async function loadPlayerSprite() {
+  try {
+    const response = await fetch(
+      new URL('./game/build-assets/bindings.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return;
+    const binding = findPlayerBinding(await response.json());
+    if (!binding) return;
+    const image = new Image();
+    image.src = new URL(binding.file, import.meta.url).href;
+    await image.decode();
+    playerSprite = image;
+  } catch {
+    // The vector player remains when no sprite is bound.
+  }
+}
 
 async function loadPlayerAnimation() {
   try {
@@ -69,6 +89,7 @@ window.addEventListener('pointerdown', playBgm, { once: true });
 window.addEventListener('keydown', playBgm, { once: true });
 void loadBgm();
 void loadPlayerAnimation();
+void loadPlayerSprite();
 
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
@@ -121,6 +142,8 @@ function draw() {
       rect.width,
       rect.height,
     );
+  } else if (playerSprite) {
+    ctx.drawImage(playerSprite, state.player.x - 28, state.player.y - 28, 56, 56);
   } else {
     ctx.fillStyle = '#55d6ff';
     ctx.beginPath();

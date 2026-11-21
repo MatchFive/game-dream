@@ -15,6 +15,10 @@ import {
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const unityBin = process.env.UNITY_BIN;
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+);
 
 function buildDir(): string {
   if (process.platform === 'win32') {
@@ -116,6 +120,22 @@ describe.skipIf(!unityBin)('unity runtime', () => {
       }),
       'utf8',
     );
+    writeFileSync(join(target, 'studio/hero.png'), TINY_PNG);
+    writeFileSync(
+      join(target, 'bindings.json'),
+      JSON.stringify({
+        version: 1,
+        sfx: [],
+        player: {
+          id: 'hero',
+          name: 'Hero',
+          file: 'game/build-assets/studio/hero.png',
+          kind: 'sprite',
+          mime: 'image/png',
+        },
+      }),
+      'utf8',
+    );
     const unity = detectUnity({ bin: unityBin });
     expect(unity).not.toBeNull();
     const build = runUnityBuild({
@@ -126,7 +146,9 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(build.passed).toBe(true);
     const smoke = runUnitySmoke({ projectDir: outDir, exePath: build.outputPath });
     expect(smoke.passed).toBe(true);
-    expect(readFileSync(smoke.logPath, 'utf8')).toContain('UNITY_BGM_OK');
+    const log = readFileSync(smoke.logPath, 'utf8');
+    expect(log).toContain('UNITY_BGM_OK');
+    expect(log).toContain('UNITY_SPRITE_BINDING_OK');
   }, 400_000);
 
   it('builds and screenshots fresh artifacts', () => {

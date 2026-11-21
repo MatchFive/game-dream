@@ -61,6 +61,39 @@ function stageGeneratedAtlas(outDir: string): void {
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
 }
 
+function stageBindingSprite(outDir: string): void {
+  const directory = join(outDir, 'game/build-assets/studio');
+  mkdirSync(directory, { recursive: true });
+  const image = new PNG({ width: 16, height: 16 });
+  for (let index = 0; index < 16 * 16; index += 1) {
+    image.data[index * 4] = 80;
+    image.data[index * 4 + 1] = 220;
+    image.data[index * 4 + 2] = 160;
+    image.data[index * 4 + 3] = 255;
+  }
+  writeFileSync(join(directory, 'hero.png'), PNG.sync.write(image));
+  writeFileSync(
+    join(outDir, 'game/build-assets/bindings.json'),
+    JSON.stringify({
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      sfx: [],
+      player: {
+        id: 'hero-binding',
+        name: 'Hero',
+        file: 'game/build-assets/studio/hero.png',
+        kind: 'sprite',
+        mime: 'image/png',
+      },
+    }),
+    'utf8',
+  );
+  const manifestPath = join(outDir, 'game/game.manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  manifest.acceptance.markers.push('GAMEDREAM_SPRITE_BINDING_OK');
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+}
+
 describe.runIf(Boolean(process.env.GODOT_BIN))('sprite fallback end-to-end', () => {
   it('fails G3 when sprite configs are missing', async () => {
     const outDir = await composeM1('gamedream sprite e2e ');
@@ -99,6 +132,17 @@ describe.runIf(Boolean(process.env.GODOT_BIN))('sprite fallback end-to-end', () 
   it('auto-loads a generated SpriteFrames atlas over content sprites', async () => {
     const outDir = await composeM1('gamedream sprite atlas e2e ');
     stageGeneratedAtlas(outDir);
+
+    const report = await verifyCommand({
+      projectDir: outDir,
+      env: { GODOT_BIN: process.env.GODOT_BIN },
+    });
+    expect(report.gates.G3.status).toBe('pass');
+  }, 120_000);
+
+  it('applies the staged player binding when no atlas is present', async () => {
+    const outDir = await composeM1('gamedream sprite binding e2e ');
+    stageBindingSprite(outDir);
 
     const report = await verifyCommand({
       projectDir: outDir,

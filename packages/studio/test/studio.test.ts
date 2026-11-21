@@ -166,6 +166,26 @@ describe('studio assets', () => {
     expect(existsSync(join(root, manifest.assets[0]!.file))).toBe(false);
   });
 
+  it('writes role bindings for selected BGM and player sprites', () => {
+    mkdirSync(join(root, 'assets'), { recursive: true });
+    writeFileSync(join(root, 'assets', 'player.png'), 'png');
+    const assets = scanAssets(root);
+    const bgm = assets.find((asset) => asset.name === 'BGM loop')!;
+    const player = assets.find((asset) => asset.name === 'Player')!;
+    setInBuild(root, bgm.id, true);
+    setInBuild(root, player.id, true);
+    const bindings = JSON.parse(
+      readFileSync(join(root, 'game', 'build-assets', 'bindings.json'), 'utf8'),
+    ) as {
+      bgm?: { file: string };
+      player?: { file: string };
+      sfx: unknown[];
+    };
+    expect(bindings.bgm?.file).toMatch(/bgm-.*\.mp3$/);
+    expect(bindings.player?.file).toMatch(/player-.*\.png$/);
+    expect(bindings.sfx).toEqual([]);
+  });
+
   it('builds a project snapshot with screenshot and durable runs', () => {
     const canvas = saveCanvas(root, { nodes: [], inBuild: [] });
     const snapshot = loadProjectSnapshot(root, canvas, {

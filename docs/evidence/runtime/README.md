@@ -66,8 +66,16 @@ plays.
 
 ## Unity genre BGM
 
-`unity-runtime-bgm-genre.log` records the same staged-BGM check against the
-platformer template. The shared `BgmPlayer.cs` is injected by
-`composeUnityProject`, starts a looping audio source, and the player smoke logs
-`UNITY_BGM_OK`; this test passes with `EXIT=0`. The genre templates now declare
-the audio, UnityWebRequest, and UnityWebRequestAudio modules.
+`unity-runtime-bgm-genre.log` records the staged-BGM and player-binding check
+against the platformer template. The shared `BgmPlayer.cs` starts a looping
+audio source, the shared `AssetBinding` replaces the player square with a staged
+PNG, and the player smoke logs both `UNITY_BGM_OK` and
+`UNITY_SPRITE_BINDING_OK`; this test passes with `EXIT=0`. The genre templates
+now declare the audio, UnityWebRequest, and UnityWebRequestAudio modules.
+
+## Godot sprite bindings
+
+`godot-sprite-e2e.log` records the real Godot 4.4.1 sprite tests: missing
+content fails G3, a generated atlas overrides content, and a staged
+`bindings.json` player texture is applied without an atlas. The binding test
+includes `GAMEDREAM_SPRITE_BINDING_OK` in the accepted markers and exits `0`.

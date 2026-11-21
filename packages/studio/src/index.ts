@@ -13,6 +13,7 @@ export {
   type AgentUsage,
 } from './agent.js';
 export {
+  buildBindings,
   loadCanvas,
   loadProject,
   saveCanvas,
@@ -20,6 +21,8 @@ export {
   setInBuild,
   toggleInBuild,
   findAsset,
+  type BuildBinding,
+  type BuildBindings,
 } from './assets.js';
 export { ComfyRunner } from './comfyui.js';
 export { generateSfx, sfxTypeFromPrompt, type SfxOptions, type SfxResult, type SfxType } from './sfx.js';

@@ -37,6 +37,19 @@ the new project in a separate Studio server/tab; **Open** starts another
 project Studio on an ephemeral localhost port. The current project remains
 untouched.
 
+## Build bindings
+
+Staging an asset writes `game/build-assets/bindings.json` alongside the
+manifest. The first non-SFX audio becomes `bgm`, `sfx-*` assets stay in the
+`sfx` list, and sprite names containing `player`/`hero` or `enemy`/`boss` map to
+`player`/`enemy`. `animations` points at the generated index when present.
+
+Web templates read the player binding and draw the image instead of the vector
+fallback. Godot `SpriteService` applies the bound player/enemy texture before
+content configs and prints `GAMEDREAM_SPRITE_BINDING_OK`. Unity templates copy
+the same bindings into StreamingAssets and the shared `AssetBinding` replaces
+the player square with the staged sprite.
+
 ## Asset discovery
 
 ### SFX

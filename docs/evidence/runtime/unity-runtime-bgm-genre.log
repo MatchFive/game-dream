@@ -1,12 +1,12 @@
 ﻿
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/unity/test/runtime.test.ts (5 tests | 4 skipped) 39453ms
-   ✓ unity runtime > loads a staged BGM from StreamingAssets in a genre runtime 39452ms
+ ✓ packages/unity/test/runtime.test.ts (5 tests | 4 skipped) 41208ms
+   ✓ unity runtime > loads a staged BGM from StreamingAssets in a genre runtime 41207ms
 
  Test Files  1 passed (1)
       Tests  1 passed | 4 skipped (5)
-   Start at  23:38:36
-   Duration  40.03s (transform 82ms, setup 0ms, collect 223ms, tests 39.45s, environment 0ms, prepare 123ms)
+   Start at  23:50:59
+   Duration  41.85s (transform 86ms, setup 0ms, collect 234ms, tests 41.21s, environment 0ms, prepare 132ms)
 
 EXIT=0

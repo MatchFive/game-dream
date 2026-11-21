@@ -1,5 +1,6 @@
 import { ARENA, COLS, EXIT, OFFSET, ROWS, TILE, createSim, isWall, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
+import { findPlayerBinding } from './bindings.mjs';
 
 const root = document.querySelector('#game');
 root.replaceChildren();
@@ -16,6 +17,25 @@ const keys = new Set();
 const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
+let playerSprite;
+
+async function loadPlayerSprite() {
+  try {
+    const response = await fetch(
+      new URL('./game/build-assets/bindings.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return;
+    const binding = findPlayerBinding(await response.json());
+    if (!binding) return;
+    const image = new Image();
+    image.src = new URL(binding.file, import.meta.url).href;
+    await image.decode();
+    playerSprite = image;
+  } catch {
+    // The vector player remains when no sprite is bound.
+  }
+}
 
 async function loadBgm() {
   try {
@@ -48,6 +68,7 @@ if (musicInput) {
 window.addEventListener('pointerdown', playBgm, { once: true });
 window.addEventListener('keydown', playBgm, { once: true });
 void loadBgm();
+void loadPlayerSprite();
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   keys.add(key);
@@ -73,16 +94,16 @@ function draw() {
     ctx.arc(OFFSET + enemy.x * TILE + TILE / 2, OFFSET + enemy.y * TILE + TILE / 2, 12, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = '#55d6ff';
-  ctx.beginPath();
-  ctx.arc(
-    OFFSET + state.player.x * TILE + TILE / 2,
-    OFFSET + state.player.y * TILE + TILE / 2,
-    13,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
+  const playerX = OFFSET + state.player.x * TILE + TILE / 2;
+  const playerY = OFFSET + state.player.y * TILE + TILE / 2;
+  if (playerSprite) {
+    ctx.drawImage(playerSprite, playerX - 20, playerY - 20, 40, 40);
+  } else {
+    ctx.fillStyle = '#55d6ff';
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, 13, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.fillStyle = '#e8f5ee';
   ctx.font = '16px ui-monospace, monospace';
   ctx.fillText('NULL RUN', 20, 24);

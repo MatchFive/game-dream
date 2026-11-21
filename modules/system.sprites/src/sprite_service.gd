@@ -1,12 +1,16 @@
 extends Node
 
 const GENERATED_ANIMATIONS := "res://game/build-assets/animations"
+const BUILD_BINDINGS := "res://game/build-assets/bindings.json"
 
 var applied_count: int = 0
 var applied: Dictionary = {}
 var generated_applied := false
+var binding_applied := false
 var generated_loaded := false
 var generated_frames: SpriteFrames = null
+var binding_loaded := false
+var bindings: Dictionary = {}
 
 func _ready() -> void:
 	Game.register_service("sprites", self)
@@ -16,6 +20,9 @@ func apply(sprite: AnimatedSprite2D, sprite_id: String) -> bool:
 		return false
 	if _has_generated_frames():
 		return _apply_generated(sprite, sprite_id)
+	var binding_frames := _binding_frames(sprite_id)
+	if binding_frames != null:
+		return _apply_binding(sprite, sprite_id, binding_frames)
 	var content = Game.get_service("content")
 	var data: Dictionary = {}
 	if content != null:
@@ -82,6 +89,49 @@ func apply(sprite: AnimatedSprite2D, sprite_id: String) -> bool:
 		push_warning("sprites: no built frames for '%s'" % sprite_id)
 		return _apply_generated(sprite, sprite_id)
 	return _apply_frames(sprite, frames, built, sprite_id)
+
+func _load_bindings() -> void:
+	if binding_loaded:
+		return
+	binding_loaded = true
+	var file := FileAccess.open(BUILD_BINDINGS, FileAccess.READ)
+	if file == null:
+		return
+	var parsed = JSON.parse_string(file.get_as_text())
+	if parsed is Dictionary:
+		bindings = parsed
+
+func _binding_frames(sprite_id: String) -> SpriteFrames:
+	_load_bindings()
+	var role := "player" if sprite_id == "player" else "enemy"
+	var entry = bindings.get(role)
+	if not entry is Dictionary:
+		return null
+	var relative_path := str(entry.get("file", ""))
+	if relative_path == "":
+		return null
+	var path := "res://%s" % relative_path
+	if not ResourceLoader.exists(path):
+		return null
+	var texture = load(path)
+	if not texture is Texture2D:
+		return null
+	var frames := SpriteFrames.new()
+	frames.add_animation("idle")
+	frames.set_animation_speed("idle", 1.0)
+	frames.set_animation_loop("idle", true)
+	frames.add_frame("idle", texture)
+	return frames
+
+func _apply_binding(
+	sprite: AnimatedSprite2D,
+	sprite_id: String,
+	frames: SpriteFrames,
+) -> bool:
+	if not binding_applied:
+		binding_applied = true
+		print("GAMEDREAM_SPRITE_BINDING_OK")
+	return _apply_frames(sprite, frames, ["idle"], sprite_id)
 
 func _has_generated_frames() -> bool:
 	if generated_loaded:

@@ -1,0 +1,15 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/cli/test/sprite-e2e.test.ts (4 tests) 39812ms
+   ✓ sprite fallback end-to-end > fails G3 when sprite configs are missing 10511ms
+   ✓ sprite fallback end-to-end > fails G3 when a texture is missing or animations are empty 10569ms
+   ✓ sprite fallback end-to-end > auto-loads a generated SpriteFrames atlas over content sprites 11426ms
+   ✓ sprite fallback end-to-end > applies the staged player binding when no atlas is present 7305ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:51:00
+   Duration  41.51s (transform 352ms, setup 0ms, collect 1.28s, tests 39.81s, environment 0ms, prepare 150ms)
+
+EXIT=0

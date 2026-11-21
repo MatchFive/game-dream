@@ -1,5 +1,6 @@
 import { ARENA, GOAL, PLAYER, createSim, platforms, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
+import { findPlayerBinding } from './bindings.mjs';
 
 const root = document.querySelector('#game');
 root.replaceChildren();
@@ -16,6 +17,25 @@ const keys = new Set();
 const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
+let playerSprite;
+
+async function loadPlayerSprite() {
+  try {
+    const response = await fetch(
+      new URL('./game/build-assets/bindings.json', import.meta.url),
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return;
+    const binding = findPlayerBinding(await response.json());
+    if (!binding) return;
+    const image = new Image();
+    image.src = new URL(binding.file, import.meta.url).href;
+    await image.decode();
+    playerSprite = image;
+  } catch {
+    // The vector player remains when no sprite is bound.
+  }
+}
 
 async function loadBgm() {
   try {
@@ -48,6 +68,7 @@ if (musicInput) {
 window.addEventListener('pointerdown', playBgm, { once: true });
 window.addEventListener('keydown', playBgm, { once: true });
 void loadBgm();
+void loadPlayerSprite();
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   keys.add(key);
@@ -94,12 +115,16 @@ function draw() {
   ctx.fill();
 
   const player = state.player;
-  ctx.fillStyle = '#55d6ff';
-  ctx.fillRect(player.x, player.y, PLAYER.width, PLAYER.height);
-  ctx.fillStyle = '#0b2533';
-  ctx.fillRect(player.x + 6, player.y + 9, 5, 5);
-  ctx.fillRect(player.x + 17, player.y + 9, 5, 5);
-  ctx.fillRect(player.x + 7, player.y + 27, 14, 4);
+  if (playerSprite) {
+    ctx.drawImage(playerSprite, player.x - 8, player.y - 8, PLAYER.width + 16, PLAYER.height + 16);
+  } else {
+    ctx.fillStyle = '#55d6ff';
+    ctx.fillRect(player.x, player.y, PLAYER.width, PLAYER.height);
+    ctx.fillStyle = '#0b2533';
+    ctx.fillRect(player.x + 6, player.y + 9, 5, 5);
+    ctx.fillRect(player.x + 17, player.y + 9, 5, 5);
+    ctx.fillRect(player.x + 7, player.y + 27, 14, 4);
+  }
 
   ctx.fillStyle = '#e8f5ee';
   ctx.font = '16px ui-monospace, monospace';

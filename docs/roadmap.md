@@ -109,8 +109,8 @@
 | AS4 | BGM 模板覆盖 | Web/Unity survivor 及其余 Web/Unity 模板均已接入 staged BGM；音量滑杆仅 Web/部分模板 | Web/Unity survivor 统一接入 | Done |
 | AS4b | Unity BGM 接入 | 已同步到 StreamingAssets，真实 Unity player smoke 打出 `UNITY_BGM_OK` | StreamingAssets 打包与音量/循环 | Done |
 | AS4c | 其他模板 BGM | 5 个 Web 模板接入 staged BGM；Unity 6 个模板通过共享 `BgmPlayer` 接入并真实 smoke 打印 `UNITY_BGM_OK`；暂停/独立音量仍简化 | 按模板接入音量/循环与暂停 | Done |
-| AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；模板尚未自动引用 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
-| AS5b | 素材自动绑定模板 | 暂存文件不会自动改写 sprite/content 配置 | 按素材类型生成引用配置或提供可视化绑定 | Backlog |
+| AS5 | Build selection 落地 | 已把选择素材复制到 `game/build-assets/` 并写 manifest；compose 保留；AS5b 进一步生成模板绑定 | 选择会物理进入项目、取消会移除托管副本、compose 后仍保留 | Done |
+| AS5b | 素材自动绑定模板 | 已生成 `game/build-assets/bindings.json`（bgm/sfx/player/enemy/animations）；Web 模板绘制 player，Godot 优先应用 player/enemy 绑定，Unity 通过共享 `AssetBinding` 替换 player；三者均有真实/单元验证 | 按素材类型生成引用配置或提供可视化绑定 | Done |
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
 
 动画路线参考 `docs/comfyui-audio-animation.md`：优先透明关键帧和 atlas；AnimateDiff 需要额外安装节点和 motion module，不能假定已有。
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS5b 素材自动绑定模板**：把音频/图集/音效写入内容配置，而不是只靠运行时发现。
-2. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
-3. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+1. **V3b 动态 URL `/play/` 兼容**：继续补 fetch/动态资源路径。
+2. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+3. **V2 内嵌 Godot playtest / V4 G6 视觉闸门**：把试玩闭环接进 Studio。
 
 ## 11. Definition of Done
 
