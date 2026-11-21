@@ -1,0 +1,27 @@
+
+> gamedream@ smoke:godot D:\project\game_dream
+> node scripts/godot-runtime-smoke.mjs "--out" "C:\\temp\\gd-godot-runtime-smoke"
+
+GODOT_RUNTIME_BIN=D:\project\game_dream\.tools\godot\Godot_v4.4.1-stable_win64_console.exe
+Composed 31 modules into C:\temp\gd-godot-runtime-smoke
+{
+  "gates": {
+    "G1": {
+      "status": "pass"
+    },
+    "G2": {
+      "status": "pass"
+    },
+    "G3": {
+      "status": "pass"
+    }
+  },
+  "engine": "present"
+}
+GODOT_RUNTIME_G1=pass
+GODOT_RUNTIME_G2=pass
+GODOT_RUNTIME_G3=pass
+GODOT_RUNTIME_ENGINE=present
+GODOT_RUNTIME_OK=1
+GODOT_RUNTIME_EXIT=0
+EXIT=0

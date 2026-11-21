@@ -8,15 +8,23 @@
 - `pnpm build`
 - a fixture-backed MCP client smoke: initialize, discover tools, add nodes,
   save a scene, and verify the scene file exists
+- a real Godot runtime job: download Godot 4.4.1, compose the M1 fixture, and
+  run `pnpm smoke:godot` with G1/G2/G3 against the actual engine
 
 The fixture MCP server is `fixtures/mcp/fake-godot.mjs`. It exercises the same
 stdio protocol and scene-save path as the real Godot MCP server, so CI catches
 client regressions without requiring the editor on the Ubuntu runner.
 
-GitHub's Ubuntu runner has no Godot binary or Godot export templates, so the
-real Godot E2E test is skipped there; export tests use fake runners. Run those
-locally with `GODOT_BIN` set; `dream godot templates` reports whether the
-matching templates are installed for the host platform.
+GitHub's Ubuntu runner has no Godot export templates, so export tests remain
+local/fake-runner based. The `godot-runtime` job downloads the official Godot
+4.4.1 Linux binary for real headless G2/G3. Run it locally with the same script:
+
+```bash
+GODOT_BIN=/path/to/godot pnpm smoke:godot --out dist/godot-runtime
+```
+
+`dream godot templates` reports whether matching export templates are installed
+for the host platform.
 
 The optional `web-release` job is manually dispatched. It composes the M2 Web
 project, runs the deterministic marker gate, packages it with hashes, and uploads

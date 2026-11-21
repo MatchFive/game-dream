@@ -12,6 +12,10 @@ Commit: implementation commits `805c7e7` and `d2bb120`, with evidence commits fo
 | `agent-tests.log` | `corepack pnpm test:agent`; CLI structured-event/approval, SSE, recovery, and Studio AgentManager tests; **7 passed**; exit `0` |
 | `studio-agent-smoke.log` | `corepack pnpm smoke:agent`; real `dream develop` child through Studio API; approval round-trip and all required event types; exit `0` |
 
+Real Godot runtime evidence is separate: `docs/evidence/runtime/README.md` and
+`docs/evidence/runtime/godot-runtime.log` record a composed M1 project passing
+G1/G2/G3 against Godot 4.4.1.
+
 ## Structured event and approval smoke
 
 `scripts/studio-agent-smoke.mjs` starts the real CLI as a child of the Studio

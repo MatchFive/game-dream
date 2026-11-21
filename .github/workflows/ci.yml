@@ -32,6 +32,32 @@ jobs:
             --project dist/mcp-smoke \
             --scene ui/McpHud.tscn
 
+  godot-runtime:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install Godot 4.4.1
+        run: |
+          mkdir -p .tools/godot
+          curl -L --fail --retry 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -o /tmp/godot.zip -d .tools/godot
+          chmod +x .tools/godot/Godot_v4.4.1-stable_linux.x86_64
+      - name: Real Godot runtime verify
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64
+        run: pnpm smoke:godot --out dist/godot-runtime
+
   web-release:
     needs: test
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
