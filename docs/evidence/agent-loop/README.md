@@ -46,6 +46,15 @@ depending on an installed editor. Real-engine validation remains separate.
   present.
 - `agent-tests.log` records all 7 focused tests passing.
 
+## Candidate workflow
+
+- The candidate test seeds a conflicting project file, asks for
+  `candidates/:runId/diff`, and asserts the file is reported as `modified`.
+- Applying the candidate creates `lastBackup` entries; the test then rolls back
+  and verifies the original file content is restored.
+- `studio-agent-smoke.log` still verifies the complete actual-CLI approval and
+  finish path after these changes.
+
 ## UI evidence
 
 - `agent-awaiting.png`: pending approval card, tool trace, running state.

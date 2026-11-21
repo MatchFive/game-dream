@@ -349,6 +349,28 @@ async function handleApi(
     return;
   }
 
+  const diffMatch = pathname.match(
+    /^\/api\/agent\/batches\/([^/]+)\/candidates\/([^/]+)\/diff$/,
+  );
+  if (method === 'GET' && diffMatch) {
+    try {
+      json(response, 200, { diff: agent.diff(diffMatch[1], diffMatch[2]) });
+    } catch (error) {
+      json(response, 404, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const rollbackMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)\/rollback$/);
+  if (method === 'POST' && rollbackMatch) {
+    try {
+      json(response, 200, { batch: agent.rollback(rollbackMatch[1]) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
   const applyMatch = pathname.match(/^\/api\/agent\/batches\/([^/]+)\/apply$/);
   if (method === 'POST' && applyMatch) {
     try {

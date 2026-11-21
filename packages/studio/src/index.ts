@@ -2,8 +2,11 @@ export { startStudioServer, type StudioServerHandle, type StudioServerOptions } 
 export {
   AgentManager,
   type AgentApproval,
+  type AgentBackup,
   type AgentBatch,
+  type AgentDiff,
   type AgentEvent,
+  type AgentFileDiff,
   type AgentReport,
   type AgentRun,
   type AgentRunStatus,

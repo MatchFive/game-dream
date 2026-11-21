@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>GameDream Studio</title>
 <link rel="stylesheet" href="/styles.css?v=2">
-<link rel="stylesheet" href="/studio.css?v=4">
+<link rel="stylesheet" href="/studio.css?v=5">
 </head>
 <body data-screen="preview">
 <svg class="sprite" aria-hidden="true">
@@ -53,6 +53,10 @@
         <span class="studio-agent-state" id="agentState">空闲</span>
       </div>
       <div class="studio-agent-candidates" id="agentCandidates" hidden></div>
+      <div class="studio-agent-diff" id="agentDiff" hidden>
+        <div class="studio-agent-diff-head"><span data-i18n="studio.agentDiff">候选差异</span><button class="icon-btn" type="button" id="agentDiffClose" aria-label="关闭差异"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+        <div id="agentDiffBody"></div>
+      </div>
       <div class="studio-agent-thread" id="agentThread">
         <div class="studio-agent-empty" data-i18n="studio.agentNoSession">还没有 Agent 会话。输入目标并启动。</div>
       </div>
@@ -152,6 +156,6 @@
 </nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="/studio.js?v=9"></script>
+<script type="module" src="/studio.js?v=10"></script>
 </body>
 </html>

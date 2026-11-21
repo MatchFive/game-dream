@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -148,13 +148,35 @@ it('runs candidates and applies the selected candidate', async () => {
   const batch = data.batches[0];
   expect(batch?.candidates).toHaveLength(2);
   const selected = batch?.candidates[1];
+  mkdirSync(join(root, 'game'), { recursive: true });
+  writeFileSync(join(root, 'game', 'fixture.txt'), 'old', 'utf8');
+  const diffResponse = await fetch(
+    `${studio.url}/api/agent/batches/${batch?.id}/candidates/${selected?.id}/diff`,
+  );
+  expect(diffResponse.status).toBe(200);
+  const diff = (await diffResponse.json()) as {
+    diff: { counts: { added: number; modified: number }; files: Array<{ path: string; status: string }> };
+  };
+  expect(diff.diff.counts.modified).toBeGreaterThan(0);
+  expect(diff.diff.files.find((file) => file.path === 'game/fixture.txt')?.status).toBe('modified');
+
   const apply = await fetch(`${studio.url}/api/agent/batches/${batch?.id}/apply`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ runId: selected?.id }),
   });
   expect(apply.status).toBe(200);
+  const applied = (await apply.json()) as { batch: { lastBackup?: { entries: string[] } } };
+  expect(applied.batch.lastBackup?.entries).toContain('game');
   expect(readFileSync(join(root, 'game', 'fixture.txt'), 'utf8')).toBe('fixture');
+
+  const rollback = await fetch(`${studio.url}/api/agent/batches/${batch?.id}/rollback`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  expect(rollback.status).toBe(200);
+  expect(readFileSync(join(root, 'game', 'fixture.txt'), 'utf8')).toBe('old');
 });
 
 it('pushes agent snapshots over SSE', async () => {

@@ -7,6 +7,8 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -29,6 +31,28 @@ export interface AgentApproval {
   createdAt: string;
   status: AgentApprovalStatus;
   reason?: string;
+}
+
+export interface AgentBackup {
+  path: string;
+  runId: string;
+  createdAt: string;
+  entries: string[];
+}
+
+export interface AgentFileDiff {
+  path: string;
+  status: 'added' | 'modified' | 'unchanged';
+}
+
+export interface AgentDiff {
+  runId: string;
+  counts: {
+    added: number;
+    modified: number;
+    unchanged: number;
+  };
+  files: AgentFileDiff[];
 }
 
 export interface AgentReport {
@@ -77,6 +101,7 @@ export interface AgentBatch {
   maxSteps?: number;
   approvalTools?: string[];
   resume?: boolean;
+  lastBackup?: AgentBackup;
 }
 
 interface AgentStartInput {
@@ -174,6 +199,21 @@ function batchStatus(candidates: AgentRun[]): AgentRunStatus {
   if (candidates.some((run) => run.status === 'failed')) return 'failed';
   if (candidates.some((run) => run.status === 'canceled')) return 'canceled';
   return 'running';
+}
+
+function listCandidateFiles(root: string, prefix = ''): string[] {
+  if (!existsSync(root)) return [];
+  const files: string[] = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (SKIP_APPLY.has(entry.name)) continue;
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files.push(...listCandidateFiles(join(root, entry.name), relativePath));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+  return files;
 }
 
 export class AgentManager {
@@ -320,12 +360,48 @@ export class AgentManager {
     return batch;
   }
 
+  diff(batchId: string, runId: string): AgentDiff {
+    const batch = this.batches.get(batchId);
+    const run = batch?.candidates.find((candidate) => candidate.id === runId);
+    if (!batch || !run) throw new Error('agent candidate not found');
+    if (resolve(run.outDir) === this.root) {
+      return { runId, counts: { added: 0, modified: 0, unchanged: 0 }, files: [] };
+    }
+    const files: AgentFileDiff[] = [];
+    for (const relativePath of listCandidateFiles(run.outDir)) {
+      const candidateFile = join(run.outDir, relativePath);
+      const currentFile = join(this.root, relativePath);
+      let status: AgentFileDiff['status'] = 'added';
+      if (existsSync(currentFile)) {
+        const sameSize = statSync(candidateFile).size === statSync(currentFile).size;
+        status = sameSize && readFileSync(candidateFile).equals(readFileSync(currentFile))
+          ? 'unchanged'
+          : 'modified';
+      }
+      files.push({ path: relativePath, status });
+    }
+    files.sort((left, right) => {
+      const rank = { added: 0, modified: 1, unchanged: 2 };
+      return rank[left.status] - rank[right.status] || left.path.localeCompare(right.path);
+    });
+    return {
+      runId,
+      counts: {
+        added: files.filter((file) => file.status === 'added').length,
+        modified: files.filter((file) => file.status === 'modified').length,
+        unchanged: files.filter((file) => file.status === 'unchanged').length,
+      },
+      files,
+    };
+  }
+
   apply(batchId: string, runId: string): AgentBatch {
     const batch = this.batches.get(batchId);
     const run = batch?.candidates.find((candidate) => candidate.id === runId);
     if (!batch || !run) throw new Error('agent candidate not found');
     if (run.status !== 'finished') throw new Error('candidate is not finished');
     if (resolve(run.outDir) !== this.root) {
+      batch.lastBackup = this.createBackup(batch, run);
       for (const entry of readdirSync(run.outDir)) {
         if (SKIP_APPLY.has(entry)) continue;
         cpSync(join(run.outDir, entry), join(this.root, entry), {
@@ -341,11 +417,53 @@ export class AgentManager {
     return batch;
   }
 
+  rollback(batchId: string): AgentBatch {
+    const batch = this.batches.get(batchId);
+    if (!batch) throw new Error('agent batch not found');
+    const backup = batch.lastBackup;
+    if (!backup) throw new Error('no applied candidate backup');
+    for (const entry of backup.entries) {
+      if (SKIP_APPLY.has(entry)) continue;
+      const target = join(this.root, entry);
+      rmSync(target, { recursive: true, force: true });
+      const source = join(backup.path, entry);
+      if (existsSync(source)) {
+        cpSync(source, target, { recursive: true, force: true });
+      }
+    }
+    batch.lastBackup = undefined;
+    batch.appliedRunId = undefined;
+    this.persist(batch);
+    this.notify();
+    return batch;
+  }
+
   close(): void {
     for (const timer of this.timers.values()) clearInterval(timer);
     this.timers.clear();
     for (const child of this.children.values()) this.kill(child);
     this.children.clear();
+  }
+
+  private createBackup(batch: AgentBatch, run: AgentRun): AgentBackup {
+    const directory = join(
+      this.batchRoot(batch.id),
+      'backups',
+      `${Date.now()}-${run.id}`,
+    );
+    mkdirSync(directory, { recursive: true });
+    const entries = readdirSync(run.outDir).filter((entry) => !SKIP_APPLY.has(entry));
+    for (const entry of entries) {
+      const source = join(this.root, entry);
+      if (!existsSync(source)) continue;
+      cpSync(source, join(directory, entry), { recursive: true, force: true });
+    }
+    return {
+      path: directory,
+      runId: run.id,
+      createdAt: new Date().toISOString(),
+      entries,
+    };
   }
 
   private spawn(

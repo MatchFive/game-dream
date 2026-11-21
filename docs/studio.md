@@ -101,7 +101,9 @@ crash is not reaped automatically.
 | `POST /api/agent/start` | Start `dream develop` with 1–3 candidates and approval events |
 | `POST /api/agent/batches/:id/cancel` | Stop the running Agent children |
 | `POST /api/agent/batches/:id/runs/:runId/approval` | Allow or deny a pending tool approval |
-| `POST /api/agent/batches/:id/apply` | Copy a finished candidate into the Studio project |
+| `GET /api/agent/batches/:id/candidates/:runId/diff` | Compare a candidate with the Studio project |
+| `POST /api/agent/batches/:id/apply` | Back up touched files and copy a finished candidate into the Studio project |
+| `POST /api/agent/batches/:id/rollback` | Restore the files replaced by the last candidate apply |
 | `GET /api/health` | ComfyUI and workflow health |
 
 Verification uses the same CLI entry that launched `dream studio` (or
@@ -119,6 +121,6 @@ expose it on a public interface.
 - Agent children are resumed with `--resume` after a Studio restart; a child
   left behind by a hard crash is not reaped automatically.
 - Agent UI uses SSE snapshots with HTTP polling as a fallback.
-- Candidate apply overwrites matching top-level project files without an
-  automatic backup.
+- Candidate apply backs up only the top-level files it will touch; rollback
+  removes/replaces those entries, not unrelated project files.
 - Animation generation is not implemented; animation nodes remain a placeholder.

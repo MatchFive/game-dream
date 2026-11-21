@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=5';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=6';
 
 const state = {
   snapshot: null,
@@ -14,6 +14,7 @@ const state = {
   agentSource: null,
   agentStreamOpened: false,
   agentLastStatus: null,
+  agentDiff: null,
 };
 
 function escapeHtml(value) {
@@ -226,6 +227,7 @@ function renderAgent() {
   if (!batch) {
     $('#agentCandidates').hidden = true;
     $('#agentCandidates').innerHTML = '';
+    $('#agentDiff').hidden = true;
     $('#agentThread').innerHTML = `<div class="studio-agent-empty">${t('studio.agentNoSession')}</div>`;
     $('#agentApproval').hidden = true;
     $('#agentMeta').textContent = t('studio.agentIdle');
@@ -250,8 +252,14 @@ function renderAgent() {
       `;
     }).join('');
     const apply = run?.status === 'finished'
-      ? `<div class="studio-agent-candidate-actions"><button class="button primary" type="button" data-agent-apply>${t('studio.agentApply')}</button></div>`
-      : '';
+      ? `<div class="studio-agent-candidate-actions">
+          <button class="button secondary" type="button" data-agent-diff>${t('studio.agentDiff')}</button>
+          <button class="button primary" type="button" data-agent-apply>${t('studio.agentApply')}</button>
+          ${batch.lastBackup ? `<button class="button secondary" type="button" data-agent-rollback>${t('studio.agentRollback')}</button>` : ''}
+        </div>`
+      : batch.lastBackup
+        ? `<div class="studio-agent-candidate-actions"><button class="button secondary" type="button" data-agent-rollback>${t('studio.agentRollback')}</button></div>`
+        : '';
     $('#agentCandidates').innerHTML = cards + apply;
   } else {
     $('#agentCandidates').innerHTML = '';
@@ -281,10 +289,52 @@ function renderAgent() {
   $$('[data-agent-run]', $('#agentCandidates')).forEach((button) => {
     button.addEventListener('click', () => {
       state.agentRunId = button.dataset.agentRun;
+      state.agentDiff = null;
       renderAgent();
     });
   });
+  $('[data-agent-diff]')?.addEventListener('click', () => loadAgentDiff(batch, run));
   $('[data-agent-apply]')?.addEventListener('click', () => applyAgentCandidate(batch, run));
+  $('[data-agent-rollback]')?.addEventListener('click', () => rollbackAgent(batch));
+  renderAgentDiff(run);
+}
+
+function renderAgentDiff(run) {
+  const panel = $('#agentDiff');
+  const diff = state.agentDiff;
+  if (!diff || !run || diff.runId !== run.id) {
+    panel.hidden = true;
+    $('#agentDiffBody').innerHTML = '';
+    return;
+  }
+  const changeCount = diff.counts.added + diff.counts.modified;
+  const rows = diff.files
+    .filter((file) => file.status !== 'unchanged')
+    .slice(0, 120)
+    .map((file) => `<div class="studio-agent-diff-row ${file.status}"><span>${file.status === 'added' ? '+' : '~'}</span><code>${escapeHtml(file.path)}</code></div>`)
+    .join('');
+  panel.hidden = false;
+  $('#agentDiffBody').innerHTML = `
+    <div class="studio-agent-diff-counts">
+      <span class="added">${escapeHtml(t('studio.agentDiffAdded', { count: diff.counts.added }))}</span>
+      <span class="modified">${escapeHtml(t('studio.agentDiffModified', { count: diff.counts.modified }))}</span>
+      <span>${escapeHtml(t('studio.agentDiffUnchanged', { count: diff.counts.unchanged }))}</span>
+    </div>
+    ${changeCount === 0 ? `<div class="studio-agent-diff-empty">${t('studio.agentDiffEmpty')}</div>` : `<div class="studio-agent-diff-list">${rows}</div>`}
+  `;
+}
+
+async function loadAgentDiff(batch, run) {
+  if (!batch || !run) return;
+  try {
+    const result = await request(
+      `/api/agent/batches/${encodeURIComponent(batch.id)}/candidates/${encodeURIComponent(run.id)}/diff`,
+    );
+    state.agentDiff = result.diff;
+    renderAgentDiff(run);
+  } catch (error) {
+    toast(t('studio.agentDiffFailed', { message: error.message }));
+  }
 }
 
 function scheduleAgentPoll() {
@@ -436,15 +486,34 @@ async function applyAgentCandidate(batch, run) {
   const name = String.fromCharCode(64 + run.index);
   if (!window.confirm(t('studio.agentApplyConfirm', { name }))) return;
   try {
-    await request(`/api/agent/batches/${encodeURIComponent(batch.id)}/apply`, {
+    const result = await request(`/api/agent/batches/${encodeURIComponent(batch.id)}/apply`, {
       method: 'POST',
       body: JSON.stringify({ runId: run.id }),
     });
-    toast(t('studio.agentApplied', { name }));
+    state.agentDiff = null;
+    const backup = result.batch?.lastBackup;
+    toast(`${t('studio.agentApplied', { name })}${backup ? ` ${t('studio.agentBackupCreated')}` : ''}`);
     await load();
     await loadAgent(true);
   } catch (error) {
     toast(t('studio.agentApplyFailed', { message: error.message }));
+  }
+}
+
+async function rollbackAgent(batch) {
+  if (!batch?.lastBackup) return;
+  if (!window.confirm(t('studio.agentRollbackConfirm'))) return;
+  try {
+    await request(`/api/agent/batches/${encodeURIComponent(batch.id)}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    state.agentDiff = null;
+    toast(t('studio.agentRolledBack'));
+    await load();
+    await loadAgent(true);
+  } catch (error) {
+    toast(t('studio.agentRollbackFailed', { message: error.message }));
   }
 }
 
@@ -685,6 +754,10 @@ $('#agentCancel').addEventListener('click', cancelAgent);
 $('#agentAllow').addEventListener('click', () => decideAgentApproval(true));
 $('#agentDeny').addEventListener('click', () => decideAgentApproval(false));
 $('#agentCandidateCount').addEventListener('change', renderAgent);
+$('#agentDiffClose').addEventListener('click', () => {
+  state.agentDiff = null;
+  renderAgentDiff(selectedAgentRun());
+});
 $('#studioGatesToggle').addEventListener('click', () => $('#studioRight').classList.toggle('open'));
 $$('.studio-tab').forEach((tab) => tab.addEventListener('click', () => {
   state.view = tab.dataset.view;
