@@ -241,6 +241,7 @@ export interface BuildAssetManifest {
 
 const BUILD_ASSET_ROOT = 'game/build-assets';
 const BUILD_ASSET_MANIFEST = `${BUILD_ASSET_ROOT}/manifest.json`;
+const ASSET_NAMES_FILE = '.gamedream/studio/asset-names.json';
 
 function safeBuildAssetFile(asset: StudioAsset): string {
   const extension = extname(asset.file).toLowerCase();
@@ -300,9 +301,42 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
   return manifest;
 }
 
+function readAssetNames(root: string): Record<string, string> {
+  const file = join(root, ASSET_NAMES_FILE);
+  if (!existsSync(file)) return {};
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value !== 'string') continue;
+      const name = value.trim().slice(0, 80);
+      if (name) result[key] = name;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+export function renameAsset(root: string, assetId: string, name: string): StudioAsset {
+  const asset = findAsset(root, assetId);
+  if (!asset) throw new Error('asset not found');
+  const value = name.trim().slice(0, 80);
+  if (!value) throw new Error('asset name is required');
+  const names = readAssetNames(root);
+  names[asset.file] = value;
+  const file = join(root, ASSET_NAMES_FILE);
+  mkdirSync(dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(names, null, 2)}\n`, 'utf8');
+  renameSync(temporary, file);
+  return { ...asset, name: value };
+}
+
 export function scanAssets(root: string, inBuild: string[] = []): StudioAsset[] {
   const assets = new Map<string, StudioAsset>();
   const selected = new Set(inBuild);
+  const names = readAssetNames(root);
   const add = (file: string, source: StudioAssetSource, prompt?: string, seed?: string, name?: string): void => {
     const relativePath = relative(root, file).split('\\').join('/');
     if (relativePath.startsWith('..')) return;
@@ -319,7 +353,7 @@ export function scanAssets(root: string, inBuild: string[] = []): StudioAsset[] 
     const kind = classifyAsset(file, source);
     assets.set(id, {
       id,
-      name: name || prettyName(file),
+      name: names[relativePath] || name || prettyName(file),
       file: relativePath,
       url: `/api/assets/${id}/raw`,
       kind,

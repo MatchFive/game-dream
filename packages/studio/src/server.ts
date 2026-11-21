@@ -5,7 +5,7 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { createAnimationAtlas } from './animation-atlas.js';
-import { findAsset, loadCanvas, loadProject, mimeForFile, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
+import { findAsset, loadCanvas, loadProject, mimeForFile, renameAsset, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
 import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
 import { detectEngine } from './project.js';
 import {
@@ -854,6 +854,22 @@ async function handleApi(
       return;
     }
     createReadStream(file).pipe(response);
+    return;
+  }
+
+  const renameMatch = pathname.match(/^\/api\/assets\/([a-f0-9]+)\/rename$/);
+  if (method === 'POST' && renameMatch) {
+    try {
+      const body = (await readJson(request)) as { name?: unknown };
+      const asset = renameAsset(
+        root,
+        renameMatch[1],
+        typeof body.name === 'string' ? body.name : '',
+      );
+      json(response, 200, { asset });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
     return;
   }
 

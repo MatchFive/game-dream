@@ -21,7 +21,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**232 passed / 9 skipped**
+- 全量测试：**233 passed / 9 skipped**
 - Agent focused tests：**11 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -97,8 +97,8 @@
 | AS1b | 动画图集 | 已支持 2–8 个同尺寸 PNG 横向打包、透明通道、frame/FPS/loop 元数据 | 图集文件、元数据、素材索引 | Done |
 | AS1c | 引擎动画描述 | 已生成 Web JSON 与 Godot SpriteFrames `.tres`，并写入 `game/build-assets/animations/` | 图集、frame 元数据、引擎描述文件 | Done |
 | AS1d | 模板动画接入 | 描述文件不会自动被模板加载 | 模板自动发现/播放动画资源 | Backlog |
-| AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听；SFX/重命名未做 | UI 内生成、显示进度、试听、加入构建 | Done |
-| AS2b | 音频 SFX/重命名 | 固定 30 秒 BGM，无文本 SFX、无素材重命名 | 自定义时长、SFX 生成、重命名和元数据编辑 | Backlog |
+| AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听、重命名；SFX 未做 | UI 内生成、显示进度、试听、重命名、加入构建 | Done |
+| AS2b | 音频 SFX | 固定 30 秒 BGM，无文本 SFX | 自定义时长、SFX 生成 | Backlog |
 | AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
 | AS4 | BGM 模板覆盖 | Web survivor 已读取 build manifest 并循环/绑定音乐滑杆；Unity 仍未接 | Web/Unity survivor 及其他音频模板统一接入 | In progress |
 | AS4b | Unity BGM 接入 | Unity 构建尚未加载 Studio 暂存音频 | StreamingAssets/Resources 打包与音量/循环 | Backlog |

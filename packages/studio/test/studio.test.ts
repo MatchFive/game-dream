@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PNG } from 'pngjs';
 import { createAnimationAtlas } from '../src/animation-atlas.js';
-import { loadCanvas, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
+import { loadCanvas, renameAsset, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
 import { ComfyAudioRunner, ComfyRunner } from '../src/comfyui.js';
 import { loadProjectSnapshot, loadRuns } from '../src/project.js';
 import { startStudioServer } from '../src/server.js';
@@ -68,6 +68,16 @@ describe('studio assets', () => {
     expect(loadCanvas(root).nodes[1]).toMatchObject({ id: 'walk', kind: 'animation' });
     expect(setInBuild(root, asset.id, true).inBuild).toEqual([asset.id]);
     expect(toggleInBuild(root, asset.id).inBuild).toEqual([]);
+  });
+
+  it('renames an asset display name without changing its id or file', () => {
+    const asset = scanAssets(root).find((entry) => entry.kind === 'concept')!;
+    const renamed = renameAsset(root, asset.id, '  Forest Hero  ');
+    expect(renamed).toMatchObject({ id: asset.id, file: asset.file, name: 'Forest Hero' });
+    const reloaded = scanAssets(root).find((entry) => entry.id === asset.id);
+    expect(reloaded?.name).toBe('Forest Hero');
+    expect(readFileSync(join(root, '.gamedream', 'studio', 'asset-names.json'), 'utf8'))
+      .toContain('Forest Hero');
   });
 
   it('packs equal-sized animation frames into a transparent PNG atlas', () => {

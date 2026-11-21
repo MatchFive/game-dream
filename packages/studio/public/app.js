@@ -724,11 +724,13 @@ function renderInspector() {
     <textarea class="prompt-box" readonly aria-label="${t('common.prompt')}">${escapeHtml(prompt)}</textarea>
     <div class="inspect-actions">
       <button class="button primary full" type="button" data-use-selected>${asset.inBuild ? t('assets.removeFromBuild') : t('assets.useInBuild')}</button>
+      <button class="button secondary" type="button" data-rename-selected>${t('assets.rename')}</button>
       <a class="button secondary" href="${escapeHtml(asset.url)}" download>${t('assets.download')}</a>
       ${asset.kind === 'audio' ? `<button class="button secondary" type="button" data-audio-inspector>${t('common.preview')}</button>` : `<button class="button secondary" type="button" data-focus-selected>${t('common.focus')}</button>`}
     </div>
   `;
   $('[data-use-selected]', body)?.addEventListener('click', () => toggleUse([asset.id]));
+  $('[data-rename-selected]', body)?.addEventListener('click', () => renameSelectedAsset(asset));
   $('[data-audio-inspector]', body)?.addEventListener('click', () => previewAudio(asset.id));
   $('[data-focus-selected]', body)?.addEventListener('click', () => focusNode(node.id));
 }
@@ -737,6 +739,21 @@ function renderAssetState() {
   renderLibrary();
   renderCanvas();
   renderInspector();
+}
+
+async function renameSelectedAsset(asset) {
+  const name = window.prompt(t('assets.renamePrompt'), asset.name);
+  if (name === null) return;
+  try {
+    await request(`/api/assets/${encodeURIComponent(asset.id)}/rename`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+    await load();
+    toast(t('assets.renamed'));
+  } catch (error) {
+    toast(t('assets.renameFailed', { message: error.message }));
+  }
 }
 
 async function toggleUse(assetIds) {

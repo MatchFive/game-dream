@@ -29,7 +29,9 @@ The studio scans the project for:
 
 Images (PNG, JPG, WebP, GIF, SVG) and audio (MP3, WAV, OGG, M4A) are indexed.
 Canvas layout and build selections are stored in
-`.gamedream/studio/canvas.json`.
+`.gamedream/studio/canvas.json`. Display-name overrides are stored in
+`.gamedream/studio/asset-names.json`; renaming an asset does not move its file
+or change its id.
 
 ## Build selection
 
@@ -169,6 +171,7 @@ binding.
 | `POST /api/upload` | Import a base64 image/audio file into `assets/uploads/` |
 | `GET /api/assets/:id/raw` | Serve an indexed asset |
 | `POST /api/assets/:id/use` | Mark/unmark an asset for the build (`{ "value": true }`) |
+| `POST /api/assets/:id/rename` | Set a display name without changing the asset id or file |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
 | `POST /api/animation/atlas` | Pack PNG frames into an atlas + Web/Godot descriptors |
 | `POST /api/generate` | Start image/animation jobs or a BGM job (`audio: true, duration: 10-60`) |
@@ -225,5 +228,5 @@ expose it on a public interface.
 - Animation generation produces a 2–4 frame keyframe sequence with playback,
   regeneration, horizontal PNG atlas packing, and Web/Godot descriptors. There
   is no AnimateDiff node, automatic template wiring, or per-frame scaling.
-- BGM generation is a fixed 30-second UI mode; SFX generation, custom duration,
-  and generated-asset renaming are not implemented yet.
+- BGM generation is a fixed 30-second UI mode; SFX generation and custom
+  duration are not implemented yet.
