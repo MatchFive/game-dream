@@ -1,0 +1,11 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/cli/test/web-platformer.test.ts (2 tests) 82ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  14:22:48
+   Duration  679ms (transform 94ms, setup 0ms, collect 241ms, tests 82ms, environment 0ms, prepare 114ms)
+
+EXIT=0

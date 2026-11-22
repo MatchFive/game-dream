@@ -138,3 +138,9 @@ not count as passes.
 The shared contract lives at `fixtures/contracts/engine-gameplay.json`; its test
 reads the Web, Godot, and Unity survivor/roguelike sources and checks common
 markers plus room/event/relic names. See `docs/engine-contract.md`.
+
+## Web platformer stages
+
+`web-platformer-stages.log` records the Web platformer regression for the three
+stage layouts (Rooftops, Foundry, Skyline), stage transitions, coin collection,
+and the headless `WEB_WIN`.

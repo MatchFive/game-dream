@@ -11,8 +11,8 @@ python -m http.server 8080
 # open http://localhost:8080
 ```
 
-A/D or arrows move, W/Up/Space jumps, R restarts. Cross the gaps and reach the
-flag.
+A/D or arrows move, W/Up/Space jumps, R restarts. The run has three stages:
+Rooftops → Foundry → Skyline, each with its own platforms, coins, and flag.
 
 ## Verify
 

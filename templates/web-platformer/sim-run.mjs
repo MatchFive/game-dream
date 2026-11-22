@@ -11,12 +11,19 @@ if (!Number.isFinite(frames) || frames <= 0) {
 
 const state = createSim();
 console.log('WEB_BOOT_OK');
+let stage = -1;
 for (let frame = 0; frame < frames; frame += 1) {
   step(state, { auto: true }, 1 / 60);
+  if (state.stageIndex !== stage) {
+    stage = state.stageIndex;
+    console.log(`WEB_STAGE=${stage + 1}:${state.stage.id}`);
+  }
   if (state.finished) break;
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');
+  console.log(`WEB_STAGES=${state.stageIndex + 1}`);
+  console.log(`WEB_COINS=${state.collected}`);
   process.exit(0);
 }
 if (state.finished === 'lose') {

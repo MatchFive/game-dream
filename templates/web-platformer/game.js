@@ -1,4 +1,4 @@
-import { ARENA, GOAL, PLAYER, createSim, platforms, step } from './sim.mjs';
+import { ARENA, PLAYER, createSim, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
 import { findPlayerBinding } from './bindings.mjs';
 
@@ -88,7 +88,7 @@ function draw() {
       if ((x / 48 + y / 48) % 2 === 0) ctx.fillRect(x, y, 48, 48);
     }
   }
-  for (const platform of platforms) {
+  for (const platform of state.stage.platforms) {
     ctx.fillStyle = platform.h > 30 ? '#2f5d3a' : '#3c6b8a';
     ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
     ctx.fillStyle = platform.h > 30 ? '#4ade80' : '#7dd3fc';
@@ -104,13 +104,14 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.stroke();
   }
+  const goal = state.stage.goal;
   ctx.fillStyle = '#e8f5ee';
-  ctx.fillRect(GOAL.x, GOAL.y, 8, 62);
+  ctx.fillRect(goal.x, goal.y, 8, 62);
   ctx.fillStyle = '#f472b6';
   ctx.beginPath();
-  ctx.moveTo(GOAL.x + 8, GOAL.y + 4);
-  ctx.lineTo(GOAL.x + 58, GOAL.y + 18);
-  ctx.lineTo(GOAL.x + 8, GOAL.y + 34);
+  ctx.moveTo(goal.x + 8, goal.y + 4);
+  ctx.lineTo(goal.x + 58, goal.y + 18);
+  ctx.lineTo(goal.x + 8, goal.y + 34);
   ctx.closePath();
   ctx.fill();
 
@@ -132,7 +133,7 @@ function draw() {
   ctx.font = '13px ui-monospace, monospace';
   ctx.fillStyle = '#a9c7df';
   ctx.fillText(
-    `Coins ${state.collected}/${state.coins.length}   Time ${state.time.toFixed(1)}   Reach the flag`,
+    `Stage ${state.stageIndex + 1} ${state.stage.name}   Coins ${state.collected}   Time ${state.time.toFixed(1)}   Reach the flag`,
     20,
     46,
   );

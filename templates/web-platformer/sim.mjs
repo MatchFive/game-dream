@@ -1,32 +1,18 @@
+import { STAGES, createStage } from './stages.mjs';
+
 export const ARENA = { width: 960, height: 540 };
 export const GRAVITY = 1500;
 export const PLAYER_SPEED = 240;
 export const JUMP_SPEED = 560;
 export const PLAYER = { width: 28, height: 40 };
-export const GOAL = { x: 890, y: 408 };
-
-export const platforms = [
-  { x: 0, y: 470, w: 300, h: 70 },
-  { x: 360, y: 470, w: 220, h: 70 },
-  { x: 640, y: 470, w: 320, h: 70 },
-  { x: 228, y: 360, w: 120, h: 18 },
-  { x: 430, y: 300, w: 140, h: 18 },
-  { x: 690, y: 340, w: 140, h: 18 },
-];
-
-const COIN_POSITIONS = [
-  { x: 260, y: 330 },
-  { x: 300, y: 430 },
-  { x: 400, y: 330 },
-  { x: 470, y: 270 },
-  { x: 520, y: 330 },
-  { x: 690, y: 310 },
-  { x: 760, y: 310 },
-  { x: 860, y: 430 },
-];
+export const platforms = STAGES[0].platforms;
+export const GOAL = STAGES[0].goal;
 
 export function createSim() {
+  const stage = createStage(STAGES[0]);
   return {
+    stageIndex: 0,
+    stage,
     player: {
       x: 70,
       y: 430,
@@ -34,7 +20,7 @@ export function createSim() {
       vy: 0,
       onGround: false,
     },
-    coins: COIN_POSITIONS.map((coin) => ({ ...coin, taken: false })),
+    coins: stage.coins,
     collected: 0,
     time: 0,
     finished: null,
@@ -53,7 +39,22 @@ function overlaps(actor, platform) {
 function shouldAutoJump(state) {
   if (!state.player.onGround) return false;
   const x = state.player.x;
-  return (x >= 235 && x <= 270) || (x >= 520 && x <= 555) || (x >= 740 && x <= 770);
+  return state.stage.autoJumps.some(([start, end]) => x >= start && x <= end);
+}
+
+function nextStage(state) {
+  if (state.stageIndex + 1 >= STAGES.length) {
+    state.finished = 'win';
+    return;
+  }
+  state.stageIndex += 1;
+  state.stage = createStage(STAGES[state.stageIndex]);
+  state.coins = state.stage.coins;
+  state.player.x = 70;
+  state.player.y = 430;
+  state.player.vx = 0;
+  state.player.vy = 0;
+  state.player.onGround = false;
 }
 
 export function step(state, input = {}, dt = 1 / 60) {
@@ -73,7 +74,7 @@ export function step(state, input = {}, dt = 1 / 60) {
   const previousY = player.y;
   player.y += player.vy * dt;
   player.onGround = false;
-  for (const platform of platforms) {
+  for (const platform of state.stage.platforms) {
     const wasAbove = previousY + PLAYER.height <= platform.y + 2;
     const sameColumn =
       player.x + PLAYER.width > platform.x && player.x < platform.x + platform.w;
@@ -111,10 +112,10 @@ export function step(state, input = {}, dt = 1 / 60) {
   if (player.y > ARENA.height + 80) {
     state.finished = 'lose';
   } else if (
-    player.x + PLAYER.width >= GOAL.x &&
+    player.x + PLAYER.width >= state.stage.goal.x &&
     player.y + PLAYER.height >= 430
   ) {
-    state.finished = 'win';
+    nextStage(state);
   }
   return state;
 }
