@@ -34,7 +34,7 @@ describe('case benchmark', () => {
       env: { GODOT_BIN: 'godot' },
       runner: fakeGodot,
     });
-    expect(report.total).toBe(7);
+    expect(report.total).toBe(10);
     expect(report.results.find((result) => result.id === 'action-rpg')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'platformer')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'platformer')?.templateExists).toBe(true);
@@ -48,6 +48,9 @@ describe('case benchmark', () => {
     expect(report.results.find((result) => result.id === 'puzzle')?.templateExists).toBe(true);
     expect(report.results.find((result) => result.id === 'survivor')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'survivor')?.templateExists).toBe(true);
+    expect(report.results.find((result) => result.id === 'action-rpg-boss')?.status).toBe('playable');
+    expect(report.results.find((result) => result.id === 'platformer-speedrun')?.status).toBe('playable');
+    expect(report.results.find((result) => result.id === 'survivor-evolution')?.status).toBe('playable');
     expect(report.failed).toBe(0);
     expect(report.visualRequested).toBe(false);
     expect(report.score).toBeGreaterThanOrEqual(80);

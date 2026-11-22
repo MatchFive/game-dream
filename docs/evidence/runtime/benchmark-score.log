@@ -1,12 +1,12 @@
 ﻿
  RUN  v2.1.9 D:/project/game_dream
 
- ✓ packages/cli/test/benchmark.test.ts (2 tests) 1280ms
-   ✓ case benchmark > distinguishes playable from fallback 1277ms
+ ✓ packages/cli/test/benchmark.test.ts (2 tests) 1999ms
+   ✓ case benchmark > distinguishes playable from fallback 1995ms
 
  Test Files  1 passed (1)
       Tests  2 passed (2)
-   Start at  12:58:02
-   Duration  2.62s (transform 298ms, setup 0ms, collect 974ms, tests 1.28s, environment 0ms, prepare 134ms)
+   Start at  12:59:53
+   Duration  3.30s (transform 292ms, setup 0ms, collect 931ms, tests 2.00s, environment 0ms, prepare 129ms)
 
 EXIT=0

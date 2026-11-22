@@ -123,7 +123,7 @@
 | C2 | Roguelike 房间池 | Web/Godot/Unity roguelike 均已接 3 房池、cache/ambush、商店/遗物和难度递增；Web 用固定 seed 回归，Godot/Unity 各有真实 headless/EditorVerifier 标记 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | Done |
 | C3 | 模板内容量 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | Backlog |
 | C4 | 多引擎内容一致性 | Web/Unity/Godot 的同类模板共享内容模型和验收标记 | Backlog |
-| C5 | Benchmark 扩展 | benchmark 已有每 case 可玩性/意图评分和 `--visual` G6 分量；case 数仍为 7 | 增加 prompt/case、可玩性、视觉可用性、意图一致性评分 | In progress |
+| C5 | Benchmark 扩展 | benchmark 已有 10 个 case、每 case 可玩性/意图评分和 `--visual` G6 分量；新增 action-rpg-boss/platformer-speedrun/survivor-evolution | 增加 prompt/case、可玩性、视觉可用性、意图一致性评分 | Done |
 
 ## 8. P1 · 发布与引擎
 
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **C5 prompt/case 扩充**：增加跨模板/边缘题材 case。
-2. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
-3. **C3 模板内容量**：把各模板切片提升为完整短局。
+1. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+2. **C3 模板内容量**：把各模板切片提升为完整短局。
+3. **C4 多引擎内容一致性**：统一同类模板的内容模型/验收标记。
 
 ## 11. Definition of Done
 

@@ -47,3 +47,10 @@ adding `platformer-2d`: `2 playable / 4 fallback / 0 failed`. After adding
 playable; `dream benchmark` exits 0). The survivor case is now a 60-second demo
 with three weapons, upgrade choices, XP gems, elite brutes, and a phased boss.
 This is the baseline to improve, not a release-quality score.
+
+## C5 expansion (2026-11-22)
+
+The matrix now has **10 playable cases**: the original seven plus
+`action-rpg-boss`, `platformer-speedrun`, and `survivor-evolution` (same expected
+templates, real G1/G2/G3 verification). Each case also reports playability and
+intent scores; `--visual` adds the G6 component.

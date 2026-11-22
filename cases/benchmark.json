@@ -47,5 +47,26 @@
     "expected_genre": "survivor",
     "expected_template": "survivor-topdown",
     "expected_playable": true
+  },
+  {
+    "id": "action-rpg-boss",
+    "prompt": "做一个 2D 动作角色扮演游戏，有技能树、装备和最终 Boss",
+    "expected_genre": "action-rpg",
+    "expected_template": "rpg-action-m1",
+    "expected_playable": true
+  },
+  {
+    "id": "platformer-speedrun",
+    "prompt": "做一个横版跳跃跑酷平台游戏，有金币、终点旗和多段关卡",
+    "expected_genre": "platformer",
+    "expected_template": "platformer-2d",
+    "expected_playable": true
+  },
+  {
+    "id": "survivor-evolution",
+    "prompt": "做一个吸血鬼幸存者风格游戏，有自动攻击、精英怪、武器进化和 Boss",
+    "expected_genre": "survivor",
+    "expected_template": "survivor-topdown",
+    "expected_playable": true
   }
 ]
