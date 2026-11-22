@@ -11,12 +11,23 @@ if (!Number.isFinite(frames) || frames <= 0) {
 
 const state = createSim();
 console.log('WEB_BOOT_OK');
+let elitePrinted = false;
+let evolutionPrinted = false;
 for (let frame = 0; frame < frames; frame += 1) {
   step(state, { auto: true }, 1 / 60);
+  if (!elitePrinted && state.eliteKills > 0) {
+    elitePrinted = true;
+    console.log('WEB_ELITE');
+  }
+  if (!evolutionPrinted && state.evolution) {
+    evolutionPrinted = true;
+    console.log('WEB_EVOLUTION');
+  }
   if (state.finished) break;
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');
+  console.log(`WEB_COINS=${state.coins}`);
   process.exit(0);
 }
 if (state.finished === 'lose') {

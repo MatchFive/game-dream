@@ -87,3 +87,10 @@ includes `GAMEDREAM_SPRITE_BINDING_OK` in the accepted markers and exits `0`.
 It reports 14 tools, saves `ui/McpHud.tscn`, and verifies the
 Control/ColorRect/Label node lines. The CI `godot-mcp` job runs the same script
 and uploads the scene.
+
+## Web survivor depth
+
+`web-survivor-depth.log` records the Web survivor tests for elite spawns,
+`bolt → storm` evolution, persistent meta coins/upgrades, and the headless
+`WEB_WIN` loop. The simulator still wins automatically; Godot survivor depth
+sync remains separate.

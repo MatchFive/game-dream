@@ -9,6 +9,16 @@ import { clampMusicVolume, findBgmTrack } from '../../../templates/web-survivor/
 import { atlasFrameRect, findAnimationEntry, frameAtTime } from '../../../templates/web-survivor/animation.mjs';
 // @ts-ignore - the template ships plain ESM without a declaration file
 import { findPlayerBinding } from '../../../templates/web-survivor/bindings.mjs';
+// @ts-ignore - the template ships plain ESM without a declaration file
+import { createSim as createSurvivorSim, step as stepSurvivor } from '../../../templates/web-survivor/sim.mjs';
+// @ts-ignore - the template ships plain ESM without a declaration file
+import {
+  defaultMeta,
+  grantMeta,
+  readMeta,
+  upgradeMeta,
+  writeMeta,
+} from '../../../templates/web-survivor/meta.mjs';
 import { webComposeCommand, webVerifyCommand } from '../src/commands/web.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -74,6 +84,34 @@ describe('Web survivor', () => {
       width: 32,
       height: 32,
     });
+  });
+
+  it('runs elites, weapon evolution, and persistent meta', () => {
+    const state = createSurvivorSim();
+    for (let frame = 0; frame < 1800 && !state.finished; frame += 1) {
+      stepSurvivor(state, { auto: true }, 1 / 60);
+    }
+    expect(state.finished).toBe('win');
+    expect(state.eliteKills).toBeGreaterThan(0);
+    expect(state.evolution).toBe('storm');
+    expect(state.coins).toBeGreaterThan(0);
+
+    const values = new Map();
+    const storage = {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => { values.set(key, value); },
+    };
+    let meta = readMeta(storage);
+    expect(meta).toEqual(defaultMeta());
+    meta = grantMeta(meta, state);
+    expect(meta.runs).toBe(1);
+    expect(meta.wins).toBe(1);
+    expect(meta.coins).toBe(state.coins);
+    writeMeta(storage, meta);
+    const upgraded = upgradeMeta(readMeta(storage), 'damage');
+    expect(upgraded.damage).toBe(1);
+    expect(upgraded.coins).toBe(meta.coins - 5);
+    expect(upgradeMeta({ ...upgraded, coins: 0 }, 'hp').maxHp).toBe(0);
   });
 
   it('wires the staged BGM loader into every Web genre template', () => {

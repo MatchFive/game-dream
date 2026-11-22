@@ -1,6 +1,7 @@
 import { ARENA, RUN_SECONDS, createSim, step } from './sim.mjs';
 import { DEFAULT_MUSIC_VOLUME, clampMusicVolume, findBgmTrack } from './audio.mjs';
 import { findPlayerBinding } from './bindings.mjs';
+import { grantMeta, readMeta, upgradeMeta, writeMeta } from './meta.mjs';
 import { atlasFrameRect, findAnimationEntry, frameAtTime } from './animation.mjs';
 
 const root = document.querySelector('#game');
@@ -13,13 +14,44 @@ canvas.style.height = 'auto';
 canvas.style.border = '1px solid #2f5d3a';
 root.appendChild(canvas);
 const ctx = canvas.getContext('2d');
-let state = createSim();
+let meta = readMeta(localStorage);
+let state = createSim(meta);
+let metaAwarded = false;
 const keys = new Set();
 const musicInput = document.querySelector('#music');
 let bgm;
 let musicVolume = DEFAULT_MUSIC_VOLUME;
 let playerAnimation;
 let playerSprite;
+
+function updateMetaHud() {
+  $('#metaCoins').textContent = String(meta.coins);
+  $('#metaRuns').textContent = String(meta.runs);
+  $('#metaWins').textContent = String(meta.wins);
+}
+
+function applyMetaUpgrade(kind) {
+  if (meta.coins < 5) return;
+  const next = upgradeMeta(meta, kind);
+  meta = next;
+  writeMeta(localStorage, meta);
+  state.weapon.damage = 1 + meta.damage + (state.weapon.evolved ? 1 : 0);
+  state.player.maxHp = 100 + meta.maxHp;
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + (kind === 'hp' ? 10 : 0));
+  updateMetaHud();
+}
+
+function recordMeta() {
+  if (!state.finished || metaAwarded) return;
+  meta = grantMeta(meta, state);
+  writeMeta(localStorage, meta);
+  metaAwarded = true;
+  updateMetaHud();
+}
+
+updateMetaHud();
+$('#metaDamage').addEventListener('click', () => applyMetaUpgrade('damage'));
+$('#metaHp').addEventListener('click', () => applyMetaUpgrade('hp'));
 
 async function loadPlayerSprite() {
   try {
@@ -97,7 +129,10 @@ window.addEventListener('keydown', (event) => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
     event.preventDefault();
   }
-  if (key === 'r' && state.finished) state = createSim();
+  if (key === 'r' && state.finished) {
+    state = createSim(meta);
+    metaAwarded = false;
+  }
 });
 window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 
@@ -118,11 +153,11 @@ function draw() {
     ctx.fill();
   }
   for (const enemy of state.enemies) {
-    ctx.fillStyle = '#e05a61';
+    ctx.fillStyle = enemy.elite ? '#ffb347' : '#e05a61';
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#ffd2c2';
+    ctx.fillStyle = enemy.elite ? '#fff0c2' : '#ffd2c2';
     ctx.beginPath();
     ctx.arc(enemy.x - 4, enemy.y - 3, 2.5, 0, Math.PI * 2);
     ctx.arc(enemy.x + 4, enemy.y - 3, 2.5, 0, Math.PI * 2);
@@ -161,7 +196,7 @@ function draw() {
   ctx.font = '13px ui-monospace, monospace';
   ctx.fillStyle = '#a9c7df';
   ctx.fillText(
-    `Time ${Math.min(state.time, RUN_SECONDS).toFixed(1)}/${RUN_SECONDS}   Lv ${state.level}   HP ${Math.max(0, Math.ceil(state.player.hp))}   Kills ${state.kills}`,
+    `Time ${Math.min(state.time, RUN_SECONDS).toFixed(1)}/${RUN_SECONDS}   Lv ${state.level}   HP ${Math.max(0, Math.ceil(state.player.hp))}   Kills ${state.kills}   Coins ${state.coins}${state.evolution ? `   ${state.evolution.toUpperCase()}` : ''}`,
     20,
     46,
   );
@@ -196,6 +231,7 @@ function frame(now) {
     );
     accumulator -= 1 / 60;
   }
+  recordMeta();
   draw();
   requestAnimationFrame(frame);
 }

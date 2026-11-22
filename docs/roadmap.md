@@ -119,7 +119,7 @@
 
 | ID | 事项 | 验收标准 | 状态 |
 |---|---|---|---|
-| C1 | Survivor 深度 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | Backlog |
+| C1 | Survivor 深度 | Web survivor 已加精英变体、bolt→storm 进化、局外金币/伤害/HP 升级和 localStorage 存档；Godot survivor 仍待同步 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | In progress |
 | C2 | Roguelike 房间池 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | Backlog |
 | C3 | 模板内容量 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | Backlog |
 | C4 | 多引擎内容一致性 | Web/Unity/Godot 的同类模板共享内容模型和验收标记 | Backlog |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
-2. **V2 Godot 内嵌试玩**：评估 Web export/内嵌方案，保留外部窗口降级。
-3. **C1/C2 内容深度**：survivor/roguelike 的关卡、房间池和事件。
+1. **C1 Godot survivor 同步**：把精英/进化/局外金币接到 Godot 模板。
+2. **C2 Roguelike 房间池**：房间模板、事件、商店、遗物、难度曲线。
+3. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
 
 ## 11. Definition of Done
 

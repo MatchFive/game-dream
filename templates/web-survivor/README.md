@@ -11,7 +11,9 @@ python -m http.server 8080
 # open http://localhost:8080
 ```
 
-WASD/arrows move; attacks are automatic; R restarts after win/lose.
+WASD/arrows move; attacks are automatic; R restarts after win/lose. Elite
+enemies spawn periodically, the bolt evolves into `storm` at weapon level 3,
+and coins persist in `localStorage` for meta damage/HP upgrades.
 
 ## Audio
 

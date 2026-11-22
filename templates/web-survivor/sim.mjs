@@ -1,5 +1,7 @@
 export const RUN_SECONDS = 20;
 export const ARENA = { width: 960, height: 540 };
+export const ELITE_EVERY = 7;
+export const EVOLVE_LEVEL = 3;
 const SPAWNS = [
   { x: 60, y: 60 },
   { x: 480, y: 50 },
@@ -12,9 +14,11 @@ export function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-export function createSim() {
+export function createSim(meta = {}) {
+  const maxHp = 100 + Math.max(0, Math.floor(Number(meta.maxHp) || 0));
+  const damage = 1 + Math.max(0, Math.floor(Number(meta.damage) || 0));
   const state = {
-    player: { x: 480, y: 270, hp: 100, maxHp: 100 },
+    player: { x: 480, y: 270, hp: maxHp, maxHp },
     enemies: [],
     bullets: [],
     time: 0,
@@ -22,9 +26,13 @@ export function createSim() {
     xp: 0,
     nextXp: 4,
     kills: 0,
+    eliteKills: 0,
+    coins: 0,
     spawnTimer: 0,
     attackTimer: 0,
     spawnIndex: 0,
+    weapon: { level: 1, damage, cooldown: 0.22, evolved: false },
+    evolution: null,
     finished: null,
   };
   for (let i = 0; i < 5; i += 1) spawnEnemy(state);
@@ -34,8 +42,15 @@ export function createSim() {
 function spawnEnemy(state) {
   if (state.enemies.length >= 40) return;
   const point = SPAWNS[state.spawnIndex % SPAWNS.length];
+  const elite = state.spawnIndex > 0 && state.spawnIndex % ELITE_EVERY === 0;
   state.spawnIndex += 1;
-  state.enemies.push({ x: point.x, y: point.y, hp: 1, radius: 13 });
+  state.enemies.push({
+    x: point.x,
+    y: point.y,
+    hp: elite ? 3 : 1,
+    radius: elite ? 18 : 13,
+    elite,
+  });
 }
 
 function nearestEnemy(state) {
@@ -72,13 +87,14 @@ export function step(state, input = {}, dt = 1 / 60) {
   state.attackTimer -= dt;
   const target = nearestEnemy(state);
   if (state.attackTimer <= 0 && target) {
-    state.attackTimer = 0.22;
+    state.attackTimer = state.weapon.cooldown;
     const d = distance(state.player, target) || 1;
     state.bullets.push({
       x: state.player.x,
       y: state.player.y,
       vx: ((target.x - state.player.x) / d) * 620,
       vy: ((target.y - state.player.y) / d) * 620,
+      damage: state.weapon.damage,
     });
   }
 
@@ -88,16 +104,30 @@ export function step(state, input = {}, dt = 1 / 60) {
     bullet.y += bullet.vy * dt;
     let hit = false;
     for (let j = state.enemies.length - 1; j >= 0; j -= 1) {
-      if (distance(bullet, state.enemies[j]) <= state.enemies[j].radius) {
-        state.enemies.splice(j, 1);
-        state.kills += 1;
-        state.xp += 1;
-        hit = true;
-        if (state.xp >= state.nextXp) {
-          state.xp -= state.nextXp;
-          state.level += 1;
-          state.nextXp = 4 + state.level * 2;
+      const enemy = state.enemies[j];
+      if (distance(bullet, enemy) <= enemy.radius) {
+        enemy.hp -= bullet.damage ?? 1;
+        if (enemy.hp <= 0) {
+          state.enemies.splice(j, 1);
+          state.kills += 1;
+          const reward = enemy.elite ? 3 : 1;
+          state.xp += reward;
+          state.coins += reward;
+          if (enemy.elite) state.eliteKills += 1;
+          if (state.xp >= state.nextXp) {
+            state.xp -= state.nextXp;
+            state.level += 1;
+            state.nextXp = 4 + state.level * 2;
+            state.weapon.level = Math.min(5, state.weapon.level + 1);
+            if (state.weapon.level >= EVOLVE_LEVEL && !state.weapon.evolved) {
+              state.weapon.evolved = true;
+              state.weapon.damage += 1;
+              state.weapon.cooldown = 0.17;
+              state.evolution = 'storm';
+            }
+          }
         }
+        hit = true;
         break;
       }
     }
