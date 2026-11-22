@@ -4,13 +4,20 @@ const GROUND_Y := 500.0
 const PLAYER_SPEED := 240.0
 const GRAVITY := 900.0
 const JUMP_SPEED := -380.0
-const COIN_POSITIONS := [Vector2(380, 470), Vector2(740, 470), Vector2(1100, 470)]
-const GOAL_POSITION := Vector2(1450, 460)
+const STAGE_COUNT := 3
+const STAGE_NAMES := ["Rooftops", "Foundry", "Skyline"]
+const STAGE_GOALS := [Vector2(1450, 460), Vector2(2700, 460), Vector2(3950, 460)]
+const COIN_POSITIONS := [
+	Vector2(380, 470), Vector2(740, 470), Vector2(1100, 470),
+	Vector2(1650, 470), Vector2(2050, 470), Vector2(2450, 470),
+	Vector2(2950, 470), Vector2(3350, 470), Vector2(3750, 470),
+]
 
 var player: CharacterBody2D
 var camera: Camera2D
 var hud: Label
 var coins := 0
+var stage_index := 0
 var finished := false
 var autoplay := false
 var _last_auto_jump := 0
@@ -26,14 +33,18 @@ func _build_level() -> void:
 	var background := Polygon2D.new()
 	background.color = Color(0.07, 0.09, 0.13)
 	background.polygon = PackedVector2Array(
-		[Vector2(-400, -300), Vector2(2000, -300), Vector2(2000, 800), Vector2(-400, 800)]
+		[Vector2(-400, -300), Vector2(4800, -300), Vector2(4800, 800), Vector2(-400, 800)]
 	)
 	background.z_index = -10
 	add_child(background)
-	_make_static(Vector2(800, GROUND_Y + 20), Vector2(1600, 40))
+	_make_static(Vector2(2400, GROUND_Y + 20), Vector2(4800, 40))
 	_make_static(Vector2(650, 420), Vector2(180, 20))
 	_make_static(Vector2(980, 360), Vector2(160, 20))
 	_make_static(Vector2(1260, 300), Vector2(180, 20))
+	_make_static(Vector2(1900, 420), Vector2(180, 20))
+	_make_static(Vector2(2250, 360), Vector2(160, 20))
+	_make_static(Vector2(3150, 420), Vector2(180, 20))
+	_make_static(Vector2(3500, 360), Vector2(160, 20))
 
 	player = CharacterBody2D.new()
 	player.position = Vector2(100, GROUND_Y - 24)
@@ -58,15 +69,27 @@ func _build_level() -> void:
 
 	for position in COIN_POSITIONS:
 		_make_coin(position)
-	_make_goal(GOAL_POSITION)
+	for index in range(STAGE_GOALS.size()):
+		_make_goal(STAGE_GOALS[index], index)
 
 	var layer := CanvasLayer.new()
 	layer.layer = 5
 	add_child(layer)
 	hud = Label.new()
 	hud.position = Vector2(20, 20)
-	hud.text = "Coins 0/%d   A/D move · Space jump · R restart" % COIN_POSITIONS.size()
+	_update_hud()
 	layer.add_child(hud)
+
+func _update_hud() -> void:
+	if hud == null:
+		return
+	hud.text = "Stage %d/%d %s   Coins %d/%d   A/D move · Space jump · R restart" % [
+		stage_index + 1,
+		STAGE_COUNT,
+		STAGE_NAMES[stage_index],
+		coins,
+		COIN_POSITIONS.size(),
+	]
 
 func _make_static(position: Vector2, size: Vector2) -> void:
 	var body := StaticBody2D.new()
@@ -107,7 +130,7 @@ func _make_coin(position: Vector2) -> void:
 	coin.body_entered.connect(_on_coin_entered.bind(coin))
 	add_child(coin)
 
-func _make_goal(position: Vector2) -> void:
+func _make_goal(position: Vector2, index: int) -> void:
 	var goal := Area2D.new()
 	goal.position = position
 	goal.collision_layer = 2
@@ -123,7 +146,7 @@ func _make_goal(position: Vector2) -> void:
 		[Vector2(-22, -40), Vector2(22, -40), Vector2(22, 40), Vector2(-22, 40)]
 	)
 	goal.add_child(visual)
-	goal.body_entered.connect(_on_goal_entered)
+	goal.body_entered.connect(_on_goal_entered.bind(index))
 	add_child(goal)
 
 func _physics_process(delta: float) -> void:
@@ -162,11 +185,17 @@ func _on_coin_entered(body: Node2D, coin: Area2D) -> void:
 	coins += 1
 	if coins == 1:
 		print("GAMEDREAM_COIN")
-	hud.text = "Coins %d/%d   A/D move · Space jump · R restart" % [coins, COIN_POSITIONS.size()]
+	_update_hud()
 
-func _on_goal_entered(body: Node2D) -> void:
-	if body == player:
+func _on_goal_entered(body: Node2D, index: int) -> void:
+	if body != player or finished or index != stage_index:
+		return
+	if stage_index + 1 >= STAGE_COUNT:
 		_finish(true)
+		return
+	stage_index += 1
+	print("GAMEDREAM_STAGE=%d" % (stage_index + 1))
+	_update_hud()
 
 func _finish(won: bool) -> void:
 	if finished:

@@ -121,7 +121,7 @@
 |---|---|---|---|
 | C1 | Survivor 深度 | Web/Godot/Unity survivor 均已加精英变体、bolt→storm 进化、局外金币/伤害/HP 升级和持久存档；Web 有购买 UI，Unity 读取 meta 文件 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | Done |
 | C2 | Roguelike 房间池 | Web/Godot/Unity roguelike 均已接 3 房池、cache/ambush、商店/遗物和难度递增；Web 用固定 seed 回归，Godot/Unity 各有真实 headless/EditorVerifier 标记 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | Done |
-| C3 | 模板内容量 | Web platformer 已扩为 3 关（Rooftops/Foundry/Skyline，各自平台/金币/终点）并有 headless 回归；其余模板仍待扩 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | In progress |
+| C3 | 模板内容量 | Web/Godot platformer 已扩为 3 关（Rooftops/Foundry/Skyline），各自平台/金币/终点并有 headless 回归；其余模板仍待扩 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | In progress |
 | C4 | 多引擎内容一致性 | 已建立 `fixtures/contracts/engine-gameplay.json` 与契约测试；Web/Godot/Unity survivor/roguelike 共享房间/事件/遗物名称和 `SURVIVOR_*`/`ROGUELIKE_*` 标记 | Web/Unity/Godot 的同类模板共享内容模型和验收标记 | Done |
 | C5 | Benchmark 扩展 | benchmark 已有 10 个 case、每 case 可玩性/意图评分和 `--visual` G6 分量；新增 action-rpg-boss/platformer-speedrun/survivor-evolution | 增加 prompt/case、可玩性、视觉可用性、意图一致性评分 | Done |
 

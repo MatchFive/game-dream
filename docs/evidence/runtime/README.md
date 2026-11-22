@@ -144,3 +144,9 @@ markers plus room/event/relic names. See `docs/engine-contract.md`.
 `web-platformer-stages.log` records the Web platformer regression for the three
 stage layouts (Rooftops, Foundry, Skyline), stage transitions, coin collection,
 and the headless `WEB_WIN`.
+
+## Godot platformer stages
+
+`godot-platformer-c3.log` is a real Godot 4.4.1 run: it reaches
+`GAMEDREAM_STAGE=2`, `GAMEDREAM_STAGE=3`, and `GAMEDREAM_WIN`; `dream verify`
+passes G1/G2/G3.
