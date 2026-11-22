@@ -6,6 +6,9 @@ const PLAYER_MAX_HP := 180.0
 const RUN_SECONDS := 60.0
 const BOSS_TIME := 40.0
 const MAX_WEAPON_LEVEL := 5
+const ELITE_EVERY := 7
+const EVOLVE_LEVEL := 3
+const META_PATH := "user://survivor_meta.json"
 const PLAYER_TEXTURE := preload("res://modules/system.survivor/assets/player.svg")
 const CRAWLER_TEXTURE := preload("res://modules/system.survivor/assets/enemy_crawler.svg")
 const BRUTE_TEXTURE := preload("res://modules/system.survivor/assets/enemy_brute.svg")
@@ -24,6 +27,13 @@ const SPAWN_POINTS := [
 
 var player_pos := Vector2(480, 280)
 var player_hp := PLAYER_MAX_HP
+var player_max_hp := PLAYER_MAX_HP
+var weapon_damage := 1
+var weapon_evolved := false
+var coins := 0
+var elite_kills := 0
+var meta: Dictionary = {}
+var elite_marker_printed := false
 var enemies: Array = []
 var gems: Array = []
 var projectiles: Array = []
@@ -53,6 +63,7 @@ var choice_label: Label
 var bgm: AudioStreamPlayer
 
 func _ready() -> void:
+	_load_meta()
 	_build_hud()
 	autoplay = DisplayServer.get_name() == "headless"
 	if autoplay:
@@ -63,6 +74,27 @@ func _ready() -> void:
 		_spawn_enemy("crawler")
 	print("GAMEDREAM_SURVIVOR_SPAWN")
 	queue_redraw()
+
+func _load_meta() -> void:
+	if FileAccess.file_exists(META_PATH):
+		var file := FileAccess.open(META_PATH, FileAccess.READ)
+		if file != null:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary:
+				meta = parsed
+	player_max_hp = PLAYER_MAX_HP + maxi(0, int(meta.get("max_hp", 0)))
+	player_hp = player_max_hp
+	weapon_damage = 1 + maxi(0, int(meta.get("damage", 0)))
+
+func _save_meta(won: bool) -> void:
+	meta["coins"] = int(meta.get("coins", 0)) + coins
+	meta["runs"] = int(meta.get("runs", 0)) + 1
+	meta["wins"] = int(meta.get("wins", 0)) + (1 if won else 0)
+	var file := FileAccess.open(META_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify(meta))
+	print("GAMEDREAM_META_SAVED")
 
 func _start_bgm() -> void:
 	var path := "res://modules/system.survivor/assets/bgm.mp3"
@@ -152,6 +184,7 @@ func _pick_enemy_type() -> String:
 
 func _spawn_enemy(type: String) -> void:
 	var position: Vector2 = SPAWN_POINTS[spawn_index % SPAWN_POINTS.size()]
+	var elite := spawn_index > 0 and spawn_index % ELITE_EVERY == 0
 	spawn_index += 1
 	var hp := 1
 	var speed := 55.0
@@ -165,6 +198,13 @@ func _spawn_enemy(type: String) -> void:
 			radius = 16.0
 			damage = 12.0
 			color = Color(0.8, 0.45, 0.2)
+	if elite:
+		hp += 2
+		radius += 4.0
+		color = Color(1.0, 0.7, 0.2)
+		if not elite_marker_printed:
+			elite_marker_printed = true
+			print("GAMEDREAM_ELITE")
 	enemies.append({
 		"pos": position,
 		"hp": hp,
@@ -173,6 +213,7 @@ func _spawn_enemy(type: String) -> void:
 		"radius": radius,
 		"damage": damage,
 		"type": type,
+		"elite": elite,
 		"boss": false,
 		"color": color,
 	})
@@ -223,7 +264,7 @@ func _fire_bolt(weapon_level: int) -> void:
 	projectiles.append({
 		"pos": player_pos,
 		"velocity": direction * 720.0,
-		"damage": 2 + weapon_level,
+		"damage": weapon_damage + weapon_level,
 		"color": Color(1.0, 0.86, 0.3),
 	})
 
@@ -282,9 +323,13 @@ func _damage_enemy(index: int, amount: int) -> void:
 			return
 	var death_pos: Vector2 = enemy["pos"]
 	var boss := bool(enemy["boss"])
+	var elite := bool(enemy.get("elite", false))
 	enemies.remove_at(index)
 	kills += 1
-	gems.append({"pos": death_pos, "value": 5 if boss else 1})
+	coins += 5 if boss else (3 if elite else 1)
+	if elite:
+		elite_kills += 1
+	gems.append({"pos": death_pos, "value": 5 if boss else (3 if elite else 1)})
 	queue_redraw()
 
 func _update_gems(delta: float) -> void:
@@ -308,6 +353,10 @@ func _gain_xp(amount: int) -> void:
 		if not level_marker_printed:
 			print("GAMEDREAM_SURVIVOR_LEVEL")
 			level_marker_printed = true
+		if player_level >= EVOLVE_LEVEL and not weapon_evolved:
+			weapon_evolved = true
+			weapon_damage += 1
+			print("GAMEDREAM_EVOLUTION")
 		_open_choices()
 		if choosing and autoplay:
 			_choose(0)
@@ -320,7 +369,7 @@ func _open_choices() -> void:
 		var weapon_level: int = weapon["level"]
 		if weapon_level < MAX_WEAPON_LEVEL:
 			choices.append({"type": "weapon", "id": weapon["id"], "level": weapon_level})
-	if choices.size() < 3 and player_hp < PLAYER_MAX_HP:
+	if choices.size() < 3 and player_hp < player_max_hp:
 		choices.append({"type": "heal"})
 	if choices.is_empty():
 		choices.append({"type": "heal"})
@@ -359,7 +408,7 @@ func _choose(index: int) -> void:
 		return
 	var choice: Dictionary = choices[index]
 	if choice["type"] == "heal":
-		player_hp = minf(PLAYER_MAX_HP, player_hp + 45.0)
+		player_hp = minf(player_max_hp, player_hp + 45.0)
 	else:
 		var weapon_id: String = choice["id"]
 		for weapon in weapons:
@@ -404,15 +453,17 @@ func _update_hud() -> void:
 	for weapon in weapons:
 		if int(weapon["level"]) > 0:
 			weapon_text += " %s%d" % [String(weapon["id"]), int(weapon["level"])]
-	hud.text = "Time %.1f/%.0f   Lv %d   HP %d/%d   XP %d/%d   Kills %d%s" % [
+	hud.text = "Time %.1f/%.0f   Lv %d   HP %d/%d   XP %d/%d   Kills %d   Coins %d%s%s" % [
 		minf(elapsed, RUN_SECONDS),
 		RUN_SECONDS,
 		player_level,
 		maxi(0, int(player_hp)),
-		int(PLAYER_MAX_HP),
+		int(player_max_hp),
 		xp,
 		next_xp,
 		kills,
+		coins,
+		" EVOLVED" if weapon_evolved else "",
 		weapon_text,
 	]
 
@@ -423,7 +474,7 @@ func _draw() -> void:
 
 	draw_rect(Rect2(20, 48, 280, 10), Color(0.15, 0.18, 0.24))
 	draw_rect(
-		Rect2(20, 48, 280.0 * clampf(player_hp / PLAYER_MAX_HP, 0.0, 1.0), 10),
+		Rect2(20, 48, 280.0 * clampf(player_hp / player_max_hp, 0.0, 1.0), 10),
 		Color(0.35, 0.85, 0.5),
 	)
 	draw_rect(Rect2(20, 64, 280, 8), Color(0.15, 0.18, 0.24))
@@ -449,6 +500,8 @@ func _draw() -> void:
 		)
 		if bool(enemy["boss"]):
 			draw_arc(position, radius + 8.0, 0.0, TAU, 32, Color(1.0, 0.4, 0.9), 3.0)
+		elif bool(enemy.get("elite", false)):
+			draw_arc(position, radius + 5.0, 0.0, TAU, 28, Color(1.0, 0.7, 0.2), 2.0)
 
 	for projectile in projectiles:
 		draw_circle(projectile["pos"], 5.0, projectile["color"])
@@ -475,5 +528,6 @@ func _finish(won: bool) -> void:
 		print("GAMEDREAM_WIN")
 	else:
 		print("GAMEDREAM_LOSE")
+	_save_meta(won)
 	await get_tree().process_frame
 	get_tree().quit(0 if won else 1)

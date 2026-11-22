@@ -94,3 +94,10 @@ and uploads the scene.
 `bolt → storm` evolution, persistent meta coins/upgrades, and the headless
 `WEB_WIN` loop. The simulator still wins automatically; Godot survivor depth
 sync remains separate.
+
+## Godot survivor depth
+
+`godot-survivor-c1.log` is a real Godot 4.4.1 headless run of the composed
+survivor fixture. It prints `GAMEDREAM_ELITE`, `GAMEDREAM_EVOLUTION`,
+`GAMEDREAM_WIN`, and `GAMEDREAM_META_SAVED`; the run also passes `dream verify`
+with G1/G2/G3.
