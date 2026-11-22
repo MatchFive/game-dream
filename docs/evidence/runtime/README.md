@@ -150,3 +150,10 @@ and the headless `WEB_WIN`.
 `godot-platformer-c3.log` is a real Godot 4.4.1 run: it reaches
 `GAMEDREAM_STAGE=2`, `GAMEDREAM_STAGE=3`, and `GAMEDREAM_WIN`; `dream verify`
 passes G1/G2/G3.
+
+## Embedded Godot Web playtest
+
+`godot-web-playtest.log` records the Studio test for a project with
+`build/web/index.html`: capabilities report `godot.web.available`, start returns
+an iframe `/play/`, and the Godot Web files are served under that base. Without a
+Web export the existing native-window fallback remains.

@@ -471,6 +471,47 @@ describe('studio assets', () => {
     }
   });
 
+  it('embeds a Godot Web export when build/web exists', async () => {
+    const project = mkdtempSync(join(tmpdir(), 'gamedream-studio-godot-web-'));
+    writeFileSync(join(project, 'project.godot'), '[application]\n');
+    mkdirSync(join(project, 'build', 'web'), { recursive: true });
+    writeFileSync(join(project, 'build', 'web', 'index.html'), '<!doctype html><head></head><script src="/game.js"></script>');
+    writeFileSync(join(project, 'build', 'web', 'game.js'), 'console.log("godot-web");');
+    const studio = await startStudioServer({
+      projectDir: project,
+      port: 0,
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(project, 'missing.json') },
+    });
+    try {
+      const capabilities = await fetch(`${studio.url}/api/playtest/capabilities`)
+        .then((response) => response.json()) as {
+          engine: string;
+          godot: { web: { available: boolean; url: string } };
+        };
+      expect(capabilities.engine).toBe('godot');
+      expect(capabilities.godot.web).toEqual({ available: true, url: '/play/' });
+
+      const start = await fetch(`${studio.url}/api/playtest/start`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      }).then((response) => response.json()) as { mode: string; url: string };
+      expect(start).toEqual({ mode: 'iframe', url: '/play/' });
+
+      const page = await fetch(`${studio.url}/play/`);
+      expect(page.status).toBe(200);
+      const html = await page.text();
+      expect(html).toContain('<base href="/play/">');
+      expect(html).toContain('src="/play/game.js"');
+      const script = await fetch(`${studio.url}/play/game.js`);
+      expect(script.status).toBe(200);
+      expect(await script.text()).toContain('godot-web');
+    } finally {
+      await studio.close();
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
   it('serves a web playtest and reports playable capabilities', async () => {
     const playRoot = mkdtempSync(join(tmpdir(), 'gamedream-studio-play-'));
     writeFileSync(

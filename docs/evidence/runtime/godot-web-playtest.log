@@ -1,0 +1,21 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+corepack.cmd : (node:27460) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can le
+ad to security vulnerabilities, as the arguments are not escaped, only concatenated.
+所在位置 行:2 字符: 20
++ ... _COLOR='1'; & corepack pnpm exec vitest run packages/studio/test/stud ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:27460) [D...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ packages/studio/test/studio.test.ts (15 tests | 14 skipped) 3144ms
+   ✓ studio assets > embeds a Godot Web export when build/web exists 3143ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+   Start at  15:25:31
+   Duration  3.83s (transform 144ms, setup 0ms, collect 321ms, tests 3.14s, environment 0ms, prepare 122ms)
+
+EXIT=0

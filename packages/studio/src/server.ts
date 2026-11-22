@@ -246,6 +246,16 @@ function requireSeparator(): string {
   return process.platform === 'win32' ? '\\' : '/';
 }
 
+function detectGodotWebBuild(root: string): string | undefined {
+  for (const relativePath of ['build/web/index.html', 'builds/web/index.html', 'web/index.html']) {
+    const file = join(root, relativePath);
+    if (existsSync(file) && statSync(file).isFile()) {
+      return dirname(file);
+    }
+  }
+  return undefined;
+}
+
 function detectUnityPlayer(root: string): string | undefined {
   const directories = [
     join(root, 'Builds', 'Windows'),
@@ -383,13 +393,15 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       }
 
       if (pathname === '/play' || pathname.startsWith('/play/')) {
+        const playRoot =
+          detectEngine(root) === 'godot' ? detectGodotWebBuild(root) ?? root : root;
         const relativePath = pathname === '/play' || pathname === '/play/'
           ? 'index.html'
           : pathname.slice('/play/'.length);
-        const file = safeProjectFile(root, relativePath);
+        const file = safeProjectFile(playRoot, relativePath);
         if (!file || !existsSync(file) || !statSync(file).isFile()) {
           const indexFile = file && existsSync(file) && statSync(file).isDirectory()
-            ? safeProjectFile(root, join(relativePath, 'index.html'))
+            ? safeProjectFile(playRoot, join(relativePath, 'index.html'))
             : undefined;
           if (!indexFile || !existsSync(indexFile) || !statSync(indexFile).isFile()) {
             response.writeHead(404);
@@ -823,6 +835,7 @@ async function handleApi(
   if (method === 'GET' && pathname === '/api/playtest/capabilities') {
     const engine = detectEngine(root);
     const godot = detectGodotPlaytest(studioEnvironment);
+    const godotWeb = detectGodotWebBuild(root);
     const unityPlayer = detectUnityPlayer(root);
     json(response, 200, {
       engine,
@@ -832,6 +845,7 @@ async function handleApi(
       },
       godot: {
         available: godot.available,
+        web: { available: Boolean(godotWeb), url: '/play/' },
         bin: godot.bin,
         version: godot.version,
       },
@@ -850,6 +864,11 @@ async function handleApi(
       return;
     }
     if (engine === 'godot') {
+      const webBuild = detectGodotWebBuild(root);
+      if (webBuild) {
+        json(response, 200, { mode: 'iframe', url: '/play/' });
+        return;
+      }
       const godot = detectGodotPlaytest(studioEnvironment);
       if (!godot.available) {
         json(response, 503, {

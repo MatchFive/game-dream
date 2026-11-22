@@ -83,7 +83,7 @@
 |---|---|---|---|---|
 | V1 | Unity runtime/playtest | 真实 Unity 6000.6.9f1 已通过 EditorVerifier、build、smoke、截图；Studio 可启动已构建 player | 真实 build/runtime/screenshot，Studio 有构建时才播放 | Done |
 | V1b | Unity runtime CI | 已加可选 `unity-runtime` self-hosted job；仓库变量缺失时 skip | 可选 self-hosted job，缺 Unity 时明确 skip | Done |
-| V2 | Godot 内嵌试玩 | 当前打开独立 Godot 窗口 | 可行时提供内嵌/自动关闭和运行日志回传 | Backlog |
+| V2 | Godot 内嵌试玩 | 已支持 `build/web/index.html` 存在时用 `/play/` iframe 内嵌；无 Web export 时回退独立窗口 | 可行时提供内嵌/自动关闭和运行日志回传 | Done |
 | V3 | Web 绝对路径兼容 | 已注入 `/play/` base 并重写 HTML/CSS 根路径；JS 动态路径由 V3b runtime shim 处理 | HTML/CSS 绝对资源正确加载；相对路径构建不受影响；测试覆盖 | Done |
 | V3b | JS 动态 URL 兼容 | 已注入 runtime shim：`fetch`/`XMLHttpRequest`/`URL`/图片/媒体/script/link 根路径按 `/play/` base 改写；嵌套 `/play/<dir>/` 也已支持 | 提供受限 runtime shim 或项目 base URL 注入；不破坏第三方脚本 | Done |
 | V4 | G6 视觉门集成 | 已加 `/api/playtest/visual` 与 Studio 截图评审按钮：Web 走 browser screenshot，Godot 走 `verify --visual`（有 key 时 openai vision），结果写入同一 run 历史 | Playtest 前后可触发截图/VLM 评审并记录 | Done |
@@ -145,8 +145,8 @@
 ## 10. 建议的下一步顺序
 
 1. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
-2. **V2 Godot 内嵌试玩**：依赖 Web export；当前保留外部窗口。
-3. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
+2. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
+3. **AS6 3D / Unreal / 远端鉴权**：长期方向。
 
 ## 11. Definition of Done
 
