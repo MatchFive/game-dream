@@ -109,7 +109,13 @@ function draw() {
   ctx.fillText('NULL RUN', 20, 24);
   ctx.font = '13px ui-monospace, monospace';
   ctx.fillStyle = '#a9c7df';
-  ctx.fillText(`HP ${state.player.hp}   Score ${state.score}   Turn ${state.turn}   Reach the green exit`, 20, 46);
+  ctx.fillText(
+    `Room ${state.roomIndex + 1}/${state.rooms.length} · ${state.room.name}   HP ${state.player.hp}   Score ${state.score}   Gold ${state.gold}   Relics ${state.relics.join(',') || '—'}`,
+    20,
+    46,
+  );
+  ctx.fillStyle = '#a9c7df';
+  ctx.fillText('Reach the green exit · WASD/Arrows move · R restart after the run', 20, 66);
   if (state.finished) {
     ctx.fillStyle = 'rgb(5 10 16 / 82%)';
     ctx.fillRect(250, 220, 460, 100);

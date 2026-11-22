@@ -1,0 +1,11 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/cli/test/web-genres.test.ts (4 tests) 222ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  11:30:38
+   Duration  873ms (transform 96ms, setup 0ms, collect 290ms, tests 222ms, environment 0ms, prepare 125ms)
+
+EXIT=0

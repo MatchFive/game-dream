@@ -11,12 +11,24 @@ if (!Number.isFinite(frames) || frames <= 0) {
 
 const state = createSim();
 console.log('WEB_BOOT_OK');
+let room = -1;
+let relicCount = 0;
 for (let frame = 0; frame < frames; frame += 1) {
   step(state, { auto: true }, 1 / 60);
+  if (state.roomIndex !== room) {
+    room = state.roomIndex;
+    console.log(`WEB_ROOM=${state.room.id}`);
+  }
+  if (state.relics.length !== relicCount) {
+    relicCount = state.relics.length;
+    console.log(`WEB_RELIC=${state.relics[state.relics.length - 1]}`);
+  }
   if (state.finished) break;
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');
+  console.log(`WEB_GOLD=${state.gold}`);
+  console.log(`WEB_ROOMS=${state.rooms.length}`);
   process.exit(0);
 }
 if (state.finished === 'lose') {

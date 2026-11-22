@@ -108,3 +108,9 @@ with G1/G2/G3.
 template: it emits `UNITY_ELITE`, `UNITY_EVOLUTION`, and `UNITY_WIN` with exit
 `0`. The player runtime also reads/writes `survivor_meta.json` from
 `Application.persistentDataPath`.
+
+## Web roguelike rooms
+
+`web-roguelike-rooms.log` records the seeded three-room Web roguelike tests:
+entry/market/vault ordering, cache event, relic purchase, gold, deterministic
+same-seed ordering, different-seed ordering, and the headless `WEB_WIN`.
