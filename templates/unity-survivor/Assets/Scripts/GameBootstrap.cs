@@ -24,6 +24,18 @@ public sealed class GameBootstrap : MonoBehaviour
         public BuildAsset[] assets;
     }
 
+    [Serializable]
+    private sealed class SurvivorMeta
+    {
+        public int coins;
+        public int damage;
+        public int maxHp;
+        public int runs;
+        public int wins;
+    }
+
+    private SurvivorMeta _meta;
+    private bool _metaSaved;
     private SurvivorSim _sim;
     private Transform _player;
     private Transform _enemyRoot;
@@ -46,7 +58,8 @@ public sealed class GameBootstrap : MonoBehaviour
 
     private void Start()
     {
-        _sim = new SurvivorSim();
+        _meta = LoadMeta();
+        _sim = new SurvivorSim(_meta.damage, _meta.maxHp);
         Debug.Log("UNITY_BOOT_OK");
         _enemyRoot = new GameObject("Enemies").transform;
         SetupCamera();
@@ -70,6 +83,49 @@ public sealed class GameBootstrap : MonoBehaviour
         AssetBinding.ApplyPlayer(_player.gameObject);
         SyncActors();
         StartCoroutine(LoadBgm());
+    }
+
+    private SurvivorMeta LoadMeta()
+    {
+        string path = Path.Combine(Application.persistentDataPath, "survivor_meta.json");
+        if (!File.Exists(path))
+        {
+            return new SurvivorMeta();
+        }
+        try
+        {
+            return JsonUtility.FromJson<SurvivorMeta>(File.ReadAllText(path)) ?? new SurvivorMeta();
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning($"UNITY_META_FAILED {error.Message}");
+            return new SurvivorMeta();
+        }
+    }
+
+    private void SaveMeta()
+    {
+        if (_metaSaved || _sim == null)
+        {
+            return;
+        }
+        _metaSaved = true;
+        _meta.coins += _sim.Coins;
+        _meta.runs += 1;
+        if (_sim.Won)
+        {
+            _meta.wins += 1;
+        }
+        try
+        {
+            string path = Path.Combine(Application.persistentDataPath, "survivor_meta.json");
+            File.WriteAllText(path, JsonUtility.ToJson(_meta));
+            Debug.Log("UNITY_META_SAVED");
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning($"UNITY_META_FAILED {error.Message}");
+        }
     }
 
     private IEnumerator LoadBgm()
@@ -194,6 +250,7 @@ public sealed class GameBootstrap : MonoBehaviour
             _sim.Reset();
             _reportedWin = false;
             _reportedLose = false;
+            _metaSaved = false;
             SyncActors();
             return;
         }
@@ -221,11 +278,13 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             _reportedWin = true;
             Debug.Log("UNITY_WIN");
+            SaveMeta();
         }
         if (_sim.Lost && !_reportedLose)
         {
             _reportedLose = true;
             Debug.Log("UNITY_LOSE");
+            SaveMeta();
         }
     }
 
@@ -259,7 +318,9 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             Color color = enemy.Boss
                 ? new Color(0.7f, 0.3f, 0.95f)
-                : new Color(0.95f, 0.3f, 0.35f);
+                : enemy.Elite
+                    ? new Color(1f, 0.7f, 0.2f)
+                    : new Color(0.95f, 0.3f, 0.35f);
             Transform item = CreateSquare("Enemy", color, enemy.Radius / 50f, 1);
             item.SetParent(_enemyRoot, false);
             item.position = new Vector3(
@@ -280,7 +341,7 @@ public sealed class GameBootstrap : MonoBehaviour
         GUI.Label(new Rect(16f, 16f, 900f, 24f), "EMBER SURVIVOR");
         GUI.Label(
             new Rect(16f, 42f, 900f, 24f),
-            $"Time {Mathf.Min(_sim.Time, SurvivorSim.RunSeconds):0.1f}/{SurvivorSim.RunSeconds}   Level {_sim.Level}   HP {_sim.PlayerHp}   Kills {_sim.Kills}"
+            $"Time {Mathf.Min(_sim.Time, SurvivorSim.RunSeconds):0.1f}/{SurvivorSim.RunSeconds}   Level {_sim.Level}   HP {_sim.PlayerHp}   Kills {_sim.Kills}   Coins {_sim.Coins}{( _sim.Evolved ? "   EVOLVED" : "")}"
         );
         GUI.Label(new Rect(16f, 68f, 900f, 24f), "WASD/Arrows move   automatic attack   R restart");
         if (_sim.BossSpawned)

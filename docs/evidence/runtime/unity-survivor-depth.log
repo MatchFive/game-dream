@@ -1,0 +1,12 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/unity/test/runtime.test.ts (6 tests | 5 skipped) 41018ms
+   ✓ unity runtime > runs the survivor depth verifier with elites and evolution 41017ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 5 skipped (6)
+   Start at  10:23:02
+   Duration  43.87s (transform 261ms, setup 0ms, collect 1.68s, tests 41.02s, environment 0ms, prepare 722ms)
+
+EXIT=0

@@ -119,7 +119,7 @@
 
 | ID | 事项 | 验收标准 | 状态 |
 |---|---|---|---|
-| C1 | Survivor 深度 | Web 与 Godot survivor 已加精英变体、bolt→storm 进化、局外金币/伤害/HP 升级和持久存档；Unity survivor 仍待同步 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | In progress |
+| C1 | Survivor 深度 | Web/Godot/Unity survivor 均已加精英变体、bolt→storm 进化、局外金币/伤害/HP 升级和持久存档；Web 有购买 UI，Unity 读取 meta 文件 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | Done |
 | C2 | Roguelike 房间池 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | Backlog |
 | C3 | 模板内容量 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | Backlog |
 | C4 | 多引擎内容一致性 | Web/Unity/Godot 的同类模板共享内容模型和验收标记 | Backlog |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **C1 Unity survivor 同步**：把精英/进化/局外金币接到 Unity 模板。
-2. **C2 Roguelike 房间池**：房间模板、事件、商店、遗物、难度曲线。
-3. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+1. **C2 Roguelike 房间池**：房间模板、事件、商店、遗物、难度曲线。
+2. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+3. **C3 模板内容量**：把各模板切片提升为完整短局。
 
 ## 11. Definition of Done
 

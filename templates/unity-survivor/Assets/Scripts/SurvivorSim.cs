@@ -11,6 +11,7 @@ namespace GameDream
         public int MaxHp;
         public bool Boss;
         public bool Phase;
+        public bool Elite;
         public float Radius;
         public float Speed;
     }
@@ -25,11 +26,17 @@ namespace GameDream
         public int PlayerHp = 100;
         public int Level = 1;
         public int Kills;
+        public int Coins;
+        public int EliteKills;
+        public int WeaponDamage = 1;
+        public bool Evolved;
         public float Time;
         public bool Won { get; private set; }
         public bool Lost { get; private set; }
         public bool BossSpawned { get; private set; }
         public bool BossPhase { get; private set; }
+        public int MetaDamage { get; private set; }
+        public int MetaMaxHp { get; private set; }
         public readonly List<SurvivorEnemy> Enemies = new List<SurvivorEnemy>();
         public readonly List<Vector2> Bullets = new List<Vector2>();
         public readonly List<Vector2> BulletVelocity = new List<Vector2>();
@@ -40,6 +47,8 @@ namespace GameDream
         private int _nextXp = 4;
         private int _spawnIndex;
         private bool _bossPhaseLogged;
+        private bool _eliteLogged;
+        private bool _evolutionLogged;
 
         private static readonly Vector2[] Spawns =
         {
@@ -50,17 +59,23 @@ namespace GameDream
             new Vector2(900f, 480f),
         };
 
-        public SurvivorSim()
+        public SurvivorSim(int metaDamage = 0, int metaMaxHp = 0)
         {
+            MetaDamage = Mathf.Max(0, metaDamage);
+            MetaMaxHp = Mathf.Max(0, metaMaxHp);
             Reset();
         }
 
         public void Reset()
         {
             Player = new Vector2(480f, 270f);
-            PlayerHp = 100;
+            PlayerHp = 100 + MetaMaxHp;
             Level = 1;
             Kills = 0;
+            Coins = 0;
+            EliteKills = 0;
+            WeaponDamage = 1 + MetaDamage;
+            Evolved = false;
             Time = 0f;
             Won = false;
             Lost = false;
@@ -72,6 +87,8 @@ namespace GameDream
             _nextXp = 4;
             _spawnIndex = 0;
             _bossPhaseLogged = false;
+            _eliteLogged = false;
+            _evolutionLogged = false;
             Enemies.Clear();
             Bullets.Clear();
             BulletVelocity.Clear();
@@ -88,14 +105,16 @@ namespace GameDream
                 return;
             }
             Vector2 point = Spawns[_spawnIndex % Spawns.Length];
+            bool elite = _spawnIndex > 0 && _spawnIndex % 7 == 0;
             _spawnIndex += 1;
             Enemies.Add(new SurvivorEnemy
             {
                 Position = point,
-                Hp = 1,
-                MaxHp = 1,
-                Radius = 13f,
-                Speed = 40f,
+                Hp = elite ? 3 : 1,
+                MaxHp = elite ? 3 : 1,
+                Elite = elite,
+                Radius = elite ? 17f : 13f,
+                Speed = elite ? 38f : 40f,
             });
         }
 
@@ -145,7 +164,7 @@ namespace GameDream
             SurvivorEnemy target = Nearest();
             if (_attackTimer <= 0f && target != null)
             {
-                _attackTimer = 0.22f;
+                _attackTimer = Evolved ? 0.17f : 0.22f;
                 Vector2 direction = (target.Position - Player).normalized;
                 Bullets.Add(Player);
                 BulletVelocity.Add(direction * 620f);
@@ -161,13 +180,19 @@ namespace GameDream
                     SurvivorEnemy enemy = Enemies[j];
                     if (Vector2.Distance(position, enemy.Position) <= enemy.Radius)
                     {
-                        enemy.Hp -= 1;
+                        enemy.Hp -= WeaponDamage;
                         hit = true;
                         if (enemy.Hp <= 0)
                         {
                             Enemies.RemoveAt(j);
+                            int reward = enemy.Boss ? 5 : (enemy.Elite ? 3 : 1);
                             Kills += 1;
-                            AddXp(1);
+                            Coins += reward;
+                            if (enemy.Elite)
+                            {
+                                EliteKills += 1;
+                            }
+                            AddXp(reward);
                         }
                         break;
                     }
@@ -217,13 +242,17 @@ namespace GameDream
         private void AddXp(int amount)
         {
             _xp += amount;
-            if (_xp < _nextXp)
+            while (_xp >= _nextXp)
             {
-                return;
+                _xp -= _nextXp;
+                Level += 1;
+                _nextXp = 4 + Level * 2;
+                if (Level >= 3 && !Evolved)
+                {
+                    Evolved = true;
+                    WeaponDamage += 1;
+                }
             }
-            _xp -= _nextXp;
-            Level += 1;
-            _nextXp = 4 + Level * 2;
         }
 
         private SurvivorEnemy Nearest()
@@ -252,6 +281,26 @@ namespace GameDream
             if (BossPhase && !_bossPhaseLogged)
             {
                 _bossPhaseLogged = true;
+                return true;
+            }
+            return false;
+        }
+
+        public bool EliteFirstSeen()
+        {
+            if (EliteKills > 0 && !_eliteLogged)
+            {
+                _eliteLogged = true;
+                return true;
+            }
+            return false;
+        }
+
+        public bool EvolutionFirstSeen()
+        {
+            if (Evolved && !_evolutionLogged)
+            {
+                _evolutionLogged = true;
                 return true;
             }
             return false;

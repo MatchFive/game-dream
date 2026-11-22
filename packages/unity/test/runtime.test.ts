@@ -57,6 +57,26 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(result.stdout).toContain('UNITY_WIN');
   }, 200_000);
 
+  it('runs the survivor depth verifier with elites and evolution', () => {
+    const outDir = join(makeTempDir('gamedream unity survivor depth '), 'unity game');
+    composeUnityProject({
+      outDir,
+      templatesDir: join(root, 'templates/unity-survivor'),
+      name: 'survivor-depth',
+    });
+    const unity = detectUnity({ bin: unityBin });
+    expect(unity).not.toBeNull();
+    const result = runUnityVerifier({
+      projectDir: outDir,
+      unityBin: unity!.bin,
+      timeoutMs: 180_000,
+    });
+    expect(result.passed).toBe(true);
+    expect(result.stdout).toContain('UNITY_ELITE');
+    expect(result.stdout).toContain('UNITY_EVOLUTION');
+    expect(result.stdout).toContain('UNITY_WIN');
+  }, 240_000);
+
   it('loads a staged BGM from StreamingAssets in the survivor runtime', () => {
     const outDir = join(makeTempDir('gamedream unity bgm '), 'unity game');
     composeUnityProject({

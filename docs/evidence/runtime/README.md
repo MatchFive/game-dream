@@ -101,3 +101,10 @@ sync remains separate.
 survivor fixture. It prints `GAMEDREAM_ELITE`, `GAMEDREAM_EVOLUTION`,
 `GAMEDREAM_WIN`, and `GAMEDREAM_META_SAVED`; the run also passes `dream verify`
 with G1/G2/G3.
+
+## Unity survivor depth
+
+`unity-survivor-depth.log` records the Unity EditorVerifier for the survivor
+template: it emits `UNITY_ELITE`, `UNITY_EVOLUTION`, and `UNITY_WIN` with exit
+`0`. The player runtime also reads/writes `survivor_meta.json` from
+`Application.persistentDataPath`.

@@ -15,6 +15,8 @@ public static class EditorVerifier
         bool levelLogged = false;
         bool bossLogged = false;
         bool phaseLogged = false;
+        bool eliteLogged = false;
+        bool evolutionLogged = false;
         for (int frame = 0; frame < 12000 && !sim.Won && !sim.Lost; frame += 1)
         {
             sim.AutoStep(1f / 60f);
@@ -22,6 +24,16 @@ public static class EditorVerifier
             {
                 levelLogged = true;
                 Debug.Log("UNITY_SURVIVOR_LEVEL");
+            }
+            if (!eliteLogged && sim.EliteFirstSeen())
+            {
+                eliteLogged = true;
+                Debug.Log("UNITY_ELITE");
+            }
+            if (!evolutionLogged && sim.EvolutionFirstSeen())
+            {
+                evolutionLogged = true;
+                Debug.Log("UNITY_EVOLUTION");
             }
             if (!bossLogged && sim.BossSpawned)
             {

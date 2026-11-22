@@ -10,4 +10,7 @@ shared Unity M0 verification shell while running `SurvivorSim` for gameplay.
 - Staged Studio audio is mirrored to `Assets/StreamingAssets/game/build-assets`;
   the survivor loads the first audio asset as a looping BGM and logs
   `UNITY_BGM_OK`.
+- Elites, bolt evolution at level 3, coins, and `survivor_meta.json` meta
+  damage/HP persistence are included; the editor verifier logs
+  `UNITY_ELITE` and `UNITY_EVOLUTION`.
 - `EditorVerifier` runs headlessly; the scene HUD is built in `GameBootstrap`.
