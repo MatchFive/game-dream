@@ -55,6 +55,26 @@ corepack pnpm install
 corepack pnpm build
 ```
 
+### Start Studio
+
+The launcher installs/builds only when needed, then starts the local Studio:
+
+```bash
+# Windows
+start.cmd
+
+# macOS/Linux
+./start.sh
+
+# cross-platform
+corepack pnpm start
+```
+
+Pass a generated project explicitly with `--path`, for example
+`start.cmd --path tmp/my-game`. Other options: `--workspace <dir>`,
+`--port <port>`, `--host <host>`, `--no-open`, `--build`, `--skip-install`;
+see `node scripts/start.mjs --help`.
+
 Create a local configuration from the example. The CLI loads `.env` from the
 current directory; explicit environment variables take precedence.
 

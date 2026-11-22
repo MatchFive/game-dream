@@ -5,7 +5,12 @@ browsing, and game art generation. It is the first UI surface for the asset and
 verification pipelines, not a cloud service.
 
 ```bash
-corepack pnpm build
+# from the repository root
+start.cmd                         # Windows
+./start.sh                        # macOS/Linux
+corepack pnpm start               # cross-platform
+
+# or explicitly
 node packages/cli/dist/index.js studio --path . --open
 ```
 
