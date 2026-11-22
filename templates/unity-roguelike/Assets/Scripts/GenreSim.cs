@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GameDream
 {
@@ -10,6 +11,7 @@ namespace GameDream
     {
         public const float ArenaWidth = 960f;
         public const float ArenaHeight = 540f;
+        public const int RoomCount = 3;
 
         public readonly string Mode;
         public float X;
@@ -20,8 +22,15 @@ namespace GameDream
         public bool Lost;
         public string Status = "READY";
         public int Milestone;
+        public int RoomIndex;
+        public string RoomName = "Entry Hall";
+        public int Gold;
+        public readonly List<string> Relics = new List<string>();
+        public readonly List<string> RoomEvents = new List<string>();
 
         private int _lastMilestone;
+        private bool _roomLogged;
+        private bool _relicLogged;
 
         public GenreSim(string mode)
         {
@@ -39,6 +48,13 @@ namespace GameDream
             Lost = false;
             Milestone = 0;
             _lastMilestone = 0;
+            RoomIndex = 0;
+            RoomName = "Entry Hall";
+            Gold = 0;
+            Relics.Clear();
+            RoomEvents.Clear();
+            _roomLogged = false;
+            _relicLogged = false;
             Status = "READY";
         }
 
@@ -112,7 +128,25 @@ namespace GameDream
                     {
                         Progress += 1;
                         Milestone = 1;
-                        Status = "TURN " + Progress;
+                        if (Progress == 8)
+                        {
+                            RoomIndex = 1;
+                            RoomName = "Ash Market";
+                            Gold += 6;
+                            RoomEvents.Add("market:cache");
+                            if (Gold >= 5)
+                            {
+                                Gold -= 5;
+                                Relics.Add("ember");
+                            }
+                        }
+                        else if (Progress == 16)
+                        {
+                            RoomIndex = 2;
+                            RoomName = "Vault";
+                            RoomEvents.Add("vault:ambush");
+                        }
+                        Status = $"ROOM {RoomIndex + 1}/{RoomCount} {RoomName} · TURN {Progress}";
                         if (Progress >= 24)
                         {
                             Won = true;
@@ -133,6 +167,26 @@ namespace GameDream
             if (Milestone > 0 && Milestone != _lastMilestone)
             {
                 _lastMilestone = Milestone;
+                return true;
+            }
+            return false;
+        }
+
+        public bool RoomFirstSeen()
+        {
+            if (RoomIndex > 0 && !_roomLogged)
+            {
+                _roomLogged = true;
+                return true;
+            }
+            return false;
+        }
+
+        public bool RelicFirstSeen()
+        {
+            if (Relics.Count > 0 && !_relicLogged)
+            {
+                _relicLogged = true;
                 return true;
             }
             return false;

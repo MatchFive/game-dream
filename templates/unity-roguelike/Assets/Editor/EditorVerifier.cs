@@ -13,6 +13,8 @@ public static class EditorVerifier
         GenreSim sim = new GenreSim("roguelike");
         Debug.Log("UNITY_ROGUELIKE_STEP");
         bool milestoneLogged = false;
+        bool roomLogged = false;
+        bool relicLogged = false;
         for (int frame = 0; frame < 12000 && !sim.Won && !sim.Lost; frame += 1)
         {
             sim.AutoStep(1f / 60f);
@@ -20,6 +22,16 @@ public static class EditorVerifier
             {
                 milestoneLogged = true;
                 Debug.Log("UNITY_ROGUELIKE_TURN");
+            }
+            if (!roomLogged && sim.RoomFirstSeen())
+            {
+                roomLogged = true;
+                Debug.Log("UNITY_ROOM");
+            }
+            if (!relicLogged && sim.RelicFirstSeen())
+            {
+                relicLogged = true;
+                Debug.Log("UNITY_RELIC");
             }
         }
         if (sim.Won)

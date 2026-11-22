@@ -120,7 +120,7 @@
 | ID | 事项 | 验收标准 | 状态 |
 |---|---|---|---|
 | C1 | Survivor 深度 | Web/Godot/Unity survivor 均已加精英变体、bolt→storm 进化、局外金币/伤害/HP 升级和持久存档；Web 有购买 UI，Unity 读取 meta 文件 | 武器进化、局外成长、持久货币、精英变体、存档；核心循环仍可 headless 验证 | Done |
-| C2 | Roguelike 房间池 | Web roguelike 已有固定 seed 的 3 房池（entry/market/vault）、cache/ambush 事件、商店、3 个遗物、难度递增和 headless `WEB_WIN`；Godot/Unity 版仍待同步 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | In progress |
+| C2 | Roguelike 房间池 | Web/Godot/Unity roguelike 均已接 3 房池、cache/ambush、商店/遗物和难度递增；Web 用固定 seed 回归，Godot/Unity 各有真实 headless/EditorVerifier 标记 | 房间模板、事件、商店、遗物、难度曲线；固定 seed 可回归 | Done |
 | C3 | 模板内容量 | 把可玩切片提升为完整短局；每模板有关卡/敌人/结算验收 | Backlog |
 | C4 | 多引擎内容一致性 | Web/Unity/Godot 的同类模板共享内容模型和验收标记 | Backlog |
 | C5 | Benchmark 扩展 | 增加 prompt/case、可玩性、视觉可用性、意图一致性评分 | Backlog |
@@ -144,9 +144,9 @@
 
 ## 10. 建议的下一步顺序
 
-1. **C2 Godot/Unity roguelike 同步**：把房间池/事件/商店/遗物接到其余引擎。
-2. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
-3. **C3 模板内容量**：把各模板切片提升为完整短局。
+1. **AS3 AI SFX**：在本地程序化降级之上接文本音效后端。
+2. **C3 模板内容量**：把各模板切片提升为完整短局。
+3. **C4 多引擎内容一致性**：统一同类模板的内容模型/验收标记。
 
 ## 11. Definition of Done
 

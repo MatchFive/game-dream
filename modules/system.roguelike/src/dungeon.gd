@@ -6,6 +6,8 @@ const TILE := 28.0
 const OFFSET := Vector2(90, 90)
 const START := Vector2i(1, 1)
 const SEED := 1337
+const ROOM_COUNT := 3
+const ROOM_NAMES := ["Entry Hall", "Ash Market", "Vault"]
 const PLAYER_HP := 6
 const DIRECTIONS := {
 	"up": Vector2i(0, -1),
@@ -20,6 +22,10 @@ var exit_cell := START
 var player_hp := PLAYER_HP
 var enemies: Array = []
 var killed := 0
+var room_index := 0
+var gold := 0
+var relics: Array = []
+var room_events: Array = []
 var finished := false
 var autoplay := false
 var turn_timer := 0.0
@@ -27,14 +33,36 @@ var hud: Label
 var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	_build_dungeon()
+	_enter_room()
 	_build_hud()
 	autoplay = DisplayServer.get_name() == "headless"
 	print("GAMEDREAM_DUNGEON")
 	queue_redraw()
 
+func _enter_room() -> void:
+	player_cell = START
+	enemies.clear()
+	rng.seed = SEED + room_index * 97
+	_build_dungeon()
+	if room_index == 1:
+		gold += 1
+		room_events.append("market:cache")
+		print("GAMEDREAM_CACHE")
+	elif room_index == 2:
+		for y in range(1, GRID_HEIGHT - 1):
+			for x in range(1, GRID_WIDTH - 1):
+				var cell := Vector2i(x, y)
+				if _is_floor(cell) and cell != START and cell != exit_cell and _enemy_at(cell) < 0:
+					enemies.append({"cell": cell})
+					room_events.append("vault:ambush")
+					print("GAMEDREAM_AMBUSH")
+					break
+			if room_events.has("vault:ambush"):
+				break
+	player_hp = mini(PLAYER_HP, player_hp + (1 if room_index > 0 else 0))
+	print("GAMEDREAM_ROOM=%s" % ROOM_NAMES[room_index])
+
 func _build_dungeon() -> void:
-	rng.seed = SEED
 	grid = []
 	for y in GRID_HEIGHT:
 		var row: Array = []
@@ -155,7 +183,7 @@ func _process(delta: float) -> void:
 	if autoplay:
 		turn_timer -= delta
 		if turn_timer <= 0.0:
-			turn_timer = 0.1
+			turn_timer = 0.02
 			_take_turn(_auto_action())
 		return
 	var inputs := {
@@ -186,10 +214,24 @@ func _take_turn(action: String) -> void:
 	if _is_floor(target):
 		player_cell = target
 		if player_cell == exit_cell:
-			_finish(true)
+			if room_index + 1 >= ROOM_COUNT:
+				_finish(true)
+			else:
+				_next_room()
 			return
 		_enemy_turn()
 		_after_turn()
+
+func _next_room() -> void:
+	gold += 5
+	if room_index == 0 and gold >= 5:
+		gold -= 5
+		relics.append("ember")
+		player_hp = mini(PLAYER_HP, player_hp + 1)
+		print("GAMEDREAM_RELIC=ember")
+	room_index += 1
+	_enter_room()
+	_after_turn()
 
 func _enemy_turn() -> void:
 	for i in range(enemies.size() - 1, -1, -1):
@@ -305,9 +347,15 @@ func _enemy_at(cell: Vector2i) -> int:
 func _update_hud() -> void:
 	if hud == null:
 		return
-	hud.text = "HP %d   Enemies %d   WASD move · R restart" % [
+	var relic_text := ", ".join(PackedStringArray(relics)) if not relics.is_empty() else "—"
+	hud.text = "Room %d/%d %s   HP %d   Enemies %d   Gold %d   Relics %s   WASD move · R restart" % [
+		room_index + 1,
+		ROOM_COUNT,
+		ROOM_NAMES[room_index],
 		maxi(0, player_hp),
 		enemies.size(),
+		gold,
+		relic_text,
 	]
 
 func _finish(won: bool) -> void:

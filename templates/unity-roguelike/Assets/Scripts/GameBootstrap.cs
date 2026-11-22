@@ -13,6 +13,8 @@ public sealed class GameBootstrap : MonoBehaviour
     private Transform _player;
     private bool _reportedWin;
     private bool _reportedLose;
+    private bool _reportedRoom;
+    private bool _reportedRelic;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -123,6 +125,16 @@ public sealed class GameBootstrap : MonoBehaviour
         }
         _sim.Step(x, y, Mathf.Min(Time.deltaTime, 0.05f));
         SyncPlayer();
+        if (!_reportedRoom && _sim.RoomFirstSeen())
+        {
+            _reportedRoom = true;
+            Debug.Log("UNITY_ROOM");
+        }
+        if (!_reportedRelic && _sim.RelicFirstSeen())
+        {
+            _reportedRelic = true;
+            Debug.Log("UNITY_RELIC");
+        }
         if (_sim.Won && !_reportedWin)
         {
             _reportedWin = true;
@@ -153,7 +165,7 @@ public sealed class GameBootstrap : MonoBehaviour
         GUI.Label(new Rect(16f, 16f, 900f, 24f), "GAMEDREAM " + Mode.ToUpperInvariant());
         GUI.Label(
             new Rect(16f, 42f, 900f, 24f),
-            $"Time {_sim.Time:0.1f}   Progress {_sim.Progress}   {_sim.Status}"
+            $"Room {_sim.RoomIndex + 1}/{GenreSim.RoomCount} {_sim.RoomName}   Progress {_sim.Progress}   Gold {_sim.Gold}   Relics {(_sim.Relics.Count > 0 ? string.Join(",", _sim.Relics) : "-")}   {_sim.Status}"
         );
         GUI.Label(new Rect(16f, 68f, 900f, 24f), "WASD/Arrows move   R restart");
         if (_sim.Won)

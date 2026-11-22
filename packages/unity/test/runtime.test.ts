@@ -77,6 +77,26 @@ describe.skipIf(!unityBin)('unity runtime', () => {
     expect(result.stdout).toContain('UNITY_WIN');
   }, 240_000);
 
+  it('runs the roguelike room verifier with events and a relic', () => {
+    const outDir = join(makeTempDir('gamedream unity roguelike rooms '), 'unity game');
+    composeUnityProject({
+      outDir,
+      templatesDir: join(root, 'templates/unity-roguelike'),
+      name: 'roguelike-rooms',
+    });
+    const unity = detectUnity({ bin: unityBin });
+    expect(unity).not.toBeNull();
+    const result = runUnityVerifier({
+      projectDir: outDir,
+      unityBin: unity!.bin,
+      timeoutMs: 180_000,
+    });
+    expect(result.passed).toBe(true);
+    expect(result.stdout).toContain('UNITY_ROOM');
+    expect(result.stdout).toContain('UNITY_RELIC');
+    expect(result.stdout).toContain('UNITY_WIN');
+  }, 240_000);
+
   it('loads a staged BGM from StreamingAssets in the survivor runtime', () => {
     const outDir = join(makeTempDir('gamedream unity bgm '), 'unity game');
     composeUnityProject({

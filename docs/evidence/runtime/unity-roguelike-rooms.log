@@ -1,0 +1,12 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/unity/test/runtime.test.ts (7 tests | 6 skipped) 17620ms
+   ✓ unity runtime > runs the roguelike room verifier with events and a relic 17619ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  12:39:22
+   Duration  18.21s (transform 84ms, setup 0ms, collect 235ms, tests 17.62s, environment 0ms, prepare 120ms)
+
+EXIT=0

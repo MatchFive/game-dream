@@ -114,3 +114,14 @@ template: it emits `UNITY_ELITE`, `UNITY_EVOLUTION`, and `UNITY_WIN` with exit
 `web-roguelike-rooms.log` records the seeded three-room Web roguelike tests:
 entry/market/vault ordering, cache event, relic purchase, gold, deterministic
 same-seed ordering, different-seed ordering, and the headless `WEB_WIN`.
+
+## Godot roguelike rooms
+
+`godot-roguelike-c2.log` is a real Godot 4.4.1 headless run: it prints
+`GAMEDREAM_ROOM=Entry Hall`, `Ash Market`, `Vault`, plus cache/ambush, relic, and
+`GAMEDREAM_WIN`; `dream verify` passes G1/G2/G3.
+
+## Unity roguelike rooms
+
+`unity-roguelike-rooms.log` records the Unity EditorVerifier for the roguelike
+template; it emits `UNITY_ROOM`, `UNITY_RELIC`, and `UNITY_WIN` with exit `0`.
