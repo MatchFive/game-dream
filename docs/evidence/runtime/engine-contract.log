@@ -1,0 +1,11 @@
+﻿
+ RUN  v2.1.9 D:/project/game_dream
+
+ ✓ packages/cli/test/engine-contract.test.ts (2 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  13:46:49
+   Duration  429ms (transform 30ms, setup 0ms, collect 44ms, tests 3ms, environment 0ms, prepare 146ms)
+
+EXIT=0

@@ -18,15 +18,18 @@ for (let frame = 0; frame < frames; frame += 1) {
   if (state.roomIndex !== room) {
     room = state.roomIndex;
     console.log(`WEB_ROOM=${state.room.id}`);
+    console.log(`ROGUELIKE_ROOM=${state.room.id}`);
   }
   if (state.relics.length !== relicCount) {
     relicCount = state.relics.length;
     console.log(`WEB_RELIC=${state.relics[state.relics.length - 1]}`);
+    console.log(`ROGUELIKE_RELIC=${state.relics[state.relics.length - 1]}`);
   }
   if (state.finished) break;
 }
 if (state.finished === 'win') {
   console.log('WEB_WIN');
+  console.log('ROGUELIKE_WIN');
   console.log(`WEB_GOLD=${state.gold}`);
   console.log(`WEB_ROOMS=${state.rooms.length}`);
   process.exit(0);

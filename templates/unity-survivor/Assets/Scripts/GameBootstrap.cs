@@ -121,6 +121,7 @@ public sealed class GameBootstrap : MonoBehaviour
             string path = Path.Combine(Application.persistentDataPath, "survivor_meta.json");
             File.WriteAllText(path, JsonUtility.ToJson(_meta));
             Debug.Log("UNITY_META_SAVED");
+            Debug.Log("SURVIVOR_META_SAVED");
         }
         catch (Exception error)
         {

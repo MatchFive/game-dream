@@ -129,16 +129,19 @@ public sealed class GameBootstrap : MonoBehaviour
         {
             _reportedRoom = true;
             Debug.Log("UNITY_ROOM");
+            Debug.Log("ROGUELIKE_ROOM");
         }
         if (!_reportedRelic && _sim.RelicFirstSeen())
         {
             _reportedRelic = true;
             Debug.Log("UNITY_RELIC");
+            Debug.Log("ROGUELIKE_RELIC");
         }
         if (_sim.Won && !_reportedWin)
         {
             _reportedWin = true;
             Debug.Log("UNITY_WIN");
+            Debug.Log("ROGUELIKE_WIN");
         }
         if (_sim.Lost && !_reportedLose)
         {

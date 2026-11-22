@@ -132,3 +132,9 @@ template; it emits `UNITY_ROOM`, `UNITY_RELIC`, and `UNITY_WIN` with exit `0`.
 playability/intent scores and the aggregate score. `--visual` adds the G6
 component when a real screenshot is available; skipped/failed visual checks do
 not count as passes.
+
+## Engine gameplay contract
+
+The shared contract lives at `fixtures/contracts/engine-gameplay.json`; its test
+reads the Web, Godot, and Unity survivor/roguelike sources and checks common
+markers plus room/event/relic names. See `docs/engine-contract.md`.

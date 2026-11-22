@@ -61,6 +61,7 @@ func _enter_room() -> void:
 				break
 	player_hp = mini(PLAYER_HP, player_hp + (1 if room_index > 0 else 0))
 	print("GAMEDREAM_ROOM=%s" % ROOM_NAMES[room_index])
+	print("ROGUELIKE_ROOM=%s" % room_index)
 
 func _build_dungeon() -> void:
 	grid = []
@@ -229,6 +230,7 @@ func _next_room() -> void:
 		relics.append("ember")
 		player_hp = mini(PLAYER_HP, player_hp + 1)
 		print("GAMEDREAM_RELIC=ember")
+		print("ROGUELIKE_RELIC=ember")
 	room_index += 1
 	_enter_room()
 	_after_turn()
@@ -364,6 +366,7 @@ func _finish(won: bool) -> void:
 	finished = true
 	if won:
 		print("GAMEDREAM_WIN")
+		print("ROGUELIKE_WIN")
 	else:
 		print("GAMEDREAM_LOSE")
 	await get_tree().process_frame

@@ -47,6 +47,7 @@ function recordMeta() {
   writeMeta(localStorage, meta);
   metaAwarded = true;
   updateMetaHud();
+  console.log('SURVIVOR_META_SAVED');
 }
 
 updateMetaHud();

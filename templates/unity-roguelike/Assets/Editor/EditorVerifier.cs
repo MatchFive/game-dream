@@ -27,16 +27,19 @@ public static class EditorVerifier
             {
                 roomLogged = true;
                 Debug.Log("UNITY_ROOM");
+                Debug.Log("ROGUELIKE_ROOM");
             }
             if (!relicLogged && sim.RelicFirstSeen())
             {
                 relicLogged = true;
                 Debug.Log("UNITY_RELIC");
+                Debug.Log("ROGUELIKE_RELIC");
             }
         }
         if (sim.Won)
         {
             Debug.Log("UNITY_WIN");
+            Debug.Log("ROGUELIKE_WIN");
             EditorApplication.Exit(0);
             return;
         }

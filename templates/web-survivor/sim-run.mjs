@@ -18,10 +18,12 @@ for (let frame = 0; frame < frames; frame += 1) {
   if (!elitePrinted && state.eliteKills > 0) {
     elitePrinted = true;
     console.log('WEB_ELITE');
+    console.log('SURVIVOR_ELITE');
   }
   if (!evolutionPrinted && state.evolution) {
     evolutionPrinted = true;
     console.log('WEB_EVOLUTION');
+    console.log('SURVIVOR_EVOLUTION');
   }
   if (state.finished) break;
 }

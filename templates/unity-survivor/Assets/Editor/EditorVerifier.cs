@@ -29,11 +29,13 @@ public static class EditorVerifier
             {
                 eliteLogged = true;
                 Debug.Log("UNITY_ELITE");
+                Debug.Log("SURVIVOR_ELITE");
             }
             if (!evolutionLogged && sim.EvolutionFirstSeen())
             {
                 evolutionLogged = true;
                 Debug.Log("UNITY_EVOLUTION");
+                Debug.Log("SURVIVOR_EVOLUTION");
             }
             if (!bossLogged && sim.BossSpawned)
             {

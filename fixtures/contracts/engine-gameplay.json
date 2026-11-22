@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "survivor": {
+    "markers": [
+      "SURVIVOR_ELITE",
+      "SURVIVOR_EVOLUTION",
+      "SURVIVOR_META_SAVED"
+    ],
+    "engines": {
+      "web": ["WEB_ELITE", "WEB_EVOLUTION"],
+      "godot": ["GAMEDREAM_ELITE", "GAMEDREAM_EVOLUTION", "GAMEDREAM_META_SAVED"],
+      "unity": ["UNITY_ELITE", "UNITY_EVOLUTION"]
+    }
+  },
+  "roguelike": {
+    "rooms": [
+      { "id": "entry", "name": "Entry Hall" },
+      { "id": "market", "name": "Ash Market" },
+      { "id": "vault", "name": "Vault" }
+    ],
+    "events": ["cache", "ambush"],
+    "relics": ["ember"],
+    "markers": [
+      "ROGUELIKE_ROOM",
+      "ROGUELIKE_RELIC",
+      "ROGUELIKE_WIN"
+    ],
+    "engines": {
+      "web": ["WEB_ROOM", "WEB_RELIC"],
+      "godot": ["GAMEDREAM_ROOM", "GAMEDREAM_RELIC", "GAMEDREAM_CACHE", "GAMEDREAM_AMBUSH"],
+      "unity": ["UNITY_ROOM", "UNITY_RELIC"]
+    }
+  }
+}

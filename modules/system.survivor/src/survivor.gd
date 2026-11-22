@@ -95,6 +95,7 @@ func _save_meta(won: bool) -> void:
 		return
 	file.store_string(JSON.stringify(meta))
 	print("GAMEDREAM_META_SAVED")
+	print("SURVIVOR_META_SAVED")
 
 func _start_bgm() -> void:
 	var path := "res://modules/system.survivor/assets/bgm.mp3"
@@ -205,6 +206,7 @@ func _spawn_enemy(type: String) -> void:
 		if not elite_marker_printed:
 			elite_marker_printed = true
 			print("GAMEDREAM_ELITE")
+			print("SURVIVOR_ELITE")
 	enemies.append({
 		"pos": position,
 		"hp": hp,
@@ -357,6 +359,7 @@ func _gain_xp(amount: int) -> void:
 			weapon_evolved = true
 			weapon_damage += 1
 			print("GAMEDREAM_EVOLUTION")
+			print("SURVIVOR_EVOLUTION")
 		_open_choices()
 		if choosing and autoplay:
 			_choose(0)
