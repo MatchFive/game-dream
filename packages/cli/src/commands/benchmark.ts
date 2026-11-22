@@ -14,6 +14,12 @@ export interface BenchmarkCase {
   expected_playable?: boolean;
 }
 
+export interface BenchmarkScores {
+  playability: number;
+  intent: number;
+  visual?: number;
+}
+
 export interface BenchmarkCaseResult {
   id: string;
   prompt: string;
@@ -25,6 +31,8 @@ export interface BenchmarkCaseResult {
   templateMatched: boolean;
   templateExists: boolean;
   gates?: VerifyReport;
+  scores: BenchmarkScores;
+  score: number;
   modules: string[];
   files: string[];
   notice?: string;
@@ -38,6 +46,8 @@ export interface BenchmarkReport {
   fallback: number;
   unverified: number;
   failed: number;
+  visualRequested: boolean;
+  score: number;
   results: BenchmarkCaseResult[];
 }
 
@@ -49,6 +59,7 @@ export interface BenchmarkOptions {
   providerKind?: 'auto' | 'fake' | 'openai';
   env?: NodeJS.ProcessEnv;
   runner?: CommandRunner;
+  visual?: boolean;
   keep?: boolean;
 }
 
@@ -93,7 +104,11 @@ function templateIds(templatesDir: string): Set<string> {
 }
 
 export function benchmarkExitCode(report: BenchmarkReport): 0 | 1 {
-  return report.results.every((result) => result.status === 'playable') ? 0 : 1;
+  return report.results.every(
+    (result) => result.status === 'playable' && result.scores.visual !== 0,
+  )
+    ? 0
+    : 1;
 }
 
 export async function runBenchmark(options: BenchmarkOptions): Promise<BenchmarkReport> {
@@ -116,10 +131,12 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
           mode: 'auto',
           env: options.env,
           runner: options.runner,
+          visual: options.visual,
         });
         const actual = created.result.templateId;
         const expectedExists = templates.has(testCase.expected_template);
         const templateMatched = actual === testCase.expected_template;
+        const actualGenre = created.result.spec?.genre?.primary;
         const gates = created.verify?.gates;
         const allPassed =
           gates !== undefined && Object.values(gates).every((gate) => gate.status === 'pass');
@@ -135,17 +152,34 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
         } else {
           status = 'playable';
         }
+        const playability = status === 'playable' ? 1 : status === 'unverified' ? 0.5 : 0;
+        const intent = templateMatched
+          ? testCase.expected_genre
+            ? 0.6 + (actualGenre === testCase.expected_genre ? 0.4 : 0)
+            : 1
+          : 0;
+        const visual = options.visual
+          ? gates?.G6?.status === 'pass'
+            ? 1
+            : 0
+          : undefined;
+        const components = [playability, intent, ...(visual === undefined ? [] : [visual])];
+        const score = Math.round(
+          (components.reduce((sum, value) => sum + value, 0) / components.length) * 100,
+        );
         results.push({
           id: testCase.id,
           prompt: testCase.prompt,
           expectedTemplate: testCase.expected_template,
           actualTemplate: actual,
           expectedGenre: testCase.expected_genre,
-          actualGenre: created.result.spec?.genre?.primary,
+          actualGenre,
           status,
           templateMatched,
           templateExists: expectedExists,
           gates: created.verify,
+          scores: { playability, intent, ...(visual === undefined ? {} : { visual }) },
+          score,
           modules: created.result.compose?.order ?? created.result.plannedModules ?? [],
           files: created.result.compose?.files ?? created.result.plannedFiles ?? [],
           notice: created.notice,
@@ -159,6 +193,8 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
           status: 'failed',
           templateMatched: false,
           templateExists: templates.has(testCase.expected_template),
+          scores: { playability: 0, intent: 0 },
+          score: 0,
           modules: [],
           files: [],
           error: error instanceof Error ? error.message : String(error),
@@ -179,6 +215,11 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
     fallback: count('fallback'),
     unverified: count('unverified'),
     failed: count('failed'),
+    visualRequested: Boolean(options.visual),
+    score:
+      results.length === 0
+        ? 0
+        : Math.round(results.reduce((sum, result) => sum + result.score, 0) / results.length),
     results,
   };
 }

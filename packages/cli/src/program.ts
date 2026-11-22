@@ -636,6 +636,7 @@ export function createProgram(): Command {
     .option('--modules <dir>', 'modules directory', 'modules')
     .option('--templates <dir>', 'templates directory', 'templates')
     .option('--provider <kind>', 'fake | auto | openai', 'fake')
+    .option('--visual', 'run the G6 screenshot gate per case')
     .option('--keep', 'keep generated projects when --out is not set')
     .option('--json', 'print JSON')
     .action(
@@ -645,6 +646,7 @@ export function createProgram(): Command {
         modules: string;
         templates: string;
         provider: string;
+        visual?: boolean;
         keep?: boolean;
         json?: boolean;
       }) => {
@@ -655,6 +657,7 @@ export function createProgram(): Command {
             modulesDir: options.modules,
             templatesDir: options.templates,
             providerKind: parseProviderKind(options.provider),
+            visual: options.visual,
             keep: options.keep,
           });
           if (options.json) printJson(report);
@@ -666,7 +669,7 @@ export function createProgram(): Command {
               if (result.error) printLine(`  ${result.error}`);
             }
             printLine(
-              `${report.playable}/${report.total} playable · ${report.fallback} fallback · ${report.unverified} unverified · ${report.failed} failed (${report.provider})`,
+              `${report.playable}/${report.total} playable · ${report.fallback} fallback · ${report.unverified} unverified · ${report.failed} failed · score ${report.score}${report.visualRequested ? ' (visual)' : ''} (${report.provider})`,
             );
           }
           process.exitCode = benchmarkExitCode(report);

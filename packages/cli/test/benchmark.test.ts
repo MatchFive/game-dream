@@ -49,6 +49,11 @@ describe('case benchmark', () => {
     expect(report.results.find((result) => result.id === 'survivor')?.status).toBe('playable');
     expect(report.results.find((result) => result.id === 'survivor')?.templateExists).toBe(true);
     expect(report.failed).toBe(0);
+    expect(report.visualRequested).toBe(false);
+    expect(report.score).toBeGreaterThanOrEqual(80);
+    const survivor = report.results.find((result) => result.id === 'survivor');
+    expect(survivor?.scores.intent).toBe(1);
+    expect(survivor?.scores.playability).toBe(1);
     expect(benchmarkExitCode(report)).toBe(0);
   });
 

@@ -125,3 +125,10 @@ same-seed ordering, different-seed ordering, and the headless `WEB_WIN`.
 
 `unity-roguelike-rooms.log` records the Unity EditorVerifier for the roguelike
 template; it emits `UNITY_ROOM`, `UNITY_RELIC`, and `UNITY_WIN` with exit `0`.
+
+## Benchmark scoring
+
+`benchmark-score.log` records the fake-provider benchmark with per-case
+playability/intent scores and the aggregate score. `--visual` adds the G6
+component when a real screenshot is available; skipped/failed visual checks do
+not count as passes.

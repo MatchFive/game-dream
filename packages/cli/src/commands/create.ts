@@ -19,6 +19,7 @@ export interface CreateCommandOptions {
   fetchImpl?: typeof fetch;
   runner?: CommandRunner;
   verify?: boolean;
+  visual?: boolean;
 }
 
 export interface CreateCommandResult {
@@ -76,6 +77,7 @@ export async function createCommand(
     projectDir: result.outDir,
     env,
     runner: options.runner,
+    visual: options.visual,
   });
   return { result, verify: report, notice };
 }
