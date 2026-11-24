@@ -75,6 +75,10 @@ Pass a generated project explicitly with `--path`, for example
 `--port <port>`, `--host <host>`, `--no-open`, `--build`, `--skip-install`;
 see `node scripts/start.mjs --help`.
 
+If the Windows launcher closes immediately, run `start.cmd` from a terminal:
+it pauses on failure and prints the reason. Common causes are Node.js below 22
+and Corepack/pnpm not enabled (`corepack enable`).
+
 Create a local configuration from the example. The CLI loads `.env` from the
 current directory; explicit environment variables take precedence.
 

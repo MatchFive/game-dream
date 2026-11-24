@@ -15,7 +15,8 @@ node packages/cli/dist/index.js studio --path . --open
 ```
 
 The command prints a URL such as `http://127.0.0.1:4173`. Stop it with
-`Ctrl+C`.
+`Ctrl+C`. On Windows, `start.cmd` keeps the console open and pauses on failure;
+run it from a terminal if a double-click closes immediately.
 
 - `/` is the project studio: preview, verification gates, run history, session
   summary, assets, and evidence.

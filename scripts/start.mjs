@@ -7,6 +7,13 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const cli = join(root, 'packages', 'cli', 'dist', 'index.js');
 
+const nodeMajor = Number(process.versions.node.split('.')[0]);
+if (!Number.isInteger(nodeMajor) || nodeMajor < 22) {
+  console.error(`GameDream requires Node.js 22+; found ${process.versions.node}.`);
+  console.error('Install Node.js 22 or newer and run the launcher again.');
+  process.exit(3);
+}
+
 function arg(name, fallback) {
   const index = process.argv.indexOf(`--${name}`);
   return index >= 0 ? process.argv[index + 1] : fallback;
@@ -47,12 +54,19 @@ const host = arg('host', '127.0.0.1');
 const port = arg('port', '4173');
 const shouldOpen = !flag('no-open');
 const packageCommand = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
-const pnpm = (args) =>
-  spawnSync(packageCommand, ['pnpm', ...args], {
+const pnpm = (args) => {
+  const result = spawnSync(packageCommand, ['pnpm', ...args], {
     cwd: root,
     stdio: 'inherit',
     env: process.env,
   });
+  if (result.error) {
+    console.error(`[GameDream] Could not run ${packageCommand}: ${result.error.message}`);
+    console.error('Enable Corepack (`corepack enable`) or install pnpm 9, then retry.');
+    return { status: 1 };
+  }
+  return result;
+};
 
 if (!existsSync(join(root, 'node_modules', '.pnpm'))) {
   if (flag('skip-install')) {
