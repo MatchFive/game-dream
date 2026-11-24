@@ -53,16 +53,32 @@ const workspace = arg('workspace');
 const host = arg('host', '127.0.0.1');
 const port = arg('port', '4173');
 const shouldOpen = !flag('no-open');
-const packageCommand = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
+const packageCommand = process.platform === 'win32' ? 'corepack' : 'corepack';
 const pnpm = (args) => {
-  const result = spawnSync(packageCommand, ['pnpm', ...args], {
+  const isWindows = process.platform === 'win32';
+  const command = isWindows ? process.env.ComSpec ?? 'cmd.exe' : packageCommand;
+  const commandArgs = isWindows
+    ? ['/d', '/s', '/c', `corepack pnpm ${args.join(' ')}`]
+    : ['pnpm', ...args];
+  let result = spawnSync(command, commandArgs, {
     cwd: root,
     stdio: 'inherit',
     env: process.env,
+    windowsHide: true,
   });
+  if (isWindows && (result.error || result.status !== 0)) {
+    const fallback = spawnSync('pnpm', args, {
+      cwd: root,
+      stdio: 'inherit',
+      env: process.env,
+      shell: true,
+      windowsHide: true,
+    });
+    if (!fallback.error) result = fallback;
+  }
   if (result.error) {
-    console.error(`[GameDream] Could not run ${packageCommand}: ${result.error.message}`);
-    console.error('Enable Corepack (`corepack enable`) or install pnpm 9, then retry.');
+    console.error(`[GameDream] Could not run pnpm: ${result.error.message}`);
+    console.error('Install Node.js 22+ with Corepack, or install pnpm 9, then retry.');
     return { status: 1 };
   }
   return result;
