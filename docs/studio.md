@@ -131,8 +131,8 @@ atlas** combines equal-sized frames into a horizontal transparent PNG with
 is indexed as a normal asset and also written to
 `game/build-assets/animations/` with a Web JSON descriptor, a Godot
 `SpriteFrames` `.tres` resource, and an `index.json`. The Web survivor template
-loads the first indexed atlas and animates the player; Godot template auto-wiring
-is still pending.
+loads the first indexed atlas and animates the player; Godot discovers the first
+generated `SpriteFrames` resource.
 
 The **BGM** chip generates a 30-second MiniMax Music 3 track through ComfyUI.
 The job is written to `.gamedream/studio/generated/<job-id>.mp3` with a JSON
@@ -323,6 +323,11 @@ expose it on a public interface.
   runtime shim for `fetch`, `XMLHttpRequest`, `URL`, image/media/script/link
   `src`/`href`, and nested `/play/<dir>/` pages. Root-absolute paths built in
   JavaScript resolve under the playtest prefix.
+- Studio write APIs reject cross-site requests (`Sec-Fetch-Site: cross-site` or
+  a mismatched `Origin`) and require JSON bodies. `/play/` refuses dotfiles,
+  `..`, and `node_modules`; the screenshot route only serves image files.
+  Generated Web games still share the Studio origin, so playtest code can reach
+  Studio APIs; moving `/play/` to a separate origin is a follow-up.
 - Godot playtest requires a local display and a 4.x `GODOT_BIN`. Unity playtest
   requires a built player; it does not build Unity from the Studio server.
 - Animation generation produces a 2–4 frame keyframe sequence with playback,

@@ -18,6 +18,13 @@ import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
 import {
+  assertTrustedMutation,
+  HttpSecurityError,
+  isImageRelativePath,
+  isSafeGodotBin,
+  isSensitiveRelativePath,
+} from './security.js';
+import {
   appendRun,
   loadProjectSnapshot,
   runId,
@@ -355,6 +362,15 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       const pathname = decodeURIComponent(url.pathname);
 
       if (pathname.startsWith('/api/')) {
+        try {
+          assertTrustedMutation(request);
+        } catch (error) {
+          if (error instanceof HttpSecurityError) {
+            json(response, error.status, { error: error.message });
+            return;
+          }
+          throw error;
+        }
         if (pathname.startsWith('/api/settings') || pathname.startsWith('/api/projects')) {
           await handleWorkspaceApi(request, response, pathname, {
             workspaceDir,
@@ -398,6 +414,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         const relativePath = pathname === '/play' || pathname === '/play/'
           ? 'index.html'
           : pathname.slice('/play/'.length);
+        if (isSensitiveRelativePath(relativePath)) {
+          response.writeHead(404);
+          response.end('Playtest build not found');
+          return;
+        }
         const file = safeProjectFile(playRoot, relativePath);
         if (!file || !existsSync(file) || !statSync(file).isFile()) {
           const indexFile = file && existsSync(file) && statSync(file).isDirectory()
@@ -429,8 +450,13 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
             : pathname === '/studio'
               ? 'studio.html'
               : pathname.replace(/^\/+/, '');
-      const file = resolve(PUBLIC_DIR, relativePath);
-      if (!file.startsWith(resolve(PUBLIC_DIR)) || !existsSync(file) || !statSync(file).isFile()) {
+      const publicRoot = resolve(PUBLIC_DIR);
+      const file = resolve(publicRoot, relativePath);
+      if (
+        !file.startsWith(`${publicRoot}${requireSeparator()}`)
+        || !existsSync(file)
+        || !statSync(file).isFile()
+      ) {
         response.writeHead(404);
         response.end('Not found');
         return;
@@ -638,11 +664,11 @@ function detectGodotPlaytest(env: NodeJS.ProcessEnv = process.env): {
 } {
   const candidates = [env.GODOT_BIN, 'godot', 'godot4'].filter(Boolean) as string[];
   for (const bin of candidates) {
+    if (!isSafeGodotBin(bin)) continue;
     const result = spawnSync(bin, ['--version'], {
       encoding: 'utf8',
       timeout: 3000,
       windowsHide: true,
-      shell: process.platform === 'win32',
     });
     const version = String(result.stdout ?? '').trim().split(/\r?\n/)[0] ?? '';
     if (result.status === 0 && /^4\./.test(version)) {
@@ -1260,7 +1286,9 @@ async function handleApi(
     });
     const requested = new URL(request.url ?? '/', 'http://local').searchParams.get('file');
     const relativeFile = requested ?? snapshot.build.screenshot?.file;
-    const file = relativeFile ? safeProjectFile(root, relativeFile) : undefined;
+    const file = relativeFile && isImageRelativePath(relativeFile)
+      ? safeProjectFile(root, relativeFile)
+      : undefined;
     if (!file) {
       json(response, 404, { error: 'screenshot not found' });
       return;

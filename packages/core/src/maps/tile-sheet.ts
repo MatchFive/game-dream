@@ -69,6 +69,9 @@ function parseRgb(value: string): [number, number, number] {
 
 export function renderTilesetPng(map: GameMap): Buffer {
   const size = map.tile_size;
+  if (!Number.isInteger(size) || size < 8 || size > 512) {
+    throw new Error('tile_size must be an integer between 8 and 512');
+  }
   const width = size * 2;
   const height = size;
   const rgba = Buffer.alloc(width * height * 4);

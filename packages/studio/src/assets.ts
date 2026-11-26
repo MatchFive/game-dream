@@ -10,7 +10,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, extname, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type {
   CanvasNode,
   CanvasState,
@@ -340,9 +340,12 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
     return empty;
   }
 
+  const buildRoot = resolve(root, BUILD_ASSET_ROOT);
   for (const entry of previous?.assets ?? []) {
-    if (!entry.file.startsWith(`${BUILD_ASSET_ROOT}/`)) continue;
-    rmSync(join(root, entry.file), { force: true });
+    const target = resolve(root, entry.file);
+    if (target === buildRoot || !target.startsWith(`${buildRoot}${sep}`)) continue;
+    if (!existsSync(target) || !statSync(target).isFile()) continue;
+    rmSync(target, { force: true });
   }
 
   const assets = selected.map((asset) => {

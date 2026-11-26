@@ -13,6 +13,9 @@ export default defineConfig({
       '@gamedream/godot': fileURLToPath(
         new URL('./packages/godot/src/index.ts', import.meta.url),
       ),
+      '@gamedream/studio': fileURLToPath(
+        new URL('./packages/studio/src/index.ts', import.meta.url),
+      ),
       '@gamedream/testing': fileURLToPath(
         new URL('./packages/testing/src/index.ts', import.meta.url),
       ),

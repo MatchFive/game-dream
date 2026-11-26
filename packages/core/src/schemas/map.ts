@@ -6,7 +6,7 @@ const hexColor = z
 
 export const gameMapSchema = z.object({
   id: z.string().min(1),
-  tile_size: z.number().int().positive().default(32),
+  tile_size: z.number().int().min(8).max(512).default(32),
   tileset: z.object({
     floor: hexColor,
     wall: hexColor,

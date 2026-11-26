@@ -105,6 +105,13 @@ describe('Tiled interop', () => {
     ).toEqual({ floor: '2f5d3a', wall: '1b3324' });
   });
 
+  it('bounds tile_size to avoid oversized tilesets', () => {
+    expect(() => parseGameMap({ ...map, tile_size: 20000 })).toThrow();
+    expect(() => parseGameMap({ ...map, tile_size: 4 })).toThrow();
+    expect(parseGameMap({ ...map, tile_size: 512 }).tile_size).toBe(512);
+    expect(() => renderTilesetPng({ ...map, tile_size: 20000 })).toThrow(/tile_size/);
+  });
+
   it('rejects ragged and invalid internal rows', () => {
     expect(() =>
       toTiledMap(parseGameMap({ ...map, rows: ['###', '##'] })),

@@ -81,4 +81,45 @@ describe('tool permissions', () => {
       compose: 'ask',
     });
   });
+
+  it('keeps an explicit tool deny above a matching allow rule', async () => {
+    const gate = new ToolPermissionGate({
+      policy: {
+        tools: { write_file: 'deny' },
+        rules: [
+          { tool: 'write_file', arg: 'path', prefix: 'src/', mode: 'allow' },
+        ],
+      },
+      interactive: false,
+    });
+    expect(await gate.authorize('write_file', { path: 'src/main.ts' })).toMatchObject({
+      allowed: false,
+      source: 'tool',
+      mode: 'deny',
+    });
+  });
+
+  it('normalizes path prefixes and requires segment boundaries', async () => {
+    const gate = new ToolPermissionGate({
+      policy: {
+        default: 'deny',
+        rules: [
+          { tool: 'write_file', arg: 'path', prefix: 'src/', mode: 'allow' },
+        ],
+      },
+      interactive: false,
+    });
+    for (const path of ['./src/main.ts', 'src//main.ts', 'x/../src/main.ts', 'src\\main.ts']) {
+      expect(await gate.authorize('write_file', { path })).toMatchObject({
+        allowed: true,
+        source: 'rule',
+      });
+    }
+    for (const path of ['src2/main.ts', 'x/src/main.ts', '../src/main.ts']) {
+      expect(await gate.authorize('write_file', { path })).toMatchObject({
+        allowed: false,
+        source: 'default',
+      });
+    }
+  });
 });

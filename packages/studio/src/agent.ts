@@ -795,7 +795,7 @@ export class AgentManager {
     if (permissions) args.push('--permissions', permissions);
     if (eventSeqStart > 0) args.push('--event-seq-start', String(eventSeqStart));
     if (input.resume) args.push('--resume');
-    args.push(batch.prompt);
+    args.push('--', batch.prompt);
     let child: ChildProcess;
     try {
       child = spawn(process.execPath, args, {

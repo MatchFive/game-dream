@@ -617,13 +617,24 @@ function focusNode(id) {
   applyView();
 }
 
+function snapToDevicePixel(value) {
+  const ratio = window.devicePixelRatio || 1;
+  return Math.round(value * ratio) / ratio;
+}
+
+function clampScale(value) {
+  return Math.min(1.6, Math.max(0.35, Math.round(value * 100) / 100));
+}
+
 function applyView() {
-  world.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+  const panX = snapToDevicePixel(state.panX);
+  const panY = snapToDevicePixel(state.panY);
+  world.style.transform = `translate(${panX}px, ${panY}px) scale(${state.scale})`;
   $('#zoomReadout').textContent = `${Math.round(state.scale * 100)}%`;
   $('#mapZoom').textContent = `${Math.round(state.scale * 100)}%`;
   $('#canvasGrid').style.setProperty('--grid', `${24 * state.scale}px`);
-  $('#canvasGrid').style.setProperty('--gx', `${state.panX}px`);
-  $('#canvasGrid').style.setProperty('--gy', `${state.panY}px`);
+  $('#canvasGrid').style.setProperty('--gx', `${panX}px`);
+  $('#canvasGrid').style.setProperty('--gy', `${panY}px`);
   renderMinimap();
 }
 
@@ -1107,7 +1118,7 @@ $$('[data-tool]').forEach((button) => button.addEventListener('click', () => {
 $$('[data-zoom]').forEach((button) => button.addEventListener('click', () => {
   const old = state.scale;
   const rect = canvas.getBoundingClientRect();
-  state.scale = Math.min(1.6, Math.max(0.35, state.scale + (button.dataset.zoom === 'in' ? 0.1 : -0.1)));
+  state.scale = clampScale(state.scale + (button.dataset.zoom === 'in' ? 0.1 : -0.1));
   const mx = rect.width / 2;
   const my = rect.height / 2;
   state.panX = mx - ((mx - state.panX) / old) * state.scale;
@@ -1152,7 +1163,7 @@ canvas.addEventListener('wheel', (event) => {
     const mx = event.clientX - rect.left;
     const my = event.clientY - rect.top;
     const old = state.scale;
-    state.scale = Math.min(1.6, Math.max(0.35, state.scale * (event.deltaY < 0 ? 1.08 : 0.92)));
+    state.scale = clampScale(state.scale * (event.deltaY < 0 ? 1.08 : 0.92));
     state.panX = mx - ((mx - state.panX) / old) * state.scale;
     state.panY = my - ((my - state.panY) / old) * state.scale;
   } else {

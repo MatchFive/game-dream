@@ -44,6 +44,7 @@ import {
   unityWebGLVerifyCommand,
 } from './commands/unity.js';
 import { formatCliError } from './errors.js';
+import { parseIntegerOption, parsePositiveNumberOption } from './options.js';
 import { printJson, printLine } from './output.js';
 
 function printUnityDiagnostics(result: { stdout?: string; stderr?: string }): void {
@@ -78,6 +79,12 @@ export function createProgram(): Command {
         printLine(`Node: ${report.node}`);
         printLine(
           `Godot: ${report.godot ? `${report.godot.version} (${report.godot.bin})` : 'not found'}`,
+        );
+        printLine(
+          `Unity: ${report.unity ? `${report.unity.version} (${report.unity.bin})` : 'not found (optional)'}`,
+        );
+        printLine(
+          `Provider: ${report.provider.provider}${report.provider.apiKey ? ' (API key set)' : ' (no API key, fake fallback)'} · model ${report.provider.model ?? 'default'} · ${report.provider.baseUrl}`,
         );
         printLine(
           `Export templates: ${
@@ -284,19 +291,25 @@ export function createProgram(): Command {
             process.exitCode = 1;
             return;
           }
-          const candidateCount = Math.max(1, Number(options.candidates) || 1);
+          const candidateCount = parseIntegerOption(
+            options.candidates,
+            '--candidates',
+            1,
+          ) ?? 1;
           const candidateOptions = {
             prompt,
             outDir: options.out,
             skillsDir: options.skills,
             skill: selected?.skill ?? options.skill,
             providerKind: parseProviderKind(options.provider),
-            maxSteps: Number(options.maxSteps),
-            maxTokens: options.maxTokens === undefined ? undefined : Number(options.maxTokens),
-            maxPromptTokens: options.maxPromptTokens === undefined
-              ? undefined
-              : Number(options.maxPromptTokens),
-            maxCostUsd: options.maxCost === undefined ? undefined : Number(options.maxCost),
+            maxSteps: parseIntegerOption(options.maxSteps, '--max-steps', 1),
+            maxTokens: parseIntegerOption(options.maxTokens, '--max-tokens', 1),
+            maxPromptTokens: parseIntegerOption(
+              options.maxPromptTokens,
+              '--max-prompt-tokens',
+              1,
+            ),
+            maxCostUsd: parsePositiveNumberOption(options.maxCost, '--max-cost'),
             visual: options.visual,
             expectedMarkers: selected?.expected_markers,
             mcpConfig: options.mcpConfig,
@@ -312,9 +325,7 @@ export function createProgram(): Command {
             eventsFile: options.eventsFile,
             approvalDir: options.approvalDir,
             runId: options.runId,
-            eventSeqStart: options.eventSeqStart === undefined
-              ? undefined
-              : Number(options.eventSeqStart),
+            eventSeqStart: parseIntegerOption(options.eventSeqStart, '--event-seq-start', 0),
           };
           const candidates = candidateCount > 1
             ? await developCandidates({
@@ -323,20 +334,23 @@ export function createProgram(): Command {
               })
             : undefined;
           const report = candidates?.selected.report ?? await developCommand(candidateOptions);
-          if (options.json) printJson(candidates ?? report);
-          else if (candidates) {
-            for (const candidate of candidates.candidates) {
+          if (candidates) {
+            if (options.json) {
+              printJson(candidates);
+            } else {
+              for (const candidate of candidates.candidates) {
+                printLine(
+                  `Candidate ${candidate.index}: score ${candidate.score} · ${candidate.outDir} · ${candidate.report.finished ? 'finished' : 'incomplete'}`,
+                );
+              }
               printLine(
-                `Candidate ${candidate.index}: score ${candidate.score} · ${candidate.outDir} · ${candidate.report.finished ? 'finished' : 'incomplete'}`,
+                `Selected candidate ${candidates.selected.index}: ${candidates.selected.outDir}`,
               );
+              for (const [gate, result] of Object.entries(report.verify.gates)) {
+                printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
+              }
+              printLine(`Session: ${report.sessionPath}`);
             }
-            printLine(
-              `Selected candidate ${candidates.selected.index}: ${candidates.selected.outDir}`,
-            );
-            for (const [gate, result] of Object.entries(report.verify.gates)) {
-              printLine(`${gate}: ${result.status}${result.message ? ` (${result.message})` : ''}`);
-            }
-            printLine(`Session: ${report.sessionPath}`);
             process.exitCode =
               report.finished && report.missingMarkers.length === 0
                 ? exitCodeFor(report.verify)
@@ -421,6 +435,14 @@ export function createProgram(): Command {
     .requiredOption('--path <dir>')
     .option('--quit-after <frames>', 'quit guard', '1200')
     .action(async (options: { path: string; quitAfter: string }) => {
+      let quitAfter: number;
+      try {
+        quitAfter = parseIntegerOption(options.quitAfter, '--quit-after', 1) ?? 1200;
+      } catch (error) {
+        printLine((error as Error).message);
+        process.exitCode = 1;
+        return;
+      }
       const godot = await detectGodot();
       if (!godot) {
         printLine('Godot not found; set GODOT_BIN.');
@@ -430,7 +452,7 @@ export function createProgram(): Command {
       const result = await runProject({
         projectDir: options.path,
         godot,
-        quitAfter: Number(options.quitAfter),
+        quitAfter,
       });
       if (result.stdout) printLine(result.stdout);
       if (result.stderr) printLine(result.stderr);

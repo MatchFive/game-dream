@@ -37,9 +37,13 @@ Modes:
 
 Rules are evaluated from last to first. A rule matches when the tool matches
 (or is `*`) and, when `arg` is set, that argument is a string/array entry whose
-normalized path starts with `prefix`. Paths outside the prefix fall back to the
-tool mode or default. Each decision emits a `permission/audit` event containing
-the tool, mode, source (`rule`/`tool`/`default`), matched rule, and result.
+normalized path starts with `prefix`. Paths are normalized (`.`, `..`,
+duplicate separators, and Windows `\`) and must match on a path boundary.
+An explicit tool-level `deny` from `tools` or `--deny-tool` is a hard ceiling
+and cannot be overridden by a matching allow rule. Paths outside the prefix
+fall back to the tool mode or default. Each decision emits a
+`permission/audit` event containing the tool, mode, source
+(`rule`/`tool`/`default`), matched rule, and result.
 
 `ask` requires an interactive terminal. In CI or non-interactive runs it is
 denied with a message to use `--yes` or change the policy.

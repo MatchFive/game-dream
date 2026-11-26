@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -27,6 +28,7 @@ import { composeProject } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
 import { McpClient, defaultMcpConfig, type McpTool } from './mcp.js';
+import { resolveSkillDirectory } from './skill-directory.js';
 import {
   ToolPermissionGate,
   loadPermissionPolicy,
@@ -256,7 +258,12 @@ const TOOLS: Tool[] = [
         };
       }
       const skillName = String(args.skill ?? context.skill);
-      const skillDir = join(context.skillsDir, skillName);
+      let skillDir: string;
+      try {
+        skillDir = resolveSkillDirectory(context.skillsDir, skillName);
+      } catch (error) {
+        return { ok: false, output: (error as Error).message };
+      }
       const kitDir = join(skillDir, 'kit');
       if (!existsSync(kitDir)) {
         return { ok: false, output: `skill kit not found: ${kitDir}` };
@@ -338,9 +345,14 @@ const TOOLS: Tool[] = [
       try {
         const skillName = String(args.skill ?? context.skill);
         const relative = String(args.path ?? 'SKILL.md').replaceAll('\\', '/');
-        const root = join(context.skillsDir, skillName);
+        const root = resolveSkillDirectory(context.skillsDir, skillName);
         const target = inside(root, relative);
         if (!existsSync(target) || statSync(target).isDirectory()) {
+          return { ok: false, output: `skill file not found: ${skillName}/${relative}` };
+        }
+        const realRoot = realpathSync(root);
+        const realTarget = realpathSync(target);
+        if (realTarget !== realRoot && !realTarget.startsWith(`${realRoot}${sep}`)) {
           return { ok: false, output: `skill file not found: ${skillName}/${relative}` };
         }
         return { ok: true, output: readFileSync(target, 'utf8').slice(0, 120_000) };
@@ -575,10 +587,14 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     .map((name) => join(options.skillsDir, name, 'SKILL.md'))
     .filter((path) => existsSync(path))
     .map((path) => readFileSync(path, 'utf8'));
-  const skillTextPath = join(options.skillsDir, options.skill, 'SKILL.md');
-  const selectedSkill = existsSync(skillTextPath)
-    ? readFileSync(skillTextPath, 'utf8')
-    : '(no skill instructions found)';
+  let selectedSkill = '(no skill instructions found)';
+  try {
+    const skillDirectory = resolveSkillDirectory(options.skillsDir, options.skill);
+    const skillTextPath = join(skillDirectory, 'SKILL.md');
+    if (existsSync(skillTextPath)) selectedSkill = readFileSync(skillTextPath, 'utf8');
+  } catch {
+    // An unknown skill still gets the generic prompt instead of reading outside skillsDir.
+  }
   const skillText = [...loadedBaseSkills, selectedSkill].filter(Boolean).join('\n\n');
   const provider =
     options.provider ??

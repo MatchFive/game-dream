@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PNG } from 'pngjs';
 import { createAnimationAtlas } from '../src/animation-atlas.js';
-import { loadCanvas, renameAsset, saveCanvas, scanAssets, setInBuild, toggleInBuild } from '../src/assets.js';
+import { loadCanvas, renameAsset, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from '../src/assets.js';
 import { ComfyAudioRunner, ComfyRunner } from '../src/comfyui.js';
 import { loadProjectSnapshot, loadRuns } from '../src/project.js';
 import { startStudioServer } from '../src/server.js';
@@ -579,6 +579,71 @@ describe('studio assets', () => {
     } finally {
       await playStudio.close();
       rmSync(playRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('does not delete files outside game/build-assets from a stale manifest', () => {
+    writeFileSync(join(root, 'secret.txt'), 'keep', 'utf8');
+    mkdirSync(join(root, 'game', 'build-assets'), { recursive: true });
+    writeFileSync(
+      join(root, 'game', 'build-assets', 'manifest.json'),
+      JSON.stringify({
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        assets: [{
+          id: 'stale',
+          name: 'Stale',
+          file: 'game/build-assets/../../secret.txt',
+          source: 'studio',
+          kind: 'sprite',
+          mime: 'image/png',
+        }],
+      }),
+      'utf8',
+    );
+    syncBuildAssets(root);
+    expect(readFileSync(join(root, 'secret.txt'), 'utf8')).toBe('keep');
+  });
+
+  it('rejects cross-site mutations and sensitive playtest files', async () => {
+    writeFileSync(join(root, '.env'), 'OPENAI_API_KEY=secret\n');
+    writeFileSync(join(root, '.gamedream', 'session.json'), '{"secret":true}\n');
+    const studio = await startStudioServer({
+      projectDir: root,
+      port: 0,
+      comfyui: { url: 'http://127.0.0.1:1', workflow: join(root, 'missing.json') },
+    });
+    try {
+      expect((await fetch(`${studio.url}/play/.env`)).status).toBe(404);
+      expect((await fetch(`${studio.url}/play/.gamedream/session.json`)).status).toBe(404);
+      expect((await fetch(`${studio.url}/play/node_modules/phaser/index.js`)).status).toBe(404);
+      expect((await fetch(`${studio.url}/api/project/screenshot?file=.env`)).status).toBe(404);
+
+      const crossSite = await fetch(`${studio.url}/api/playtest/stop`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'sec-fetch-site': 'cross-site' },
+        body: JSON.stringify({}),
+      });
+      expect(crossSite.status).toBe(403);
+
+      const plain = await fetch(`${studio.url}/api/playtest/stop`, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: JSON.stringify({}),
+      });
+      expect(plain.status).toBe(415);
+
+      const allowed = await fetch(`${studio.url}/api/playtest/stop`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: new URL(studio.url).origin,
+        },
+        body: JSON.stringify({}),
+      });
+      expect(allowed.status).toBe(200);
+    } finally {
+      await studio.close();
     }
   });
 });

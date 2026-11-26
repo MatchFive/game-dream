@@ -22,7 +22,10 @@ export const gameSpecSchema = z
       .object({
         primary: z.string().min(1),
         secondary: z.array(z.string()).default([]),
-        template: z.string().min(1),
+        template: z
+          .string()
+          .min(1)
+          .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, 'invalid template id'),
       })
       .passthrough(),
     scope: z

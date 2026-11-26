@@ -7,6 +7,7 @@ import {
   type VisionProviderKind,
 } from '@gamedream/agent';
 import { parseGameManifest, parseLockfile } from '@gamedream/core';
+import { verifyProjectIntegrity } from './integrity.js';
 import {
   detectGodot,
   findScriptErrors,
@@ -61,7 +62,7 @@ export async function verifyCommand(options: {
   if (visualRequested) gates.G6 = { status: 'skip', message: 'not run' };
 
   try {
-    parseLockfile(
+    const lockfile = parseLockfile(
       JSON.parse(readFileSync(join(options.projectDir, 'modules.lock.json'), 'utf8')),
     );
     const manifest = parseGameManifest(
@@ -69,6 +70,18 @@ export async function verifyCommand(options: {
         readFileSync(join(options.projectDir, 'game/game.manifest.json'), 'utf8'),
       ),
     );
+    const integrityProblems = verifyProjectIntegrity(
+      options.projectDir,
+      lockfile,
+      manifest,
+    );
+    if (integrityProblems.length > 0) {
+      const shown = integrityProblems.slice(0, 3).join('; ');
+      const more = integrityProblems.length > 3
+        ? ` (+${integrityProblems.length - 3} more)`
+        : '';
+      throw new Error(`integrity check failed: ${shown}${more}`);
+    }
     markers = manifest.acceptance.markers;
     gates.G1 = { status: 'pass' };
   } catch (error) {

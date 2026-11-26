@@ -35,6 +35,18 @@ describe('GameSpec schema', () => {
   it('rejects a missing template', () => {
     expect(() => parseGameSpec({ ...valid, genre: { primary: 'action-rpg' } })).toThrow();
   });
+
+  it('rejects template path traversal and absolute paths', () => {
+    expect(() =>
+      parseGameSpec({ ...valid, genre: { primary: 'action-rpg', template: '../evil' } }),
+    ).toThrow();
+    expect(() =>
+      parseGameSpec({
+        ...valid,
+        genre: { primary: 'action-rpg', template: 'C:\\evil' },
+      }),
+    ).toThrow();
+  });
 });
 
 const manifest = {

@@ -15,6 +15,20 @@ function hasMarker(stdout: string, marker: string): boolean {
   return stdout.split(/\r?\n/).some((line) => line.trim() === marker);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function invalidGame(message: string): WebVerifyResult {
+  return {
+    passed: false,
+    exitCode: 1,
+    stdout: '',
+    stderr: '',
+    message: `invalid game.json: ${message}`,
+  };
+}
+
 export function verifyWebProject(options: {
   projectDir: string;
   frames?: number;
@@ -31,32 +45,51 @@ export function verifyWebProject(options: {
       };
     }
   }
-  let config: {
-    levels?: Array<{ enemy?: { kind?: string } }>;
-    quests?: Array<{ type?: string }>;
-  };
+  let parsed: unknown;
   try {
-    config = JSON.parse(readFileSync(join(projectDir, 'game.json'), 'utf8'));
+    parsed = JSON.parse(readFileSync(join(projectDir, 'game.json'), 'utf8'));
   } catch (error) {
-    return {
-      passed: false,
-      exitCode: 1,
-      stdout: '',
-      stderr: '',
-      message: `invalid game.json: ${(error as Error).message}`,
-    };
+    return invalidGame((error as Error).message);
   }
+  if (!isRecord(parsed)) return invalidGame('top level must be an object');
+
+  const rawLevels = parsed.levels;
+  if (rawLevels !== undefined) {
+    if (!Array.isArray(rawLevels)) return invalidGame('levels must be an array');
+    for (const [index, level] of rawLevels.entries()) {
+      if (!isRecord(level)) return invalidGame(`levels[${index}] must be an object`);
+      if (level.enemy !== undefined) {
+        if (!isRecord(level.enemy)) {
+          return invalidGame(`levels[${index}].enemy must be an object`);
+        }
+        if (level.enemy.kind !== undefined && typeof level.enemy.kind !== 'string') {
+          return invalidGame(`levels[${index}].enemy.kind must be a string`);
+        }
+      }
+    }
+  }
+
+  const rawQuests = parsed.quests;
+  if (rawQuests !== undefined) {
+    if (!Array.isArray(rawQuests)) return invalidGame('quests must be an array');
+    for (const [index, quest] of rawQuests.entries()) {
+      if (!isRecord(quest)) return invalidGame(`quests[${index}] must be an object`);
+      if (quest.type !== undefined && typeof quest.type !== 'string') {
+        return invalidGame(`quests[${index}].type must be a string`);
+      }
+    }
+  }
+
+  const levels = (rawLevels ?? []) as Array<Record<string, unknown>>;
+  const quests = (rawQuests ?? []) as Array<Record<string, unknown>>;
   const requiredMarkers = ['WEB_BOOT_OK'];
-  if (Array.isArray(config.levels) && config.levels.length > 0) {
+  if (levels.length > 0) {
     requiredMarkers.push('WEB_MAP_OK');
-    if (config.levels.some((level) => level.enemy?.kind === 'boss')) {
+    if (levels.some((level) => isRecord(level.enemy) && level.enemy.kind === 'boss')) {
       requiredMarkers.push('WEB_BOSS_PHASE');
     }
   }
-  if (
-    Array.isArray(config.quests) &&
-    config.quests.some((quest) => (quest.type ?? 'kill') === 'kill')
-  ) {
+  if (quests.some((quest) => (quest.type ?? 'kill') === 'kill')) {
     requiredMarkers.push('WEB_QUEST_COMPLETE');
   }
   requiredMarkers.push('WEB_WIN');

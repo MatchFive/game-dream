@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -135,5 +135,49 @@ describe('web M0', () => {
     const missingFile = verifyWebProject({ projectDir: fileDir });
     expect(missingFile.passed).toBe(false);
     expect(missingFile.message).toContain('missing game.js');
+  });
+
+  it('rejects malformed game.json entries instead of throwing', () => {
+    const outDir = join(makeTempDir('gamedream web invalid '), 'web game');
+    composeWebProject({ outDir, templatesDir });
+
+    writeFileSync(join(outDir, 'game.json'), JSON.stringify({ levels: [null] }), 'utf8');
+    const nullLevel = verifyWebProject({ projectDir: outDir });
+    expect(nullLevel.passed).toBe(false);
+    expect(nullLevel.message).toContain('levels[0] must be an object');
+
+    writeFileSync(join(outDir, 'game.json'), JSON.stringify({ quests: [null] }), 'utf8');
+    const nullQuest = verifyWebProject({ projectDir: outDir });
+    expect(nullQuest.passed).toBe(false);
+    expect(nullQuest.message).toContain('quests[0] must be an object');
+
+    writeFileSync(join(outDir, 'game.json'), '[]', 'utf8');
+    const array = verifyWebProject({ projectDir: outDir });
+    expect(array.passed).toBe(false);
+    expect(array.message).toContain('top level must be an object');
+  });
+
+  it('rejects overlapping output and keeps the old project on failure', () => {
+    const template = makeTempDir('gamedream web template ');
+    writeFileSync(join(template, 'index.html'), '<html></html>', 'utf8');
+    expect(() =>
+      composeWebProject({ outDir: template, templatesDir: template, force: true }),
+    ).toThrow(/overlap/);
+    expect(() =>
+      composeWebProject({
+        outDir: join(template, 'out'),
+        templatesDir: template,
+        force: true,
+      }),
+    ).toThrow(/overlap/);
+
+    const outDir = join(makeTempDir('gamedream web atomic '), 'web game');
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(join(outDir, 'keep.txt'), 'keep', 'utf8');
+    expect(() =>
+      composeWebProject({ outDir, templatesDir: template, force: true }),
+    ).toThrow(/incomplete/);
+    expect(readFileSync(join(outDir, 'keep.txt'), 'utf8')).toBe('keep');
+    expect(existsSync(join(outDir, 'index.html'))).toBe(false);
   });
 });

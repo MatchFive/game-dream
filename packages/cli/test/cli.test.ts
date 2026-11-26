@@ -43,7 +43,11 @@ describe('formatCliError', () => {
 
 describe('doctor', () => {
   it('reports Godot when available', async () => {
-    const report = await doctorCommand({ env: { GODOT_BIN: 'godot' }, runner: fakeGodot });
+    const report = await doctorCommand({
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      unity: null,
+    });
     expect(report.godot?.version).toContain('4.4');
     expect(report.ok).toBe(true);
   });
@@ -65,7 +69,7 @@ describe('doctor', () => {
 
   it('reports export template status as a warning without changing doctor ok', async () => {
     const env = { GODOT_BIN: 'godot', APPDATA: makeTempDir('gamedream doctor templates ') };
-    const report = await doctorCommand({ env, runner: fakeGodot });
+    const report = await doctorCommand({ env, runner: fakeGodot, unity: null });
     expect(report.templates?.installed).toBe(false);
     expect(report.ok).toBe(true);
     expect(report.warnings.join(' ')).toContain('export templates');
@@ -80,9 +84,51 @@ describe('doctor', () => {
         return { exitCode: 0, stdout: '', stderr: '' };
       },
     };
-    const report = await doctorCommand({ env: { GODOT_BIN: 'godot' }, runner: oldGodot });
+    const report = await doctorCommand({
+      env: { GODOT_BIN: 'godot' },
+      runner: oldGodot,
+      unity: null,
+    });
     expect(report.ok).toBe(false);
     expect(report.problems.join(' ')).toContain('4.4');
+  });
+
+  it('reports Unity and provider configuration without exposing the key', async () => {
+    const unity = {
+      bin: 'unity',
+      version: '6000.6.9f1',
+      major: 6000,
+      minor: 6,
+      patch: 9,
+    };
+    const withKey = await doctorCommand({
+      env: {
+        GODOT_BIN: 'godot',
+        OPENAI_API_KEY: 'secret',
+        GAMEDREAM_MODEL: 'gpt-4o-mini',
+      },
+      runner: fakeGodot,
+      unity,
+    });
+    expect(withKey.unity).toMatchObject({ version: '6000.6.9f1' });
+    expect(withKey.provider).toMatchObject({
+      provider: 'openai',
+      apiKey: true,
+      model: 'gpt-4o-mini',
+    });
+    expect(JSON.stringify(withKey)).not.toContain('secret');
+    expect(withKey.warnings.join(' ')).not.toContain('OPENAI_API_KEY is not set');
+
+    const noKey = await doctorCommand({
+      env: { GODOT_BIN: 'godot' },
+      runner: fakeGodot,
+      unity: null,
+    });
+    expect(noKey.unity).toBeNull();
+    expect(noKey.provider.apiKey).toBe(false);
+    expect(noKey.warnings.join(' ')).toContain('Unity 6 not found');
+    expect(noKey.warnings.join(' ')).toContain('OPENAI_API_KEY is not set');
+    expect(noKey.ok).toBe(true);
   });
 });
 

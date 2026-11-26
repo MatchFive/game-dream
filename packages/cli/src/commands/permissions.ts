@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
 export type ToolPermissionMode = 'allow' | 'deny' | 'ask';
@@ -74,6 +75,21 @@ function defaultPrompt(tool: string, args: Record<string, unknown>): Promise<boo
     .finally(() => rl.close());
 }
 
+function normalizePermissionPath(value: string): string {
+  const unified = value.replace(/\\/g, '/');
+  const normalized = posix.normalize(unified);
+  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized;
+}
+
+function pathMatchesPrefix(value: string, prefix: string): boolean {
+  if (prefix === '') return true;
+  const normalizedValue = normalizePermissionPath(value);
+  const normalizedPrefix = normalizePermissionPath(prefix);
+  if (normalizedPrefix === '/') return normalizedValue.startsWith('/');
+  return normalizedValue === normalizedPrefix
+    || normalizedValue.startsWith(`${normalizedPrefix}/`);
+}
+
 function ruleMatches(
   rule: PermissionPolicyRule,
   tool: string,
@@ -85,7 +101,7 @@ function ruleMatches(
   const values = Array.isArray(value) ? value : [value];
   return values.some((entry) => (
     typeof entry === 'string'
-    && (rule.prefix === undefined || entry.replace(/\\/g, '/').startsWith(rule.prefix.replace(/\\/g, '/')))
+    && (rule.prefix === undefined || pathMatchesPrefix(entry, rule.prefix))
   ));
 }
 
@@ -114,8 +130,16 @@ export class ToolPermissionGate {
       }
     }
     const toolMode = this.policy.tools?.[tool];
-    const mode = rule?.mode ?? toolMode ?? this.policy.default ?? 'allow';
-    const source = rule ? 'rule' : toolMode ? 'tool' : 'default';
+    const mode = toolMode === 'deny'
+      ? 'deny'
+      : rule?.mode ?? toolMode ?? this.policy.default ?? 'allow';
+    const source = toolMode === 'deny'
+      ? 'tool'
+      : rule
+        ? 'rule'
+        : toolMode
+          ? 'tool'
+          : 'default';
     const audit = (allowed: boolean, reason?: string): PermissionDecision => {
       const decision: PermissionDecision = { allowed, reason, mode, source, rule };
       this.onDecision?.({

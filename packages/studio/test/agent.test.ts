@@ -27,7 +27,9 @@ const maxTokens = arg('max-tokens');
 const maxCost = arg('max-cost');
 let seq = Number(arg('event-seq-start', '0')) || 0;
 const write = (event) => appendFileSync(eventsFile, JSON.stringify({ seq: ++seq, at: new Date().toISOString(), runId, ...event }) + '\\n', 'utf8');
-write({ type: 'run/start', prompt: 'fixture' });
+const separator = process.argv.indexOf('--');
+const prompt = separator >= 0 ? process.argv.slice(separator + 1).join(' ') : '';
+write({ type: 'run/start', prompt });
 if (maxCost) {
   const limit = Number(maxCost);
   write({ type: 'run/budget', kind: 'cost', limit, used: limit + 0.01 });
@@ -140,28 +142,34 @@ it('runs candidates and applies the selected candidate', async () => {
   });
   expect(started.status).toBe(202);
   let data = await getAgent(studio.url);
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     data = await getAgent(studio.url);
-    if (data.active?.status === 'awaiting-approval') break;
+    const pending = data.active?.candidates.flatMap((candidate) =>
+      candidate.approvals.filter((approval) => approval.status === 'pending'),
+    ) ?? [];
+    if (pending.length === 2) break;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   expect(data.active?.candidates).toHaveLength(2);
   for (const candidate of data.active?.candidates ?? []) {
+    const approval = candidate.approvals.find((entry) => entry.status === 'pending');
+    if (!approval) continue;
     await fetch(
       `${studio.url}/api/agent/batches/${data.active?.id}/runs/${candidate.id}/approval`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ approvalId: 'approval-1', allowed: true }),
+        body: JSON.stringify({ approvalId: approval.id, allowed: true }),
       },
     );
   }
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     data = await getAgent(studio.url);
     if (data.batches[0]?.candidates.every((candidate) => candidate.status === 'finished')) break;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   const batch = data.batches[0];
+  expect(batch?.candidates.every((candidate) => candidate.status === 'finished')).toBe(true);
   expect(batch?.candidates).toHaveLength(2);
   const selected = batch?.candidates[1];
   mkdirSync(join(root, 'game'), { recursive: true });
@@ -610,4 +618,27 @@ it('resumes an interrupted run after a Studio restart', async () => {
   expect(data.batches[0]?.candidates[0]?.approvals.every((item) => item.status !== 'pending')).toBe(true);
   expect(data.batches[0]?.candidates[0]?.events.some((event) => event.type === 'run/end')).toBe(true);
   expect(data.batches[0]?.candidates[0]?.events.some((event) => event.type === 'approval/decision')).toBe(true);
+});
+
+it('passes option-like prompts after --', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-prompt-'));
+  const cliEntry = fakeAgent(root);
+  studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
+  const started = await fetch(`${studio.url}/api/agent/start`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt: '--yes fixture', candidates: 1 }),
+  });
+  expect(started.status).toBe(202);
+
+  let runStart: { prompt?: string } | undefined;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const data = await getAgent(studio.url);
+    runStart = data.batches[0]?.candidates[0]?.events.find(
+      (event) => event.type === 'run/start',
+    ) as { prompt?: string } | undefined;
+    if (runStart) break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(runStart?.prompt).toBe('--yes fixture');
 });

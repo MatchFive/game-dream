@@ -142,7 +142,7 @@
     background-size: var(--grid) var(--grid);
     background-position: var(--gx) var(--gy);
   }
-  .world { position: absolute; inset: 0 auto auto 0; width: 1200px; height: 860px; transform-origin: 0 0; will-change: transform; }
+  .world { position: absolute; inset: 0 auto auto 0; width: 1200px; height: 860px; transform-origin: 0 0; }
   .wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .wires path { fill: none; stroke: rgba(199,244,100,.34); stroke-width: 1.1; stroke-dasharray: 3 5; }
   .wires path.hot { stroke: rgba(111,230,223,.55); stroke-width: 1.4; }
@@ -151,7 +151,8 @@
   .node {
     position: absolute; display: flex; flex-direction: column; background: var(--panel);
     border: 1px solid var(--line-strong); border-radius: 6px; box-shadow: 0 14px 35px rgba(0,0,0,.3);
-    user-select: none; touch-action: none;
+    user-select: none; touch-action: none; text-rendering: geometricPrecision;
+    -webkit-font-smoothing: subpixel-antialiased;
   }
   .node:hover { border-color: #4b5741; }
   .node.selected { border-color: var(--lime); box-shadow: 0 0 0 1px rgba(199,244,100,.22), 0 18px 45px rgba(0,0,0,.45); }

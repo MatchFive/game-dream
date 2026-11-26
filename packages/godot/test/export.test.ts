@@ -93,6 +93,28 @@ describe('Godot export', () => {
     expect(result.outputExists).toBe(true);
   });
 
+  it('does not report success when exit 0 leaves the old output untouched', async () => {
+    const project = projectWithPreset();
+    const out = join(project, 'build/game.exe');
+    mkdirSync(join(project, 'build'), { recursive: true });
+    writeFileSync(out, 'old binary');
+    const runner: CommandRunner = {
+      async run() {
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    };
+    const result = await exportProject({
+      projectDir: project,
+      godot,
+      preset: 'Windows Desktop',
+      outPath: out,
+      runner,
+    });
+    expect(result.succeeded).toBe(false);
+    expect(result.failureReason).toBe('other');
+    expect(result.outputExists).toBe(true);
+  });
+
   it('classifies missing export templates and rejects unknown presets', async () => {
     const project = projectWithPreset();
     const runner: CommandRunner = {

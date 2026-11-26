@@ -55,7 +55,10 @@ export async function exportProject(options: GodotExportOptions): Promise<GodotE
     { timeoutMs: options.timeoutMs ?? 300_000 },
   );
   const after = outputState(options.outPath);
-  const succeeded = result.exitCode === 0 && after.exists && after.file;
+  const refreshed = !before.exists
+    || after.mtimeMs !== before.mtimeMs
+    || after.size !== before.size;
+  const succeeded = result.exitCode === 0 && after.exists && after.file && refreshed;
   let failureReason: GodotExportFailure | undefined;
   if (!succeeded && result.exitCode !== 0) {
     const text = `${result.stdout}\n${result.stderr}`;
@@ -66,6 +69,8 @@ export async function exportProject(options: GodotExportOptions): Promise<GodotE
     } else {
       failureReason = 'other';
     }
+  } else if (!succeeded) {
+    failureReason = 'other';
   }
   if (!succeeded && !before.exists && after.exists) {
     rmSync(options.outPath, { recursive: true, force: true });

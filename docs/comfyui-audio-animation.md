@@ -39,11 +39,10 @@ Implemented in Studio:
   count, FPS, and loop metadata, plus Web JSON, Godot `SpriteFrames`, and
   `index.json` under `game/build-assets/animations/`.
 - The Web survivor template loads the first indexed atlas and animates the
-  player; Godot template auto-wiring is pending.
+  player; Godot discovers the first generated `SpriteFrames` resource.
 - Build selection can stage the frames or atlas under `game/build-assets/`.
 
 Still pending:
 
-1. Wire the generated descriptors into templates automatically.
-2. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
+1. Evaluate AnimateDiff only after installing `ComfyUI-AnimateDiff-Evolved` and a
    motion module; video output still needs alpha cleanup and frame extraction.

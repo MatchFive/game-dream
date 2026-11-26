@@ -5,7 +5,9 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -327,28 +329,42 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
   if (!existsSync(templatesDir)) {
     throw new Error(`web template directory not found: ${templatesDir}`);
   }
+  const targetDir = resolve(options.outDir);
+  const templateRoot = resolve(templatesDir);
+  if (
+    targetDir === templateRoot ||
+    targetDir.startsWith(`${templateRoot}${sep}`) ||
+    templateRoot.startsWith(`${targetDir}${sep}`)
+  ) {
+    throw new Error('web output must not overlap the template directory');
+  }
   const embedded = options.contentDir
     ? readContent(
         options.contentDir,
         options.modulesDir ?? join(process.cwd(), 'modules'),
       )
     : null;
-  if (
-    existsSync(options.outDir) &&
-    readdirSync(options.outDir).length > 0 &&
-    !options.force
-  ) {
-    throw new Error(`refusing to overwrite non-empty ${options.outDir}; pass --force`);
+  if (existsSync(targetDir)) {
+    if (!statSync(targetDir).isDirectory()) {
+      throw new Error(`web output path is not a directory: ${options.outDir}`);
+    }
+    if (readdirSync(targetDir).length > 0 && !options.force) {
+      throw new Error(`refusing to overwrite non-empty ${options.outDir}; pass --force`);
+    }
   }
-  const existed = existsSync(options.outDir);
-  mkdirSync(options.outDir, { recursive: true });
+
+  const phaser = phaserBundle();
+  const stage = `${targetDir}.tmp-${process.pid}-${Date.now()}`;
+  const backup = `${targetDir}.bak-${process.pid}-${Date.now()}`;
   try {
-    cpSync(templatesDir, options.outDir, { recursive: true });
-    const vendor = join(options.outDir, 'vendor/phaser.min.js');
+    rmSync(stage, { recursive: true, force: true });
+    mkdirSync(stage, { recursive: true });
+    cpSync(templatesDir, stage, { recursive: true });
+    const vendor = join(stage, 'vendor/phaser.min.js');
     mkdirSync(dirname(vendor), { recursive: true });
-    copyFileSync(phaserBundle(), vendor);
+    copyFileSync(phaser, vendor);
     const missing = WEB_PROJECT_FILES.filter(
-      (file) => file !== 'game.json' && !existsSync(join(options.outDir, file)),
+      (file) => file !== 'game.json' && !existsSync(join(stage, file)),
     );
     if (missing.length > 0) {
       throw new Error(`web template is incomplete: missing ${missing.join(', ')}`);
@@ -372,23 +388,41 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
     };
     if (embedded) {
       for (const asset of embedded.assets) {
-        const target = join(options.outDir, asset.target);
+        const target = join(stage, asset.target);
         mkdirSync(dirname(target), { recursive: true });
         copyFileSync(asset.source, target);
       }
     }
     writeFileSync(
-      join(options.outDir, 'game.json'),
+      join(stage, 'game.json'),
       `${JSON.stringify(config, null, 2)}\n`,
       'utf8',
     );
+
+    try {
+      if (existsSync(targetDir)) renameSync(targetDir, backup);
+      renameSync(stage, targetDir);
+    } catch (error) {
+      rmSync(stage, { recursive: true, force: true });
+      if (existsSync(backup) && !existsSync(targetDir)) {
+        renameSync(backup, targetDir);
+      }
+      throw error;
+    }
+    if (existsSync(backup)) {
+      try {
+        rmSync(backup, { recursive: true, force: true });
+      } catch {
+        // A stale backup is harmless; the new project is already in place.
+      }
+    }
     return {
       outDir: options.outDir,
       files: [...WEB_PROJECT_FILES],
       config,
     };
   } catch (error) {
-    if (!existed) rmSync(options.outDir, { recursive: true, force: true });
+    rmSync(stage, { recursive: true, force: true });
     throw error;
   }
 }
