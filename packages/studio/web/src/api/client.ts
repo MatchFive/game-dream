@@ -103,7 +103,9 @@ export const api = {
     post<{ path: string | null }>('/api/dialog', body),
   job: (id: string) => request<{ job: ComfyJob }>(`/api/jobs/${id}`),
   generate: (body: Record<string, unknown>) =>
-    post<{ job: ComfyJob }>('/api/generate', body),
+    post<{ job: ComfyJob; jobs?: ComfyJob[] }>('/api/generate', body),
+  packAtlas: (body: { assetIds: string[]; name?: string; fps?: number; loop?: boolean }) =>
+    post<{ atlas: { assetId?: string; file?: string } }>('/api/animation/atlas', body),
 
   assetRaw: (id: string) => `/api/assets/${id}/raw`,
   renameAsset: (id: string, name: string) =>

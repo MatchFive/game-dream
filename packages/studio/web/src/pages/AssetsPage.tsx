@@ -34,7 +34,11 @@ export function AssetsPage() {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(1);
   const [transparent, setTransparent] = useState(true);
-  const [mode, setMode] = useState<'image' | 'audio' | 'sfx'>('image');
+  type Mode = 'image' | 'animation' | 'audio' | 'sfx';
+  const [mode, setMode] = useState<Mode>('image');
+  const [fps, setFps] = useState(8);
+  const [loop, setLoop] = useState(true);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [duration, setDuration] = useState(30);
   const [workflowId, setWorkflowId] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -59,6 +63,9 @@ export function AssetsPage() {
   }, [assets, kind, query]);
 
   const selected = assets.find((asset) => asset.id === selectedId);
+  const selectedAnimation = nodes.find(
+    (node) => node.id === selectedNodeId && node.kind === 'animation',
+  );
   const [nameDraft, setNameDraft] = useState('');
 
   useEffect(() => {
@@ -183,17 +190,21 @@ export function AssetsPage() {
     }
     setGenerating(true);
     try {
-      const result = await api.generate({
-        prompt,
-        count,
-        transparent: mode === 'image' ? transparent : false,
-        audio: mode === 'audio',
-        sfx: mode === 'sfx',
-        duration: mode === 'image' ? undefined : duration,
-        workflowId: mode === 'image' || mode === 'audio' ? workflowId || undefined : undefined,
-      });
-      const jobId = result.job?.id;
-      if (jobId) await pollJob(jobId);
+      if (mode === 'animation') {
+        await generateAnimation();
+      } else {
+        const result = await api.generate({
+          prompt,
+          count,
+          transparent: mode === 'image' ? transparent : false,
+          audio: mode === 'audio',
+          sfx: mode === 'sfx',
+          duration: mode === 'image' ? undefined : duration,
+          workflowId: mode === 'image' || mode === 'audio' ? workflowId || undefined : undefined,
+        });
+        const jobId = result.job?.id;
+        if (jobId) await pollJob(jobId);
+      }
       await queryClient.invalidateQueries({ queryKey: ['studio'] });
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -202,20 +213,100 @@ export function AssetsPage() {
     }
   }
 
-  async function pollJob(id: string) {
+  /** 动画：一次生成 2–4 帧，落成画布上的一个 animation 节点，可再打包图集。 */
+  async function generateAnimation() {
+    const frames = Math.max(2, Math.min(4, count));
+    const result = await api.generate({
+      prompt,
+      count: frames,
+      animation: true,
+      transparent,
+      workflowId: workflowId || undefined,
+    });
+    const jobs = result.jobs ?? [result.job];
+    const assetIds: string[] = [];
+    for (const job of jobs) {
+      if (!job?.id) continue;
+      const done = await pollJob(job.id, true);
+      if (done?.assetId) assetIds.push(done.assetId);
+    }
+    if (assetIds.length < 2) {
+      toast.push(t('assets.animationTooFew'), 'error');
+      return;
+    }
+    const startX = nodes.length > 0 ? Math.max(...nodes.map((node) => node.x + node.width)) + 48 : 40;
+    const startY = nodes.length > 0 ? Math.min(...nodes.map((node) => node.y)) : 40;
+    const frameNodes: CanvasNode[] = assetIds.map((assetId, index) => ({
+      id: `frame-${Date.now().toString(36)}-${index}`,
+      kind: 'asset',
+      assetId,
+      x: startX + index * 300,
+      y: startY,
+      width: 286,
+    }));
+    const animationNode: CanvasNode = {
+      id: `animation-${Date.now().toString(36)}`,
+      kind: 'animation',
+      assetIds,
+      x: startX + assetIds.length * 300,
+      y: startY,
+      width: 286,
+      title: prompt.slice(0, 60),
+    };
+    const next = [...nodes, ...frameNodes, animationNode];
+    setNodes(next);
+    persist(next);
+    setSelectedNodeId(animationNode.id);
+    toast.push(t('assets.animationCreated', { count: assetIds.length }));
+  }
+
+  async function packAnimation(node: CanvasNode) {
+    const frames = (node.assetIds ?? []).filter(Boolean);
+    if (frames.length < 2) return;
+    try {
+      const result = await api.packAtlas({
+        assetIds: frames,
+        name: node.title ?? 'animation',
+        fps: fps,
+        loop,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['studio'] });
+      const assetId = result.atlas?.assetId;
+      if (assetId) {
+        const atlasNode: CanvasNode = {
+          id: `atlas-${Date.now().toString(36)}`,
+          kind: 'asset',
+          assetId,
+          x: node.x + node.width + 24,
+          y: node.y,
+          width: 286,
+        };
+        const next = [...nodes, atlasNode];
+        setNodes(next);
+        persist(next);
+        setSelectedNodeId(atlasNode.id);
+      }
+      toast.push(t('assets.atlasPacked'));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  }
+
+  async function pollJob(id: string, quiet = false) {
     for (let attempt = 0; attempt < 600; attempt += 1) {
       const { job } = await api.job(id);
       if (job.status === 'done') {
-        toast.push(t('assets.generated'));
-        return;
+        if (!quiet) toast.push(t('assets.generated'));
+        return job;
       }
       if (job.status === 'error') {
         toast.push(job.error ?? t('common.error'), 'error');
-        return;
+        return undefined;
       }
       await new Promise((resolve) => window.setTimeout(resolve, 1000));
     }
     toast.push(t('assets.jobRunning'), 'error');
+    return undefined;
   }
 
   function onWheel(event: React.WheelEvent) {
@@ -401,6 +492,7 @@ export function AssetsPage() {
                     onPointerDown={(event) => {
                       event.stopPropagation();
                       setSelectedId(node.assetId ?? node.assetIds?.[0]);
+                      setSelectedNodeId(node.id);
                       dragRef.current = {
                         id: node.id,
                         startX: event.clientX,
@@ -416,6 +508,16 @@ export function AssetsPage() {
                         <small>{t('assets.briefHint')}</small>
                       </div>
                     )}
+                    {node.kind === 'animation' && (
+                      <div className="node-grid">
+                        {groupAssets.slice(0, 4).map((item, index) => (
+                          <span className="node-cell" key={item.id}>
+                            <img src={item.url} alt="" />
+                            <small>{index + 1}</small>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {node.kind === 'group' && (
                       <div className="node-grid">
                         {groupAssets.map((item) => (
@@ -425,7 +527,7 @@ export function AssetsPage() {
                         ))}
                       </div>
                     )}
-                    {(node.kind === 'asset' || node.kind === 'animation') && (
+                    {node.kind === 'asset' && (
                       <div className="canvas-node-thumb">
                         {asset?.kind === 'audio' ? <Icon name="wave" /> : asset ? <img src={asset.url} alt="" /> : null}
                       </div>
@@ -457,8 +559,9 @@ export function AssetsPage() {
               rows={2}
             />
             <div className="dock-row">
-              <select value={mode} onChange={(event) => setMode(event.target.value as 'image' | 'audio' | 'sfx')}>
+              <select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>
                 <option value="image">{t('assets.modeImage')}</option>
+                <option value="animation">{t('assets.modeAnimation')}</option>
                 <option value="audio">{t('assets.modeAudio')}</option>
                 <option value="sfx">{t('assets.modeSfx')}</option>
               </select>
@@ -474,16 +577,19 @@ export function AssetsPage() {
                     ))}
                 </select>
               )}
-              {mode === 'image' ? (
+              {mode === 'image' || mode === 'animation' ? (
                 <>
                   <label className="studio-check">
                     <input type="checkbox" checked={transparent} onChange={(event) => setTransparent(event.target.checked)} />{' '}
                     <span>{t('assets.transparent')}</span>
                   </label>
                   <label className="studio-agent-count">
-                    <span>{t('assets.count')}</span>
-                    <select value={count} onChange={(event) => setCount(Number(event.target.value))}>
-                      {[1, 2, 3, 4].map((value) => (
+                    <span>{mode === 'animation' ? t('assets.frames') : t('assets.count')}</span>
+                    <select
+                      value={mode === 'animation' ? Math.max(2, count) : count}
+                      onChange={(event) => setCount(Number(event.target.value))}
+                    >
+                      {(mode === 'animation' ? [2, 3, 4] : [1, 2, 3, 4]).map((value) => (
                         <option key={value} value={value}>
                           {value}
                         </option>
@@ -511,7 +617,44 @@ export function AssetsPage() {
         </section>
 
         <aside className="assets-col assets-inspector" aria-label={t('assets.inspect')}>
-          {selected ? (
+          {selectedAnimation ? (
+            <>
+              <div className="node-grid node-grid-large">
+                {(selectedAnimation.assetIds ?? []).map((id, index) => {
+                  const item = assets.find((asset) => asset.id === id);
+                  return (
+                    <span className="node-cell" key={id}>
+                      {item ? <img src={item.url} alt="" /> : null}
+                      <small>{index + 1}</small>
+                    </span>
+                  );
+                })}
+              </div>
+              <h2>{selectedAnimation.title ?? t('assets.modeAnimation')}</h2>
+              <p className="context-path">
+                {(selectedAnimation.assetIds ?? []).length} {t('assets.frames')}
+              </p>
+              <label className="settings-field">
+                <span>FPS</span>
+                <select value={fps} onChange={(event) => setFps(Number(event.target.value))}>
+                  {[6, 8, 10, 12].map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="studio-check">
+                <input type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />{' '}
+                <span>{t('assets.loop')}</span>
+              </label>
+              <div className="inspector-actions">
+                <button className="button primary" type="button" onClick={() => void packAnimation(selectedAnimation)}>
+                  <Icon name="layers" /> {t('assets.packAtlas')}
+                </button>
+              </div>
+            </>
+          ) : selected ? (
             <>
               <div className="inspector-preview">
                 {selected.kind === 'audio' ? <Icon name="wave" /> : <img src={selected.url} alt={selected.name} />}

@@ -448,6 +448,27 @@
   background-position: 0 0, 5px 5px;
 }
 .node-cell img { width: 100%; height: 100%; object-fit: contain; }
+
+.node-cell { position: relative; }
+
+.node-cell small {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  color: var(--muted);
+  font: 8px/1 var(--mono);
+  background: rgba(255, 255, 255, .8);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.node-grid-large {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-3);
+  gap: 6px;
+}
 .canvas-hint { position: absolute; inset: 0; display: grid; place-content: center; color: var(--dim); font: 11px/1.5 var(--sans); pointer-events: none; }
 
 /* 生成 dock */
