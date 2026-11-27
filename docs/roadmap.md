@@ -153,7 +153,7 @@
 | X3 | Godot G2 崩溃分类 | G2 间歇崩溃（exit 3221225477/3221226356）被当作硬失败，可修复的引擎抖动被报成项目不可玩 | 崩溃单独分类、有界重试（≤2 次 + 退避），不出现在"项目失败"统计 | Done |
 | X4 | 缺引擎时的 run 启动拦截 | 无 `GODOT_BIN` 时 verify 返回 skip 作为普通工具结果，Agent 不收敛并空转 scaffold | run 启动前抛环境错误，不消耗模型步数 | Done |
 | X5 | 重复 scaffold 告警 | 模型反复 scaffold 时重新复制 kit + recompose，日志噪声且掩盖真实步骤 | 重复调用返回警告并要求显式 reset | Backlog |
-| X6 | Studio 前端框架化 | 6101 行 vanilla JS、350+ 处 querySelector、42 处 innerHTML、三套手写轮询，无类型无测试；任务页左栏堆 6 个同级区块、运行历史左右各一份 | React 19 + Vite + TS + Radix + TanStack Query 重写三页；视觉仍走 theme.css；`/legacy/*` 保留旧页面；`nav.test.ts` 锁定共享导航 | Done |
+| X6 | Studio 前端框架化 | 6101 行 vanilla JS、350+ 处 querySelector、42 处 innerHTML、三套手写轮询，无类型无测试；任务页左栏堆 6 个同级区块、运行历史左右各一份 | React 19 + Vite + TS + Radix + TanStack Query 重写三页；视觉仍走 theme.css；旧页面 8 文件 / 4589 行已删除，`/legacy*` 302 回落到新路由；`nav.test.ts` 锁定共享导航并禁止旧页面回流 | Done |
 
 证据：`docs/evidence/windows-paths/`。
 
