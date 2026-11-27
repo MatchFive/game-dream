@@ -15,3 +15,6 @@ game/
 
 # Vite 产物，由 packages/studio/web 构建生成
 packages/studio/public/app/
+
+# 本地 Agent 工作区（记忆日志、临时产物）
+.workbuddy/
