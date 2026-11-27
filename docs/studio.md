@@ -72,6 +72,15 @@ cd packages/studio/web && corepack pnpm dev   # http://127.0.0.1:5173
 `packages/studio/public/app/`. `scripts/start.mjs` treats `packages/studio/web`
 as a build input, so editing the frontend triggers a rebuild on the next launch.
 
+The three shared stylesheets were pruned once the legacy pages were gone:
+`theme.css`, `styles.css`, and `studio.css` went from 76,769 B to 38,754 B
+(−49.5%) by dropping rules whose classes appear neither in `src/**` nor in the
+rendered DOM. `scripts/prune-css.mjs` re-runs that analysis (dry-run by
+default); it protects runtime-composed names such as `canvas-node-*` and the
+status words. After pruning, all three pages rendered pixel-identically, and
+every class present in the DOM still resolves to a rule in `app.css` or the
+shared files.
+
 Front-end tests live next to the code (`src/**/*.test.ts[x]`) and run in the
 same `pnpm test` as the rest of the repo. Pure helpers are tested directly
 (`lib/gates.ts`, `lib/agent-log.ts`); components and hooks use jsdom — the agent
