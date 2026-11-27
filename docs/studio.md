@@ -18,11 +18,13 @@ The command prints a URL such as `http://127.0.0.1:4173`. Stop it with
 `Ctrl+C`. On Windows, `start.cmd` keeps the console open and pauses on failure;
 run it from a terminal if a double-click closes immediately.
 
-The launcher rebuilds when any workspace source is newer than the last
-successful build and writes `packages/cli/dist/.gamedream-build`. Use
-`start.cmd --build` to force a rebuild. If a newly added endpoint returns
-`unknown API route`, stop the old Studio process and start it again; static
-files update immediately, but the API server does not hot-reload.
+The launcher refreshes workspace dependencies when package manifests or
+lockfiles are newer than the last install, or when a `workspace:*` link is
+missing. It rebuilds when any workspace source is newer than the last successful
+build and writes `packages/cli/dist/.gamedream-build`. Use `start.cmd --build`
+to force a rebuild. If a newly added endpoint returns `unknown API route`, stop
+the old Studio process and start it again; static files update immediately, but
+the API server does not hot-reload.
 
 - `/` is the project studio: preview, verification gates, run history, session
   summary, assets, and evidence.

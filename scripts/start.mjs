@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +8,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const cli = join(root, 'packages', 'cli', 'dist', 'index.js');
 const studioServer = join(root, 'packages', 'studio', 'dist', 'server.js');
 const buildStamp = join(root, 'packages', 'cli', 'dist', '.gamedream-build');
+const installStamp = join(root, 'node_modules', '.gamedream-install');
 
 function newestMtime(path) {
   let newest = 0;
@@ -25,27 +26,66 @@ function newestMtime(path) {
   return newest;
 }
 
-function buildInputs() {
-  const inputs = [
+function packageDirectories() {
+  const packages = join(root, 'packages');
+  try {
+    return readdirSync(packages, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(packages, entry.name));
+  } catch {
+    return [];
+  }
+}
+
+function installInputs() {
+  return [
     join(root, 'package.json'),
     join(root, 'pnpm-lock.yaml'),
     join(root, 'pnpm-workspace.yaml'),
-    join(root, 'tsconfig.base.json'),
+    ...packageDirectories().map((directory) => join(directory, 'package.json')),
   ];
-  const packages = join(root, 'packages');
-  try {
-    for (const entry of readdirSync(packages, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      inputs.push(
-        join(packages, entry.name, 'src'),
-        join(packages, entry.name, 'package.json'),
-        join(packages, entry.name, 'tsconfig.json'),
-      );
+}
+
+function missingWorkspaceLinks() {
+  for (const directory of packageDirectories()) {
+    const manifestPath = join(directory, 'package.json');
+    let manifest;
+    try {
+      manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    } catch {
+      continue;
     }
-  } catch {
-    // The build path below reports a missing workspace.
+    const dependencies = {
+      ...(manifest.dependencies ?? {}),
+      ...(manifest.devDependencies ?? {}),
+    };
+    for (const [name, version] of Object.entries(dependencies)) {
+      if (!String(version).startsWith('workspace:')) continue;
+      const link = join(directory, 'node_modules', ...name.split('/'));
+      if (!existsSync(link)) return true;
+    }
   }
-  return inputs;
+  return false;
+}
+
+function needsInstall() {
+  if (!existsSync(join(root, 'node_modules', '.pnpm')) || !existsSync(installStamp)) {
+    return true;
+  }
+  const installedAt = statSync(installStamp).mtimeMs;
+  return installInputs().some((input) => newestMtime(input) > installedAt)
+    || missingWorkspaceLinks();
+}
+
+function buildInputs() {
+  return [
+    ...installInputs(),
+    join(root, 'tsconfig.base.json'),
+    ...packageDirectories().flatMap((directory) => [
+      join(directory, 'src'),
+      join(directory, 'tsconfig.json'),
+    ]),
+  ];
 }
 
 function needsBuild() {
@@ -80,7 +120,7 @@ Options:
   --host <host>       HTTP bind host (default: 127.0.0.1)
   --port <port>       HTTP port (default: 4173)
   --build             force a workspace build before starting
-  --skip-install      do not run pnpm install when node_modules is missing
+  --skip-install      do not run pnpm install when dependencies are missing or stale
   --no-open           do not open the browser
   -h, --help          show this help
 `);
@@ -131,14 +171,24 @@ const pnpm = (args) => {
   return result;
 };
 
-if (!existsSync(join(root, 'node_modules', '.pnpm'))) {
+if (needsInstall()) {
   if (flag('skip-install')) {
-    console.error('Dependencies are missing and --skip-install was set.');
-    process.exit(3);
+    if (!existsSync(join(root, 'node_modules', '.pnpm'))) {
+      console.error('Dependencies are missing and --skip-install was set.');
+      process.exit(3);
+    }
+    console.warn('Workspace dependencies look stale; continuing because --skip-install was set.');
+  } else {
+    console.log('Installing or refreshing workspace dependencies...');
+    const install = pnpm(['install']);
+    if (install.status !== 0) process.exit(install.status ?? 1);
+    if (missingWorkspaceLinks()) {
+      console.error('Workspace dependency links are still missing after pnpm install.');
+      console.error('Run `pnpm install` manually and check the workspace dependency names.');
+      process.exit(3);
+    }
+    writeFileSync(installStamp, new Date().toISOString(), 'utf8');
   }
-  console.log('Installing workspace dependencies...');
-  const install = pnpm(['install']);
-  if (install.status !== 0) process.exit(install.status ?? 1);
 }
 
 const staleBuild = needsBuild();
