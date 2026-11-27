@@ -1,11 +1,58 @@
 #!/usr/bin/env node
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const cli = join(root, 'packages', 'cli', 'dist', 'index.js');
+const studioServer = join(root, 'packages', 'studio', 'dist', 'server.js');
+const buildStamp = join(root, 'packages', 'cli', 'dist', '.gamedream-build');
+
+function newestMtime(path) {
+  let newest = 0;
+  try {
+    const stat = statSync(path);
+    if (stat.isFile()) return stat.mtimeMs;
+    if (!stat.isDirectory()) return 0;
+    for (const entry of readdirSync(path, { withFileTypes: true })) {
+      if (['node_modules', 'dist', '.git'].includes(entry.name)) continue;
+      newest = Math.max(newest, newestMtime(join(path, entry.name)));
+    }
+  } catch {
+    return 0;
+  }
+  return newest;
+}
+
+function buildInputs() {
+  const inputs = [
+    join(root, 'package.json'),
+    join(root, 'pnpm-lock.yaml'),
+    join(root, 'pnpm-workspace.yaml'),
+    join(root, 'tsconfig.base.json'),
+  ];
+  const packages = join(root, 'packages');
+  try {
+    for (const entry of readdirSync(packages, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      inputs.push(
+        join(packages, entry.name, 'src'),
+        join(packages, entry.name, 'package.json'),
+        join(packages, entry.name, 'tsconfig.json'),
+      );
+    }
+  } catch {
+    // The build path below reports a missing workspace.
+  }
+  return inputs;
+}
+
+function needsBuild() {
+  if (!existsSync(cli) || !existsSync(studioServer) || !existsSync(buildStamp)) return true;
+  const builtAt = statSync(buildStamp).mtimeMs;
+  return buildInputs().some((input) => newestMtime(input) > builtAt);
+}
 
 const nodeMajor = Number(process.versions.node.split('.')[0]);
 if (!Number.isInteger(nodeMajor) || nodeMajor < 22) {
@@ -94,10 +141,14 @@ if (!existsSync(join(root, 'node_modules', '.pnpm'))) {
   if (install.status !== 0) process.exit(install.status ?? 1);
 }
 
-if (!existsSync(cli) || flag('build')) {
-  console.log('Building GameDream workspace...');
+const staleBuild = needsBuild();
+if (staleBuild || flag('build')) {
+  console.log(staleBuild
+    ? 'Source is newer than the build; rebuilding GameDream workspace...'
+    : 'Building GameDream workspace...');
   const build = pnpm(['build']);
   if (build.status !== 0) process.exit(build.status ?? 1);
+  writeFileSync(buildStamp, new Date().toISOString(), 'utf8');
 }
 
 const args = [cli, 'studio', '--path', projectPath, '--host', host, '--port', port];

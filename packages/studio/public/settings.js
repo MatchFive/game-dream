@@ -69,6 +69,14 @@ async function choosePath(button) {
   return typeof data.path === 'string' ? data.path : '';
 }
 
+function pickerError(error) {
+  const message = String(error?.message ?? error);
+  if (/unknown.*api|404/i.test(message)) {
+    return 'Studio 服务版本过旧，请停止后重新运行 start.cmd（必要时加 --build）。';
+  }
+  return `无法打开选择器：${message}`;
+}
+
 async function pickIntoInput(button) {
   const input = document.getElementById(button.dataset.pickInput);
   if (!input) return;
@@ -79,7 +87,7 @@ async function pickIntoInput(button) {
     const path = await choosePath(button);
     if (path) input.value = path;
   } catch (error) {
-    toast(`无法打开选择器：${error.message}`);
+    toast(pickerError(error));
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -97,7 +105,7 @@ async function pickIntoList(button) {
     if (path && !pathLists[key].includes(path)) pathLists[key].push(path);
     renderPathList(key);
   } catch (error) {
-    toast(`无法打开选择器：${error.message}`);
+    toast(pickerError(error));
   } finally {
     button.disabled = false;
     button.textContent = original;

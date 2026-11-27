@@ -57,7 +57,7 @@ corepack pnpm build
 
 ### Start Studio
 
-The launcher installs/builds only when needed, then starts the local Studio:
+The launcher installs/builds when needed, including when workspace source is newer than the last build, then starts the local Studio. Always stop an already-running Studio before starting a new build; an old process can return `unknown API route` for newly added endpoints:
 
 ```bash
 # Windows
