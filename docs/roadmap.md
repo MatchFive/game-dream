@@ -172,7 +172,7 @@
 
 | 编号 | 事项 | 状态 |
 | --- | --- | --- |
-| S1 | 引擎无关 spec/kit/layout + 确定性求解器 + 质量闸门 + trace 数据集 + 俯视渲染 | Done |
+| S1 | 引擎无关 spec/kit/layout + 确定性求解器（大图带次级街网）+ 质量闸门 + trace 数据集 + 俯视渲染 | Done |
 | S2 | Godot 导出：`.tscn`（地面底图 + 建筑碰撞 + 入口/锚点 Marker），真实引擎加载并核对节点数 | Done |
 | S2.1 | 导航：从可行走栅格生成 `NavigationPolygon`（顶点去重保证连通），引擎内验证出生点到每个入口都可寻路 | Done |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |

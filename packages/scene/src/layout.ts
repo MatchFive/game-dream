@@ -216,6 +216,32 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     points: [[MARGIN, horizontalY + Math.floor(mainW / 2)], [W - MARGIN, horizontalY + Math.floor(mainW / 2)]],
   });
 
+  // 1.5 大图补次级路网：只靠一条十字主路，离路远的地块全成绿地，城市会变成荒地
+  if (W >= 120 || H >= 100) {
+    const spacing = 18;
+    const streetW = 2;
+    for (let x = MARGIN + spacing; x < W - MARGIN - streetW; x += spacing) {
+      if (x + streetW > verticalX - 2 && x < verticalX + mainW + 2) continue; // 让开主路
+      grid.fill(x, MARGIN, streetW, H - MARGIN * 2, 'road');
+      roads.push({
+        id: `street-v-${x}`,
+        kind: 'street',
+        width: streetW,
+        points: [[x + 1, MARGIN], [x + 1, H - MARGIN]],
+      });
+    }
+    for (let y = MARGIN + spacing; y < H - MARGIN - streetW; y += spacing) {
+      if (y + streetW > horizontalY - 2 && y < horizontalY + mainW + 2) continue;
+      grid.fill(MARGIN, y, W - MARGIN * 2, streetW, 'road');
+      roads.push({
+        id: `street-h-${y}`,
+        kind: 'street',
+        width: streetW,
+        points: [[MARGIN, y + 1], [W - MARGIN, y + 1]],
+      });
+    }
+  }
+
   // 2. 水系：河流横穿但给主干道留桥
   if (spec.water === 'river') {
     const riverY = horizontalY + mainW + 6 + rng.int(0, 4);
@@ -284,12 +310,12 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     if (lotHitsWater(grid, rect)) continue; // 沿河地块留白，交给水面
     const distance = roadDistance(rect, grid);
     const needsMain = queue.length > 0 && queue[0].mainRoad;
-    if (distance > 4 && !needsMain) {
+    if (distance > 8 && !needsMain) {
       lots.push({ id: `lot-${buildingIndex}-green`, kind: 'green', rect });
       paintGreen(grid, rect);
       continue;
     }
-    if (distance > 6) {
+    if (distance > 10) {
       lots.push({ id: `lot-${buildingIndex}-green`, kind: 'green', rect });
       paintGreen(grid, rect);
       continue;

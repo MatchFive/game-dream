@@ -212,3 +212,22 @@ describe('builtin kit', () => {
     expect(parseKit(villageEuroKit)).toEqual(parseKit(JSON.parse(readFileSync(kitPath, 'utf8'))));
   });
 });
+
+describe('street grid on large maps', () => {
+  it('adds secondary streets so a city is not one road across a field', () => {
+    const city = { ...baseSpec, kind: 'city' as const, bounds: { width: 148, height: 116 } };
+    const { layout, validation } = buildSceneWithTrace(city, kit);
+
+    const streets = layout.roads.filter((road) => road.kind === 'street');
+    expect(streets.length).toBeGreaterThan(4);
+    // 街区网格应该让建筑数量显著高于只有一条主路时
+    expect(layout.buildings.length).toBeGreaterThan(30);
+    expect(validation.metrics.density).toBeGreaterThan(0.1);
+    expect(validation.pass).toBe(true);
+  });
+
+  it('keeps villages on the simple cross road', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    expect(layout.roads.filter((road) => road.kind === 'street')).toHaveLength(0);
+  });
+});

@@ -75,7 +75,7 @@ export type Kit = z.infer<typeof kitSchema>;
 
 export const roadSchema = z.object({
   id: z.string(),
-  kind: z.enum(['main', 'alley']),
+  kind: z.enum(['main', 'street', 'alley']),
   width: z.number().int().positive(),
   points: z.array(point).min(2),
 });
