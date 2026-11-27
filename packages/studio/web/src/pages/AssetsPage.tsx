@@ -33,7 +33,8 @@ export function AssetsPage() {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(1);
   const [transparent, setTransparent] = useState(true);
-  const [audio, setAudio] = useState(false);
+  const [mode, setMode] = useState<'image' | 'audio' | 'sfx'>('image');
+  const [duration, setDuration] = useState(30);
   const [workflowId, setWorkflowId] = useState('');
   const [generating, setGenerating] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -56,6 +57,24 @@ export function AssetsPage() {
   }, [assets, kind, query]);
 
   const selected = assets.find((asset) => asset.id === selectedId);
+  const [nameDraft, setNameDraft] = useState('');
+
+  useEffect(() => {
+    setNameDraft(selected?.name ?? '');
+  }, [selected?.id, selected?.name]);
+
+  async function renameSelected() {
+    if (!selected) return;
+    const next = nameDraft.trim();
+    if (!next || next === selected.name) return;
+    try {
+      await api.renameAsset(selected.id, next);
+      await queryClient.invalidateQueries({ queryKey: ['studio'] });
+      toast.push(t('assets.renamed'));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  }
 
   const nodeHeight = useCallback((node: CanvasNode) => {
     if (node.kind === 'brief') return 72;
@@ -165,9 +184,11 @@ export function AssetsPage() {
       const result = await api.generate({
         prompt,
         count,
-        transparent: audio ? false : transparent,
-        audio,
-        workflowId: workflowId || undefined,
+        transparent: mode === 'image' ? transparent : false,
+        audio: mode === 'audio',
+        sfx: mode === 'sfx',
+        duration: mode === 'image' ? undefined : duration,
+        workflowId: mode === 'image' || mode === 'audio' ? workflowId || undefined : undefined,
       });
       const jobId = result.job?.id;
       if (jobId) await pollJob(jobId);
@@ -431,32 +452,52 @@ export function AssetsPage() {
               rows={2}
             />
             <div className="dock-row">
-              <select value={workflowId} onChange={(event) => setWorkflowId(event.target.value)}>
-                <option value="">{t('assets.workflowAuto')}</option>
-                {(workflows.data?.workflows ?? []).map((workflow) => (
-                  <option key={workflow.id} value={workflow.id}>
-                    {workflow.name}
-                  </option>
-                ))}
+              <select value={mode} onChange={(event) => setMode(event.target.value as 'image' | 'audio' | 'sfx')}>
+                <option value="image">{t('assets.modeImage')}</option>
+                <option value="audio">{t('assets.modeAudio')}</option>
+                <option value="sfx">{t('assets.modeSfx')}</option>
               </select>
-              <label className="studio-check">
-                <input type="checkbox" checked={transparent} disabled={audio} onChange={(event) => setTransparent(event.target.checked)} />{' '}
-                <span>{t('assets.transparent')}</span>
-              </label>
-              <label className="studio-check">
-                <input type="checkbox" checked={audio} onChange={(event) => setAudio(event.target.checked)} />{' '}
-                <span>{t('assets.audio')}</span>
-              </label>
-              <label className="studio-agent-count">
-                <span>{t('assets.count')}</span>
-                <select value={count} onChange={(event) => setCount(Number(event.target.value))}>
-                  {[1, 2, 3, 4].map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
+              {mode !== 'sfx' && (
+                <select value={workflowId} onChange={(event) => setWorkflowId(event.target.value)}>
+                  <option value="">{t('assets.workflowAuto')}</option>
+                  {(workflows.data?.workflows ?? [])
+                    .filter((workflow) => (mode === 'audio' ? workflow.kind === 'audio' : workflow.kind === 'image'))
+                    .map((workflow) => (
+                      <option key={workflow.id} value={workflow.id}>
+                        {workflow.name}
+                      </option>
+                    ))}
                 </select>
-              </label>
+              )}
+              {mode === 'image' ? (
+                <>
+                  <label className="studio-check">
+                    <input type="checkbox" checked={transparent} onChange={(event) => setTransparent(event.target.checked)} />{' '}
+                    <span>{t('assets.transparent')}</span>
+                  </label>
+                  <label className="studio-agent-count">
+                    <span>{t('assets.count')}</span>
+                    <select value={count} onChange={(event) => setCount(Number(event.target.value))}>
+                      {[1, 2, 3, 4].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <label className="studio-agent-count">
+                  <span>{t('assets.duration')}</span>
+                  <select value={duration} onChange={(event) => setDuration(Number(event.target.value))}>
+                    {(mode === 'sfx' ? [0.2, 0.4, 0.6, 1, 1.5, 2, 3] : [10, 15, 20, 30, 45, 60]).map((value) => (
+                      <option key={value} value={value}>
+                        {value}s
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <button className="button primary" type="button" disabled={generating} onClick={() => void generate()}>
                 {generating ? t('assets.generating') : t('assets.generate')}
               </button>
@@ -470,7 +511,24 @@ export function AssetsPage() {
               <div className="inspector-preview">
                 {selected.kind === 'audio' ? <Icon name="wave" /> : <img src={selected.url} alt={selected.name} />}
               </div>
-              <h2>{selected.name}</h2>
+              <div className="inspector-name">
+                <input
+                  value={nameDraft}
+                  aria-label={t('assets.rename')}
+                  onChange={(event) => setNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') void renameSelected();
+                  }}
+                />
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={!nameDraft.trim() || nameDraft === selected.name}
+                  onClick={() => void renameSelected()}
+                >
+                  {t('assets.rename')}
+                </button>
+              </div>
               <p className="context-path">{selected.file}</p>
               <dl className="inspector-list">
                 <div>

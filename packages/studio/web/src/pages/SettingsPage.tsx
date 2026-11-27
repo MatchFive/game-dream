@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useProjectsQuery, useSettingsQuery } from '../api/hooks';
+import { PathField, PathListField } from '../components/PathPicker';
 import { Icon } from '../components/Sprite';
 import { Topbar } from '../components/Topbar';
 import { useToast } from '../components/Toast';
@@ -171,44 +172,55 @@ export function SettingsPage() {
               <span>ComfyUI URL</span>
               <input value={form.comfyUrl} placeholder="http://127.0.0.1:8188" onChange={(event) => patch('comfyUrl', event.target.value)} />
             </label>
-            <label className="settings-field">
-              <span>{t('settings.legacyWorkflow')}</span>
-              <input value={form.workflow} placeholder="D:/path/workflow.json" onChange={(event) => patch('workflow', event.target.value)} />
-            </label>
-            <label className="settings-field">
-              <span>{t('settings.workflowsDir')}</span>
-              <input
-                value={form.workflowsDir}
-                placeholder={t('settings.workflowsDirPlaceholder')}
-                onChange={(event) => patch('workflowsDir', event.target.value)}
-              />
-            </label>
+            <PathField
+              label={t('settings.legacyWorkflow')}
+              kind="file"
+              filter="JSON (*.json)|*.json|All files (*.*)|*.*"
+              value={form.workflow}
+              placeholder="D:/path/workflow.json"
+              onChange={(value) => patch('workflow', value)}
+            />
+            <PathField
+              label={t('settings.workflowsDir')}
+              kind="folder"
+              value={form.workflowsDir}
+              placeholder={t('settings.workflowsDirPlaceholder')}
+              onChange={(value) => patch('workflowsDir', value)}
+            />
 
             <h2>{t('settings.sectionAgent')}</h2>
-            <label className="settings-field">
-              <span>{t('settings.skillsRoot')}</span>
-              <textarea
-                value={form.skillsDirs.join('\n')}
-                onChange={(event) => patch('skillsDirs', event.target.value.split('\n').map((item) => item.trim()).filter(Boolean))}
-              />
-            </label>
-            <label className="settings-field">
-              <span>{t('settings.mcpConfig')}</span>
-              <textarea
-                value={form.mcpConfigs.join('\n')}
-                onChange={(event) => patch('mcpConfigs', event.target.value.split('\n').map((item) => item.trim()).filter(Boolean))}
-              />
-            </label>
+            <PathListField
+              label={t('settings.skillsRoot')}
+              kind="folder"
+              addLabel={t('settings.addFolder')}
+              values={form.skillsDirs}
+              onChange={(values) => patch('skillsDirs', values)}
+            />
+            <PathListField
+              label={t('settings.mcpConfig')}
+              kind="file"
+              filter="JSON (*.json)|*.json|All files (*.*)|*.*"
+              addLabel={t('settings.addFile')}
+              values={form.mcpConfigs}
+              onChange={(values) => patch('mcpConfigs', values)}
+            />
 
             <h2>{t('settings.sectionEngine')}</h2>
-            <label className="settings-field">
-              <span>{t('settings.godotBin')}</span>
-              <input value={form.godotBin} placeholder="D:/godot/Godot.exe" onChange={(event) => patch('godotBin', event.target.value)} />
-            </label>
-            <label className="settings-field">
-              <span>{t('settings.unityBin')}</span>
-              <input value={form.unityBin} placeholder="D:/unity/6000.6.9f1/Editor" onChange={(event) => patch('unityBin', event.target.value)} />
-            </label>
+            <PathField
+              label={t('settings.godotBin')}
+              kind="file"
+              filter="Executable (*.exe)|*.exe|All files (*.*)|*.*"
+              value={form.godotBin}
+              placeholder="D:/godot/Godot.exe"
+              onChange={(value) => patch('godotBin', value)}
+            />
+            <PathField
+              label={t('settings.unityBin')}
+              kind="folder"
+              value={form.unityBin}
+              placeholder="D:/unity/6000.6.9f1/Editor"
+              onChange={(value) => patch('unityBin', value)}
+            />
 
             <div className="settings-actions">
               <button className="button primary" type="button" onClick={() => void save()}>

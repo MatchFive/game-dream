@@ -363,6 +363,42 @@
 .inspector-preview img { max-width: 100%; max-height: 220px; object-fit: contain; }
 .inspector-preview .icon { width: 28px; height: 28px; color: var(--muted); }
 .assets-inspector h2 { margin: 0; font: 600 15px/1.3 var(--sans); }
+
+.inspector-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.inspector-name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: 600 13px/1.3 var(--sans);
+}
+
+.inspector-name input:focus {
+  border-color: var(--lime);
+  outline: none;
+}
+
+.inspector-name .button {
+  flex-shrink: 0;
+}
+
+.path-row code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font: 10px/1.4 var(--mono);
+}
 .inspector-list { display: grid; gap: 4px; margin: 0; }
 .inspector-list div { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font: 10px/1.5 var(--mono); }
 .inspector-list dt { color: var(--dim); }

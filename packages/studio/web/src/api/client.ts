@@ -98,6 +98,8 @@ export const api = {
     request<{ workflows: WorkflowInfo[]; defaultImage?: string; defaultAudio?: string }>(
       '/api/workflows',
     ),
+  choosePath: (body: { kind: 'file' | 'folder'; title?: string; filter?: string }) =>
+    post<{ path: string | null }>('/api/dialog', body),
   job: (id: string) => request<{ job: ComfyJob }>(`/api/jobs/${id}`),
   generate: (body: Record<string, unknown>) =>
     post<{ job: ComfyJob }>('/api/generate', body),
