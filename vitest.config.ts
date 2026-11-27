@@ -29,7 +29,11 @@ export default defineConfig({
   },
   test: {
     include: ['packages/*/test/**/*.test.ts'],
-    testTimeout: 20_000,
-    hookTimeout: 20_000,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    // 一部分用例会真的拉起 CLI 进程和 Chrome（program / web-genres / screenshot）。
+    // 默认按 CPU 数开满 worker 时，这些重进程互相抢资源，会随机超时或断言失败。
+    maxWorkers: 8,
+    minWorkers: 1,
   },
 });
