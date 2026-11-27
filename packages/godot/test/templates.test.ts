@@ -2,7 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { makeTempDir } from '@gamedream/testing';
-import { exportTemplatesRoot, findExportTemplates, templateVersion } from '../src/templates.js';
+import {
+  exportTemplatesRoot,
+  findExportTemplates,
+  templateDownloadUrl,
+  templateReleaseTag,
+  templateVersion,
+} from '../src/templates.js';
 
 describe('Godot export templates', () => {
   it('normalizes versions and finds platform files', () => {
@@ -37,5 +43,17 @@ describe('Godot export templates', () => {
     const status = findExportTemplates('4.4.1.stable', env, 'win32');
     expect(status.installed).toBe(false);
     expect(status.dir).toContain('4.4.1.stable');
+  });
+
+  it('builds the official download url for a full version', () => {
+    expect(templateReleaseTag('4.4.1.stable.official.49a5bc7b6')).toBe('4.4.1-stable');
+    expect(templateDownloadUrl('4.4.1.stable.official.49a5bc7b6')).toBe(
+      'https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz',
+    );
+  });
+
+  it('refuses to guess a download url for a partial version', () => {
+    expect(templateReleaseTag('4.4')).toBeNull();
+    expect(templateDownloadUrl('4.4')).toBeNull();
   });
 });

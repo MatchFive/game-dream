@@ -6,6 +6,7 @@ import {
   exportProject,
   importProject,
   packageGodotProject,
+  templateDownloadUrl,
   type TemplatePlatform,
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
@@ -514,9 +515,15 @@ export function createProgram(): Command {
             .join(', ') || 'none'}`,
         );
         if (!result.status.installed) {
+          const missing = result.status.missing.join(', ') || 'all';
+          const download = templateDownloadUrl(result.status.version);
+          printLine(`Missing: ${missing}`);
           printLine(
-            `Install the matching Godot ${result.status.version} export templates from the Godot editor or the official download page, then re-run this command.`,
+            `Install Godot ${result.status.version} export templates, then re-run this command:`,
           );
+          if (download) printLine(`  download  ${download}`);
+          printLine(`  extract   templates/*  ->  ${result.status.dir}`);
+          printLine('  or use the editor: Editor > Manage Export Templates > Download');
         }
       }
       process.exitCode = result.exitCode;

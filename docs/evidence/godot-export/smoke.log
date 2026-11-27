@@ -1,0 +1,39 @@
+# 2026-11-27, Windows 11, Node 22.22.2
+# GODOT_BIN=Godot_v4.4.1-stable_win64_console.exe
+# templates: %APPDATA%/Godot/export_templates/4.4.1.stable (1.9G, 35 files)
+
+$ node packages/cli/dist/index.js godot templates
+Godot: 4.4.1.stable.official.49a5bc7b6
+Templates: installed (C:/Users/32113/AppData/Roaming/Godot/export_templates/4.4.1.stable)
+Platforms: windows, linux, web, macos
+
+$ node scripts/godot-export-smoke.mjs --out dist/godot-export --require
+Composed 31 modules into F:/game-dream/dist/godot-export
+Godot export: F:/game-dream/dist/godot-export/build/game.exe
+GODOT_EXPORT_OK=1
+platform=windows
+output=F:/game-dream/dist/godot-export/build/game.exe
+bytes=97656240
+
+# 无模板时（APPDATA 指向空目录）：
+$ APPDATA=dist/fake-appdata node packages/cli/dist/index.js godot templates
+Godot: 4.4.1.stable.official.49a5bc7b6
+Templates: missing (F:/game-dream/dist/fake-appdata/Godot/export_templates/4.4.1.stable)
+Platforms: none
+Missing: windows, linux, web, macos
+Install Godot 4.4.1.stable export templates, then re-run this command:
+  download  https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+  extract   templates/*  ->  F:/game-dream/dist/fake-appdata/Godot/export_templates/4.4.1.stable
+  or use the editor: Editor > Manage Export Templates > Download
+exit=1
+
+$ node scripts/godot-runtime-smoke.mjs
+GODOT_RUNTIME_BIN=F:/game-dream/.tools/godot/engine/Godot_v4.4.1-stable_win64_console.exe
+Composed 31 modules into F:/game-dream/dist/godot-runtime-smoke
+{ "gates": { "G1": { "status": "pass" }, "G2": { "status": "pass" }, "G3": { "status": "pass" } }, "engine": "present" }
+GODOT_RUNTIME_G1=pass
+GODOT_RUNTIME_G2=pass
+GODOT_RUNTIME_G3=pass
+GODOT_RUNTIME_ENGINE=present
+GODOT_RUNTIME_OK=1
+GODOT_RUNTIME_EXIT=0

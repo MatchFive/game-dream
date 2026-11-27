@@ -22,6 +22,26 @@ export function templateVersion(version: string): string {
   return parts.length >= 3 ? parts.slice(0, 3).join('.') : version;
 }
 
+/**
+ * Godot 的发布 tag 用连字符（4.4.1-stable），模板目录用点号（4.4.1.stable）。
+ * 只对完整的 x.y.z-status 版本给出 tag，避免猜错下载地址。
+ */
+export function templateReleaseTag(version: string): string | null {
+  const parts = templateVersion(version).split('.');
+  if (parts.length !== 4) return null;
+  const [major, minor, patch, status] = parts;
+  if (!/^\d+$/.test(major) || !/^\d+$/.test(minor) || !/^\d+$/.test(patch)) return null;
+  if (!/^(stable|beta|rc|dev)$/.test(status)) return null;
+  return `${major}.${minor}.${patch}-${status}`;
+}
+
+/** 官方 tpz 下载地址；版本不足以推断时返回 null。 */
+export function templateDownloadUrl(version: string): string | null {
+  const tag = templateReleaseTag(version);
+  if (!tag) return null;
+  return `https://github.com/godotengine/godot/releases/download/${tag}/Godot_v${tag}_export_templates.tpz`;
+}
+
 export function exportTemplatesRoot(
   env: NodeJS.ProcessEnv,
   platform: NodeJS.Platform = process.platform,

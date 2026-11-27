@@ -139,7 +139,7 @@
 
 | ID | 事项 | 验收标准 | 状态 |
 |---|---|---|---|
-| R1 | Godot export templates CI | CI job 已下载 4.4.1 模板并执行 `smoke:godot-export --require`；本机当前模板仍缺失 | 安装 4.4.1 模板并真实导出 artifact；本地/CI 状态可区分 | In progress |
+| R1 | Godot export templates CI | CI job 已下载 4.4.1 模板并执行 `smoke:godot-export --require`；本机模板曾缺失 | 本机安装 4.4.1 模板并真实导出 97MB `game.exe`；`dream godot templates` 缺模板时输出下载地址+目标目录、退出码 1，齐全时退出 0 | Done |
 | R2 | Unity release runtime | 已通过真实 Unity build/player smoke/screenshot；本地 artifact 落盘，CI self-hosted job 上传 player | 真实 batchmode build、运行 marker、截图、artifact | Done |
 | R3 | 真实 MCP CI | 已加 `godot-mcp` CI job，真实 `@coding-solo/godot-mcp` 创建/添加/保存场景并校验节点；本地证据 `godot-mcp-real.log` | 真实 Godot MCP 场景保存回归，不再只靠 fixture | Done |
 | R4 | 发布回滚/签名 | Web/Godot package 写 SHA-256 清单并原子替换，失败保留旧包；Unity release 上传 player/log/screenshot；未做代码签名 | release artifact 可追溯、hash、失败保留旧包 | Done |
