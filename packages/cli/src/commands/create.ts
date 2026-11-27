@@ -38,7 +38,7 @@ export function parseProviderKind(value: string): ProviderKind {
   throw new Error('--provider must be auto, fake, or openai');
 }
 
-export function createExitCode(verify?: VerifyReport): 0 | 2 | 3 {
+export function createExitCode(verify?: VerifyReport): 0 | 2 | 3 | 4 {
   return verify ? exitCodeFor(verify) : 0;
 }
 

@@ -20,8 +20,14 @@ import {
 } from '@gamedream/godot';
 
 export interface GateResult {
-  status: 'pass' | 'fail' | 'skip';
+  /**
+   * `error` 表示环境问题（例如 Godot 反复原生崩溃、引擎缺失），
+   * 与项目本身的质量无关，统计时不能算作项目失败。
+   */
+  status: 'pass' | 'fail' | 'skip' | 'error';
   message?: string;
+  /** 崩溃重试的次数，仅在 status 为 error 时出现 */
+  attempts?: number;
 }
 
 export interface VerifyReport {
@@ -50,6 +56,8 @@ export async function verifyCommand(options: {
   visualOut?: string;
   vision?: VisionProviderKind;
   visionProvider?: VisionProvider;
+  /** 崩溃重试之间的等待，测试里注入以免真的等待 */
+  sleep?: (ms: number) => Promise<void>;
 }): Promise<VerifyReport> {
   let engine: VerifyReport['engine'] = 'missing';
   let markers = ['GAMEDREAM_BOOT_OK'];
@@ -109,15 +117,23 @@ export async function verifyCommand(options: {
 
   const importProjectOnce = () =>
     importProject(options.projectDir, godot, options.runner);
-  let imported = await importProjectOnce();
-  if (isTransientGodotCrash(imported)) {
-    imported = await importProjectOnce();
+  const sleep = options.sleep ?? defaultSleep;
+  const imported = await runToleratingCrashes(importProjectOnce, sleep);
+  if (imported.crashed) {
+    gates.G2 = {
+      status: 'error',
+      attempts: imported.attempts,
+      message: godotCrashMessage('import', imported.result.exitCode, imported.attempts),
+    };
+    gates.G3 = { status: 'skip', message: 'not run: Godot crashed' };
+    if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: Godot crashed' };
+    return { gates, engine };
   }
-  const importErrors = findScriptErrors(imported);
-  if (imported.exitCode !== 0 || importErrors.length > 0) {
+  const importErrors = findScriptErrors(imported.result);
+  if (imported.result.exitCode !== 0 || importErrors.length > 0) {
     gates.G2 = {
       status: 'fail',
-      message: importErrors.join('\n') || `exit ${imported.exitCode}`,
+      message: importErrors.join('\n') || `exit ${imported.result.exitCode}`,
     };
     if (gates.G6) gates.G6 = { status: 'skip', message: 'not run: G2 failed' };
     return { gates, engine };
@@ -129,20 +145,25 @@ export async function verifyCommand(options: {
       quitAfter: 1200,
       runner: options.runner,
     });
-  let run = await runHeadlessOnce();
-  if (isTransientGodotCrash(run)) {
-    run = await runHeadlessOnce();
-  }
-  const errors = findScriptErrors(run);
-  if (run.exitCode !== 0) {
-    gates.G3 = { status: 'fail', message: `exit ${run.exitCode}` };
-  } else if (errors.length > 0) {
-    gates.G3 = { status: 'fail', message: errors.join('\n') };
+  const run = await runToleratingCrashes(runHeadlessOnce, sleep);
+  if (run.crashed) {
+    gates.G3 = {
+      status: 'error',
+      attempts: run.attempts,
+      message: godotCrashMessage('run', run.result.exitCode, run.attempts),
+    };
   } else {
-    const missing = markers.find((marker) => !hasMarker(run, marker));
-    gates.G3 = missing
-      ? { status: 'fail', message: `missing ${missing}` }
-      : { status: 'pass' };
+    const errors = findScriptErrors(run.result);
+    if (run.result.exitCode !== 0) {
+      gates.G3 = { status: 'fail', message: `exit ${run.result.exitCode}` };
+    } else if (errors.length > 0) {
+      gates.G3 = { status: 'fail', message: errors.join('\n') };
+    } else {
+      const missing = markers.find((marker) => !hasMarker(run.result, marker));
+      gates.G3 = missing
+        ? { status: 'fail', message: `missing ${missing}` }
+        : { status: 'pass' };
+    }
   }
 
   if (visualRequested) {
@@ -190,10 +211,39 @@ export async function verifyCommand(options: {
   return { gates, engine };
 }
 
+/** Windows NTSTATUS: access violation / stack buffer overrun seen intermittently when Godot imports or exits. */
+const TRANSIENT_GODOT_EXITS = new Set([3221225477, 3221226356]);
+const CRASH_RETRY_LIMIT = 2;
+const CRASH_BACKOFF_MS = [300, 900];
+
 function isTransientGodotCrash(result: { exitCode: number }): boolean {
-  // Windows NTSTATUS: access violation / stack buffer overrun seen
-  // intermittently when Godot imports or exits on this machine.
-  return result.exitCode === 3221225477 || result.exitCode === 3221226356;
+  return TRANSIENT_GODOT_EXITS.has(result.exitCode);
+}
+
+function defaultSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function godotCrashMessage(phase: 'import' | 'run', exitCode: number, attempts: number): string {
+  return `Godot crashed ${attempts}x during ${phase} (exit ${exitCode}); environment problem, not a project failure`;
+}
+
+/**
+ * 有界重试：原生崩溃和项目本身的脚本错误不同，重跑一次往往就过了。
+ * 重试仍崩溃时把结果标记为 crashed，由调用方归到 status: 'error'。
+ */
+async function runToleratingCrashes<T extends { exitCode: number }>(
+  attempt: () => Promise<T>,
+  sleep: (ms: number) => Promise<void>,
+): Promise<{ result: T; attempts: number; crashed: boolean }> {
+  let result = await attempt();
+  let attempts = 1;
+  while (isTransientGodotCrash(result) && attempts <= CRASH_RETRY_LIMIT) {
+    await sleep(CRASH_BACKOFF_MS[attempts - 1] ?? CRASH_BACKOFF_MS[CRASH_BACKOFF_MS.length - 1]);
+    result = await attempt();
+    attempts += 1;
+  }
+  return { result, attempts, crashed: isTransientGodotCrash(result) };
 }
 
 function visualFailure(shot: ScreenshotResult): string | null {
@@ -243,8 +293,10 @@ function visionFailure(review: VisualReview): string | null {
   return null;
 }
 
-export function exitCodeFor(report: VerifyReport): 0 | 2 | 3 {
+export function exitCodeFor(report: VerifyReport): 0 | 2 | 3 | 4 {
   if (Object.values(report.gates).some((gate) => gate.status === 'fail')) return 2;
+  // 4 = 环境问题（引擎反复崩溃），与项目失败区分开，便于 CI 分流
+  if (Object.values(report.gates).some((gate) => gate.status === 'error')) return 4;
   if (report.gates.G2.status === 'skip' || report.gates.G3.status === 'skip') return 3;
   return 0;
 }

@@ -150,8 +150,8 @@
 |---|---|---|---|
 | X1 | 非 ASCII 路径复制 | `fs.cpSync` 在 Windows 上对中文源/目标分别抛 `ENOENT` 和原生段错误（exit 139）；已统一改为 `copyPath`，覆盖 core/cli/studio/web/unity 共 12 处调用 | 中文目录 `create`/`verify` 通过、Studio 候选 apply/rollback 通过、源码禁止再出现 `cpSync(` | Done |
 | X2 | Windows CI | CI 只有 ubuntu-esque job，Windows 专属失败无法被发现；已新增 `test-windows`（`windows-latest`）跑 typecheck/test/build + 中文路径冒烟 | Windows job 必过，中文路径 `G1: pass` | Done |
-| X3 | Godot G2 崩溃分类 | G2 间歇崩溃（exit 3221225477/3221226356）被当作硬失败，可修复的引擎抖动被报成项目不可玩 | 崩溃单独分类、有界重试（≤2 次 + 退避），不出现在"项目失败"统计 | Next |
-| X4 | 缺引擎时的 run 启动拦截 | 无 `GODOT_BIN` 时 verify 返回 skip 作为普通工具结果，Agent 不收敛并空转 scaffold | run 启动前抛环境错误，不消耗模型步数 | Next |
+| X3 | Godot G2 崩溃分类 | G2 间歇崩溃（exit 3221225477/3221226356）被当作硬失败，可修复的引擎抖动被报成项目不可玩 | 崩溃单独分类、有界重试（≤2 次 + 退避），不出现在"项目失败"统计 | Done |
+| X4 | 缺引擎时的 run 启动拦截 | 无 `GODOT_BIN` 时 verify 返回 skip 作为普通工具结果，Agent 不收敛并空转 scaffold | run 启动前抛环境错误，不消耗模型步数 | Done |
 | X5 | 重复 scaffold 告警 | 模型反复 scaffold 时重新复制 kit + recompose，日志噪声且掩盖真实步骤 | 重复调用返回警告并要求显式 reset | Backlog |
 | X6 | Studio 前端框架化 | 6101 行 vanilla JS、350+ 处 querySelector、42 处 innerHTML、三套手写轮询，无类型无测试；任务页左栏堆 6 个同级区块、运行历史左右各一份 | React 19 + Vite + TS + Radix + TanStack Query 重写三页；视觉仍走 theme.css；`/legacy/*` 保留旧页面；`nav.test.ts` 锁定共享导航 | Done |
 
@@ -167,10 +167,11 @@
 
 ## 11. 建议的下一步顺序
 
-1. **X3/X4 验证闭环**：G2 崩溃分类与有界重试，缺引擎时启动即失败。
-2. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
-3. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
-4. **AS6 3D / Unreal / 远端鉴权**：长期方向。
+1. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
+2. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
+3. **AS6 3D / Unreal / 远端鉴权**：长期方向。
+
+已完成：X3（`status: 'error'` + 3 次尝试/退避 + exit code 4）、X4（`develop` 预检 + verify 工具显式环境错误）。
 
 ## 12. Definition of Done
 

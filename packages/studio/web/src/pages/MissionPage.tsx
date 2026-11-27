@@ -14,6 +14,7 @@ type PreviewTab = 'build' | 'evidence';
 function gateStatusClass(status: string | undefined): string {
   if (status === 'pass') return 'ok';
   if (status === 'fail') return 'bad';
+  if (status === 'error') return 'error';
   return 'warn';
 }
 
@@ -21,6 +22,7 @@ function gateWord(status: string | undefined, t: (key: string) => string): strin
   if (status === 'pass') return t('common.pass');
   if (status === 'fail') return t('common.fail');
   if (status === 'skip') return t('common.skip');
+  if (status === 'error') return t('studio.gateError');
   return t('studio.notRun');
 }
 

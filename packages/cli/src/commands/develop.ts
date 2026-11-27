@@ -83,7 +83,13 @@ export interface DevelopOptions {
   runId?: string;
   eventSeqStart?: number;
   onChunk?: (chunk: string) => void;
+  /** 跳过引擎预检：只有明确知道要在无引擎环境下跑工具流程时才打开 */
+  allowMissingEngine?: boolean;
 }
+
+const ENGINE_MISSING_ERROR =
+  'Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH. '
+  + 'Verify would skip G2/G3, so the run would spend model steps without producing a playable build.';
 
 export interface CandidateReport {
   index: number;
@@ -525,6 +531,23 @@ const TOOLS: Tool[] = [
       });
       const failed = Object.values(report.gates).some((gate) => gate.status === 'fail');
       const missing = missingExpectedMarkers(context.outDir, context.expectedMarkers);
+      // 引擎缺失不是"再改改代码"能解决的，明确告诉模型停下，避免空转 scaffold
+      if (report.engine === 'missing') {
+        return {
+          ok: false,
+          output: JSON.stringify(
+            {
+              environment: 'engine-missing',
+              message: ENGINE_MISSING_ERROR,
+              gates: report.gates,
+              missingExpectedMarkers: missing,
+            },
+            null,
+            2,
+          ),
+          data: report,
+        };
+      }
       return {
         ok: !failed && missing.length === 0,
         output: JSON.stringify(
@@ -548,6 +571,17 @@ const TOOLS: Tool[] = [
         visual: true,
       });
       const failed = Object.values(report.gates).some((gate) => gate.status === 'fail');
+      if (report.engine === 'missing') {
+        return {
+          ok: false,
+          output: JSON.stringify(
+            { environment: 'engine-missing', message: ENGINE_MISSING_ERROR, gates: report.gates },
+            null,
+            2,
+          ),
+          data: report,
+        };
+      }
       return {
         ok: !failed,
         output: JSON.stringify(report.gates, null, 2),
@@ -636,6 +670,15 @@ export async function developCandidates(
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
   const env = options.env ?? process.env;
+  // 已有 Godot 项目但找不到引擎时，verify 会把 G2/G3 标成 skip，
+  // 模型看不到硬失败就会一直 scaffold。这里在消耗任何模型步数之前先拦下来。
+  if (!options.allowMissingEngine) {
+    const existingProject = resolve(options.outDir, 'project.godot');
+    if (existsSync(existingProject)) {
+      const godot = await detectGodot({ env, runner: options.runner });
+      if (!godot) throw new Error(ENGINE_MISSING_ERROR);
+    }
+  }
   const roots = skillRoots({ ...options, env });
   const availableSkills = listSkills(roots);
   const baseSkills = ['gdscript', 'godot-gdscript-patterns', 'godot-ui', 'game-feel'];

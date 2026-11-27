@@ -141,7 +141,11 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
         const allPassed =
           gates !== undefined && Object.values(gates).every((gate) => gate.status === 'pass');
         const runtimeUnavailable =
-          gates !== undefined && (gates.G2.status === 'skip' || gates.G3.status === 'skip');
+          gates !== undefined &&
+          (gates.G2.status === 'skip'
+            || gates.G3.status === 'skip'
+            || gates.G2.status === 'error'
+            || gates.G3.status === 'error');
         let status: BenchmarkCaseResult['status'];
         if (!templateMatched) {
           status = 'fallback';

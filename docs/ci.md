@@ -90,3 +90,37 @@ Install templates through the Godot editor (Editor > Manage Export Templates) or
 from the official Godot download page, then rerun the command. Until they are
 installed, `dream godot export` exits 3; `dream godot package` still produces a
 source release and works without templates.
+
+## Gate status and exit codes
+
+`dream verify` (and anything that runs it: `create`, `develop`, `benchmark`)
+reports four gate statuses:
+
+| status | meaning |
+| --- | --- |
+| `pass` | gate ran and passed |
+| `fail` | the project is wrong — a script error, missing marker, or bad export |
+| `skip` | the gate could not run (engine missing, or an earlier gate failed) |
+| `error` | the environment failed: Godot crashed repeatedly, or the run never reached the engine |
+
+A native crash (Windows exit `3221225477` / `3221226356`) is retried twice with
+backoff (300ms, 900ms). If it still crashes, the gate becomes `error` with an
+`attempts` count and the message says it is an environment problem, not a
+project failure — so crash-prone machines do not pollute playability statistics.
+
+Exit codes follow the same split:
+
+```
+0  all gates passed
+2  a gate failed (project problem)
+3  a gate was skipped (engine missing)
+4  a gate hit an environment error (engine crashed)
+```
+
+CI can therefore retry a job on 4 instead of reporting the project as broken.
+
+`dream develop` also refuses to start when the target project already has a
+`project.godot` and no engine can be found: it throws `Godot 4.4+ not found`
+before the first model step, instead of burning steps on a run whose verify can
+only return `skip`. Callers that intentionally run without an engine (tool-only
+sandboxes) pass `allowMissingEngine`.

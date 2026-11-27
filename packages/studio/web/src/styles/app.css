@@ -107,6 +107,8 @@
 
 .studio-gate-row.ok .dot { background: var(--lime); }
 .studio-gate-row.bad .dot { background: var(--coral); }
+.studio-gate-row.error .dot { background: var(--amber); }
+.studio-gate-row.error .gate-state { color: var(--amber); }
 .studio-gate-row.warn .dot { background: var(--amber); }
 .studio-gate-row .gate-state { color: var(--muted); font: 10px/1.2 var(--mono); }
 .studio-gate-row small {
