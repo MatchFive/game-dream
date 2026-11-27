@@ -757,10 +757,23 @@ export class AgentManager {
     input: AgentStartInput,
     eventSeqStart = 0,
   ): void {
-    const rootSkills = join(this.root, 'skills');
-    const skillsDir = existsSync(rootSkills)
-      ? rootSkills
-      : join(dirname(this.cliEntry as string), '..', '..', '..', 'skills');
+    const splitPaths = (value: string | undefined): string[] => {
+      if (!value) return [];
+      return value.split(/[;,]/).map((entry) => entry.trim()).filter(Boolean);
+    };
+    const repoSkills = join(dirname(this.cliEntry as string), '..', '..', '..', 'skills');
+    const skillsDirs = [...new Set([
+      join(this.root, '.claude', 'skills'),
+      join(this.root, '.commandcode', 'skills'),
+      join(this.root, 'skills'),
+      ...splitPaths(this.env.GAMEDREAM_SKILLS_DIRS),
+      repoSkills,
+    ].filter(Boolean))];
+    const mcpConfigs = [
+      ...splitPaths(this.env.GAMEDREAM_MCP_CONFIGS),
+      join(this.root, '.mcp.json'),
+      join(this.root, '.commandcode', 'mcp.json'),
+    ].filter((path, index, all) => existsSync(path) && all.indexOf(path) === index);
     const maxSteps = Math.max(1, Math.min(48, Number(input.maxSteps) || batch.maxSteps || 12));
     const maxTokens = optionalTokenLimit(input.maxTokens ?? batch.maxTokens);
     const maxPromptTokens = optionalTokenLimit(input.maxPromptTokens ?? batch.maxPromptTokens);
@@ -773,7 +786,7 @@ export class AgentManager {
       '--out',
       run.outDir,
       '--skills',
-      skillsDir,
+      skillsDirs.join(','),
       '--skill',
       batch.skill,
       '--provider',
@@ -789,6 +802,7 @@ export class AgentManager {
       '--ask-tool',
       approvalTools.join(','),
     ];
+    if (mcpConfigs.length > 0) args.push('--mcp-config', mcpConfigs.join(','));
     if (maxTokens !== undefined) args.push('--max-tokens', String(maxTokens));
     if (maxPromptTokens !== undefined) args.push('--max-prompt-tokens', String(maxPromptTokens));
     if (maxCostUsd !== undefined) args.push('--max-cost', String(maxCostUsd));

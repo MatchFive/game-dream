@@ -228,15 +228,15 @@ export function createProgram(): Command {
     .requiredOption('--out <dir>')
     .option('--case <file>', 'development case JSON')
     .option('--skill <name>', 'development skill', 'survivor-demo')
-    .option('--skills <dir>', 'skills directory', 'skills')
+    .option('--skills <dirs>', 'skill roots, comma-separated', 'skills')
     .option('--provider <kind>', 'auto | fake | openai', 'fake')
     .option('--max-steps <count>', 'maximum tool steps', '12')
     .option('--max-tokens <count>', 'stop before the next model call after this total token usage')
     .option('--max-prompt-tokens <count>', 'stop when prompt token usage reaches this limit')
     .option('--max-cost <usd>', 'stop before the next model call after this estimated USD cost')
     .option('--candidates <count>', 'generate and select among N candidates', '1')
-    .option('--mcp-config <file>', 'MCP server config for Godot tools')
-    .option('--mcp-server <name>', 'MCP server name', 'godot')
+    .option('--mcp-config <files>', 'MCP config files, comma-separated')
+    .option('--mcp-server <names>', 'MCP server names, comma-separated')
     .option('--resume', 'resume the saved session in --out')
     .option('--fork <checkpoint>', 'fork the resumed session at a checkpoint id')
     .option('--cache-breakpoints', 'send stable prompt_cache_key boundaries')
@@ -299,7 +299,8 @@ export function createProgram(): Command {
           const candidateOptions = {
             prompt,
             outDir: options.out,
-            skillsDir: options.skills,
+            skillsDir: options.skills.split(',')[0]?.trim() || 'skills',
+            skillsDirs: options.skills.split(',').map((value) => value.trim()).filter(Boolean),
             skill: selected?.skill ?? options.skill,
             providerKind: parseProviderKind(options.provider),
             maxSteps: parseIntegerOption(options.maxSteps, '--max-steps', 1),
@@ -313,7 +314,15 @@ export function createProgram(): Command {
             visual: options.visual,
             expectedMarkers: selected?.expected_markers,
             mcpConfig: options.mcpConfig,
+            mcpConfigs: options.mcpConfig
+              ?.split(',')
+              .map((value) => value.trim())
+              .filter(Boolean),
             mcpServer: options.mcpServer,
+            mcpServers: options.mcpServer
+              ?.split(',')
+              .map((value) => value.trim())
+              .filter(Boolean),
             resume: options.resume,
             fork: options.fork,
             cacheBreakpoints: options.cacheBreakpoints,

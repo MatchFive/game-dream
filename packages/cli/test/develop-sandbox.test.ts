@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ModelProvider } from '@gamedream/agent';
+import { FakeProvider, type ModelProvider } from '@gamedream/agent';
 import { developCommand } from '../src/commands/develop.js';
-import { resolveSkillDirectory } from '../src/commands/skill-directory.js';
+import { listSkills, resolveSkillDirectory } from '../src/commands/skill-directory.js';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const skillsDir = join(root, 'skills');
@@ -37,6 +37,62 @@ describe('skill directory boundary', () => {
     expect(resolveSkillDirectory(localSkills, 'demo')).toBe(skill);
     expect(() => resolveSkillDirectory(localSkills, '..')).toThrow('unknown skill');
     expect(() => resolveSkillDirectory(localSkills, '.')).toThrow('unknown skill');
+  });
+
+  it('resolves skills across multiple Claude Code style roots', () => {
+    temporary = mkdtempSync(join(tmpdir(), 'gamedream skill roots '));
+    const first = join(temporary, 'first');
+    const second = join(temporary, 'second');
+    mkdirSync(join(first, 'shared'), { recursive: true });
+    mkdirSync(join(second, 'shared'), { recursive: true });
+    mkdirSync(join(second, 'extra'), { recursive: true });
+    expect(resolveSkillDirectory([first, second], 'extra')).toBe(
+      join(second, 'extra'),
+    );
+    expect(resolveSkillDirectory([first, second], 'shared')).toBe(
+      join(first, 'shared'),
+    );
+    expect(listSkills([first, second]).map((skill) => skill.name)).toEqual([
+      'extra',
+      'shared',
+    ]);
+  });
+});
+
+describe('multi-root skills integration', () => {
+  it('reads a skill from an extra root through developCommand', async () => {
+    temporary = mkdtempSync(join(tmpdir(), 'gamedream skill integration '));
+    const outDir = join(temporary, 'project');
+    const extraRoot = join(temporary, 'extra');
+    mkdirSync(join(extraRoot, 'extra-skill'), { recursive: true });
+    writeFileSync(join(extraRoot, 'extra-skill', 'SKILL.md'), 'EXTRA_SKILL_TEXT', 'utf8');
+    const eventsFile = join(temporary, 'events.jsonl');
+    const report = await developCommand({
+      prompt: 'skill check',
+      outDir,
+      skillsDir,
+      skillsDirs: [skillsDir, extraRoot],
+      skill: 'survivor-demo',
+      providerKind: 'fake',
+      maxSteps: 2,
+      eventsFile,
+      provider: new FakeProvider({
+        responses: [
+          JSON.stringify({
+            tool: 'read_skill',
+            args: { skill: 'extra-skill', path: 'SKILL.md' },
+          }),
+          JSON.stringify({ tool: 'finish', args: {} }),
+        ],
+      }),
+    });
+    expect(report.actions).toEqual(['read_skill', 'finish']);
+    const events = readFileSync(eventsFile, 'utf8')
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as { type: string; tool?: string; output?: string });
+    const read = events.find((event) => event.type === 'tool/end' && event.tool === 'read_skill');
+    expect(read?.output).toContain('EXTRA_SKILL_TEXT');
   });
 });
 

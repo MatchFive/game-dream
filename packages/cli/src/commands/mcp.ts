@@ -8,16 +8,21 @@ export interface McpTool {
   inputSchema?: Record<string, unknown>;
 }
 
-interface McpConfig {
-  mcpServers?: Record<
-    string,
-    {
-      transport?: string;
-      command?: string;
-      args?: string[];
-      env?: Record<string, string>;
-    }
-  >;
+export interface McpServerConfig {
+  transport?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface McpConfig {
+  mcpServers?: Record<string, McpServerConfig>;
+}
+
+export interface McpRegistryTool extends McpTool {
+  server: string;
+  toolName: string;
+  qualifiedName: string;
 }
 
 interface Pending {
@@ -34,15 +39,17 @@ export class McpClient {
   readonly tools: McpTool[] = [];
 
   private constructor(
-    private readonly serverName: string,
+    readonly serverName: string,
     command: string,
     args: string[],
     env: NodeJS.ProcessEnv,
   ) {
+    const useShell = process.platform === 'win32'
+      && (/\.(cmd|bat)$/i.test(command) || !/[\\/]/.test(command));
     this.child = spawn(command, args, {
       env,
       windowsHide: true,
-      shell: process.platform === 'win32',
+      shell: useShell,
     });
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', (chunk: string) => this.onData(chunk));
@@ -161,9 +168,125 @@ export class McpClient {
   }
 }
 
-export function defaultMcpConfig(): string | undefined {
+export class McpRegistry {
+  private readonly clients = new Map<string, McpClient>();
+  readonly tools: McpRegistryTool[] = [];
+  readonly errors: string[] = [];
+
+  private constructor() {}
+
+  static async connect(
+    configPaths: string[],
+    serverNames?: string[],
+  ): Promise<McpRegistry> {
+    const registry = new McpRegistry();
+    const merged = new Map<string, { config: McpServerConfig; path: string }>();
+    for (const path of configPaths) {
+      if (!existsSync(path)) continue;
+      let config: McpConfig;
+      try {
+        config = JSON.parse(readFileSync(path, 'utf8')) as McpConfig;
+      } catch {
+        continue;
+      }
+      for (const [name, server] of Object.entries(config.mcpServers ?? {})) {
+        if (!merged.has(name)) merged.set(name, { config: server, path });
+      }
+    }
+    const requested = serverNames?.filter(Boolean) ?? [];
+    const names = requested.length > 0 ? requested : [...merged.keys()];
+    for (const name of names) {
+      const entry = merged.get(name);
+      if (!entry) {
+        registry.errors.push(`MCP server not found: ${name}`);
+        continue;
+      }
+      try {
+        const client = await McpClient.connect(entry.path, name);
+        registry.clients.set(name, client);
+        for (const tool of client.tools) {
+          registry.tools.push({
+            ...tool,
+            server: name,
+            toolName: tool.name,
+            qualifiedName: `${name}/${tool.name}`,
+            name: `${name}/${tool.name}`,
+          });
+        }
+      } catch (error) {
+        registry.errors.push(`MCP ${name}: ${(error as Error).message}`);
+      }
+    }
+    if (registry.clients.size === 0) {
+      throw new Error(
+        registry.errors.join('; ')
+        || `no MCP servers found in: ${configPaths.join(', ')}`,
+      );
+    }
+    return registry;
+  }
+
+  async call(input: {
+    server?: string;
+    name: string;
+    args?: Record<string, unknown>;
+  }): Promise<string> {
+    let server = input.server?.trim();
+    let name = input.name.trim();
+    if (!name) throw new Error('MCP tool name is required');
+    if (!server && name.includes('/')) {
+      const [prefix, ...rest] = name.split('/');
+      server = prefix;
+      name = rest.join('/');
+    }
+    if (!server) {
+      if (this.clients.size !== 1) {
+        throw new Error(
+          `MCP server is required when multiple servers are configured: ${[...this.clients.keys()].join(', ')}`,
+        );
+      }
+      server = [...this.clients.keys()][0];
+    }
+    const client = this.clients.get(server);
+    if (!client) throw new Error(`MCP server not connected: ${server}`);
+    return client.call(name, input.args ?? {});
+  }
+
+  close(): void {
+    for (const client of this.clients.values()) client.close();
+    this.clients.clear();
+  }
+}
+
+export function defaultMcpConfigs(projectDir?: string): string[] {
   const home = process.env.USERPROFILE ?? process.env.HOME;
-  if (!home) return undefined;
-  const path = join(home, '.commandcode', 'mcp.json');
-  return existsSync(path) ? path : undefined;
+  const paths = [
+    ...(projectDir
+      ? [
+          join(projectDir, '.mcp.json'),
+          join(projectDir, 'mcp.json'),
+          join(projectDir, '.commandcode', 'mcp.json'),
+          join(projectDir, '.claude', 'mcp.json'),
+        ]
+      : []),
+    join(process.cwd(), '.mcp.json'),
+    join(process.cwd(), '.commandcode', 'mcp.json'),
+    ...(home
+      ? [
+          join(home, '.commandcode', 'mcp.json'),
+          join(home, '.claude.json'),
+          join(home, '.claude', 'mcp.json'),
+        ]
+      : []),
+  ];
+  const seen = new Set<string>();
+  return paths.filter((path) => {
+    if (seen.has(path) || !existsSync(path)) return false;
+    seen.add(path);
+    return true;
+  });
+}
+
+export function defaultMcpConfig(): string | undefined {
+  return defaultMcpConfigs()[0];
 }

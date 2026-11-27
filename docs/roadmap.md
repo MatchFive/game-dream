@@ -22,8 +22,8 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**288 passed / 15 skipped**
-- Agent focused tests：**18 passed**
+- 全量测试：**296 passed / 15 skipped**
+- Agent focused tests：**20 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图、BGM smoke **4/4 pass**
 - Agent smoke：`finished=true`、`score=1400`、`AGENT_APPROVAL_FLOW_OK=1`
@@ -114,6 +114,12 @@
 | AS6 | 3D 资产 | glTF/LOD/骨骼/贴图管线未实现 | 导入/预览/引用/打包最小闭环 | Backlog |
 
 动画路线参考 `docs/comfyui-audio-animation.md`：优先透明关键帧和 atlas；AnimateDiff 需要额外安装节点和 motion module，不能假定已有。
+
+| ID | 事项 | 验收标准 | 状态 |
+|---|---|---|---|
+| AS7 | ComfyUI 工作流目录 | 一个工作流一个 JSON（name/description/kind/graph/bindings），UI 选择，Agent 可保存；旧单文件 fallback | Done |
+| AS8 | 素材批量与 Asset Agent | 多行批量生成、素材 Agent 工具（生成/批量/图集/入构建/保存工作流）、事件与自动上画布 | Done |
+| AS9 | 多 MCP / 多 skills | 多 server 命名空间、项目/全局配置发现、Claude Code `.claude/skills`、Studio 设置与 Agent 传递 | Done |
 
 ## 7. P1 · 游戏内容深度
 

@@ -27,8 +27,12 @@ import {
 import { composeProject } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
-import { McpClient, defaultMcpConfig, type McpTool } from './mcp.js';
-import { resolveSkillDirectory } from './skill-directory.js';
+import {
+  McpRegistry,
+  defaultMcpConfigs,
+  type McpRegistryTool,
+} from './mcp.js';
+import { listSkills, resolveSkillDirectory } from './skill-directory.js';
 import {
   ToolPermissionGate,
   loadPermissionPolicy,
@@ -48,6 +52,7 @@ export interface DevelopOptions {
   prompt: string;
   outDir: string;
   skillsDir: string;
+  skillsDirs?: string[];
   skill: string;
   providerKind: ProviderKind;
   provider?: ModelProvider;
@@ -62,7 +67,9 @@ export interface DevelopOptions {
   visual?: boolean;
   expectedMarkers?: string[];
   mcpConfig?: string;
+  mcpConfigs?: string[];
   mcpServer?: string;
+  mcpServers?: string[];
   resume?: boolean;
   fork?: string;
   readOnly?: boolean;
@@ -126,7 +133,7 @@ export interface DevelopReport {
 
 interface DevelopContext extends DevelopOptions {
   projectDir: string;
-  mcp?: McpClient;
+  mcp?: McpRegistry;
 }
 
 interface Tool {
@@ -158,6 +165,47 @@ export function loadDevelopmentCase(path: string): DevelopmentCase {
       : undefined,
     expected_playable: typeof entry.expected_playable === 'boolean' ? entry.expected_playable : true,
   };
+}
+
+function splitPaths(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/[;,]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function skillRoots(options: DevelopOptions): string[] {
+  const roots = [
+    ...(options.skillsDirs ?? []),
+    ...(options.skillsDir ? [options.skillsDir] : []),
+    ...splitPaths(options.env?.GAMEDREAM_SKILLS_DIRS),
+    join(options.outDir, '.claude', 'skills'),
+    join(options.outDir, '.commandcode', 'skills'),
+    join(options.outDir, 'skills'),
+  ].filter(Boolean);
+  return [...new Set(roots)];
+}
+
+function mcpConfigPaths(options: DevelopOptions): string[] {
+  const explicit = [
+    ...(options.mcpConfigs ?? []),
+    ...splitPaths(options.mcpConfig),
+    ...splitPaths(options.env?.GAMEDREAM_MCP_CONFIGS),
+  ];
+  const automatic = options.providerKind === 'fake'
+    ? []
+    : defaultMcpConfigs(options.outDir);
+  return [...new Set([...explicit, ...automatic])];
+}
+
+function mcpServerNames(options: DevelopOptions): string[] | undefined {
+  const names = [
+    ...(options.mcpServers ?? []),
+    ...splitPaths(options.mcpServer),
+    ...splitPaths(options.env?.GAMEDREAM_MCP_SERVERS),
+  ];
+  return names.length > 0 ? [...new Set(names)] : undefined;
 }
 
 function inside(root: string, relative: string): string {
@@ -260,7 +308,7 @@ const TOOLS: Tool[] = [
       const skillName = String(args.skill ?? context.skill);
       let skillDir: string;
       try {
-        skillDir = resolveSkillDirectory(context.skillsDir, skillName);
+        skillDir = resolveSkillDirectory(skillRoots(context), skillName);
       } catch (error) {
         return { ok: false, output: (error as Error).message };
       }
@@ -345,7 +393,7 @@ const TOOLS: Tool[] = [
       try {
         const skillName = String(args.skill ?? context.skill);
         const relative = String(args.path ?? 'SKILL.md').replaceAll('\\', '/');
-        const root = resolveSkillDirectory(context.skillsDir, skillName);
+        const root = resolveSkillDirectory(skillRoots(context), skillName);
         const target = inside(root, relative);
         if (!existsSync(target) || statSync(target).isDirectory()) {
           return { ok: false, output: `skill file not found: ${skillName}/${relative}` };
@@ -438,7 +486,7 @@ const TOOLS: Tool[] = [
   {
     name: 'mcp',
     description:
-      'Call a discovered Godot MCP tool. Args: {"name":"tool_name","arguments":{...}}. Use MCP for editor/scene/UI operations.',
+      'Call a discovered MCP tool. Args: {"server":"server_name","name":"tool_name","arguments":{...}}. Use server/tool names from the prompt.',
     async run(args, context) {
       const denied = readOnlyDenied(context, 'mcp');
       if (denied) return denied;
@@ -452,7 +500,14 @@ const TOOLS: Tool[] = [
           ? (args.arguments as Record<string, unknown>)
           : {};
       try {
-        return { ok: true, output: await context.mcp.call(name, callArgs) };
+        return {
+          ok: true,
+          output: await context.mcp.call({
+            server: typeof args.server === 'string' ? args.server : undefined,
+            name,
+            args: callArgs,
+          }),
+        };
       } catch (error) {
         return { ok: false, output: (error as Error).message };
       }
@@ -516,14 +571,14 @@ function scriptedProvider(): ModelProvider {
 
 function systemPrompt(
   skillText: string,
-  mcpTools: McpTool[] = [],
+  mcpTools: McpRegistryTool[] = [],
   nativeTools = false,
 ): string {
   const mcpLines = mcpTools.length
     ? [
         '',
-        'Discovered MCP tools (call with tool "mcp", args {name, arguments}):',
-        ...mcpTools.map((tool) => `- ${tool.name}: ${tool.description ?? ''}`),
+        'Discovered MCP tools (call with tool "mcp", args {server, name, arguments}):',
+        ...mcpTools.map((tool) => `- ${tool.qualifiedName}: ${tool.description ?? ''}`),
       ]
     : [];
   return [
@@ -582,20 +637,32 @@ export async function developCandidates(
 
 export async function developCommand(options: DevelopOptions): Promise<DevelopReport> {
   const env = options.env ?? process.env;
+  const roots = skillRoots({ ...options, env });
+  const availableSkills = listSkills(roots);
   const baseSkills = ['gdscript', 'godot-gdscript-patterns', 'godot-ui', 'game-feel'];
   const loadedBaseSkills = baseSkills
-    .map((name) => join(options.skillsDir, name, 'SKILL.md'))
+    .map((name) => availableSkills.find((skill) => skill.name === name))
+    .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill))
+    .map((skill) => join(skill.directory, 'SKILL.md'))
     .filter((path) => existsSync(path))
     .map((path) => readFileSync(path, 'utf8'));
   let selectedSkill = '(no skill instructions found)';
   try {
-    const skillDirectory = resolveSkillDirectory(options.skillsDir, options.skill);
+    const skillDirectory = resolveSkillDirectory(roots, options.skill);
     const skillTextPath = join(skillDirectory, 'SKILL.md');
     if (existsSync(skillTextPath)) selectedSkill = readFileSync(skillTextPath, 'utf8');
   } catch {
-    // An unknown skill still gets the generic prompt instead of reading outside skillsDir.
+    // An unknown skill still gets the generic prompt instead of reading outside skills roots.
   }
-  const skillText = [...loadedBaseSkills, selectedSkill].filter(Boolean).join('\n\n');
+  const availableSkillText = availableSkills.length
+    ? [
+        'Available skills (read with tool "read_skill", args {skill, path}):',
+        ...availableSkills.map((skill) => `- ${skill.name}`),
+      ].join('\n')
+    : '';
+  const skillText = [...loadedBaseSkills, selectedSkill, availableSkillText]
+    .filter(Boolean)
+    .join('\n\n');
   const provider =
     options.provider ??
     (options.providerKind === 'fake' ||
@@ -613,15 +680,17 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     );
   }
   const costRates = tokenCostRates(pricing);
-  let mcp: McpClient | undefined;
-  const discoveredMcp =
-    options.mcpConfig ??
-    (options.providerKind === 'fake' ? undefined : defaultMcpConfig());
-  if (discoveredMcp) {
+  let mcp: McpRegistry | undefined;
+  const configPaths = mcpConfigPaths({ ...options, env });
+  const explicitMcp = Boolean(options.mcpConfig || options.mcpConfigs?.length);
+  if (configPaths.length > 0) {
     try {
-      mcp = await McpClient.connect(discoveredMcp, options.mcpServer ?? 'godot');
+      mcp = await McpRegistry.connect(
+        configPaths,
+        mcpServerNames({ ...options, env }),
+      );
     } catch (error) {
-      if (options.mcpConfig) throw error;
+      if (explicitMcp) throw error;
       // Auto-discovery is best-effort; the project can still be built without MCP.
     }
   }
@@ -629,12 +698,13 @@ export async function developCommand(options: DevelopOptions): Promise<DevelopRe
     ...options,
     projectDir: options.outDir,
     env,
+    skillsDirs: roots,
     mcp,
   };
   const sortedMcpTools = [...(mcp?.tools ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name),
+    a.qualifiedName.localeCompare(b.qualifiedName),
   );
-  const mcpTools = sortedMcpTools.map((tool) => tool.name);
+  const mcpTools = sortedMcpTools.map((tool) => tool.qualifiedName);
   const nativeTools = Boolean(provider.completeChatWithUsage);
   const system = systemPrompt(skillText, sortedMcpTools, nativeTools);
   const sessionPath = join(options.outDir, '.gamedream', 'session.json');

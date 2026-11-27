@@ -28,8 +28,11 @@ run it from a terminal if a double-click closes immediately.
 
 - Model provider/model/base URL/API key. The key is never returned by the API;
   leaving the field blank keeps the stored key.
-- ComfyUI URL and Qwen workflow file, applied to new image/audio runners
-  immediately after save.
+- ComfyUI URL, a legacy single workflow file, and an optional workflow
+  directory. Workflows are reloaded for new jobs after save.
+- Agent extension paths: extra skills roots and MCP config files. Project-level
+  `.claude/skills` / `.commandcode/skills` / `.mcp.json` are discovered
+  automatically.
 - Godot and Unity executable/editor paths.
 
 Settings are stored under the workspace at
@@ -39,7 +42,10 @@ Settings are stored under the workspace at
 
 The same page lists projects directly under the workspace whose engine can be
 detected. **Create** runs `dream create` with the configured provider and opens
-the new project in a separate Studio server/tab; **Open** starts another
+the new project in a separate Studio server/tab; an **Open existing project**
+field accepts a server-side absolute path for projects outside the workspace
+(it validates that the directory looks like a GameDream/Godot/Web/Unity
+project). Recent paths are kept in browser storage. **Open** starts another
 project Studio on an ephemeral localhost port. The current project remains
 untouched.
 
@@ -104,19 +110,44 @@ their content or sprite configuration.
 
 ## Generation
 
-Generation uses a local ComfyUI server and the configured Qwen image workflow.
-Override the defaults with:
+Generation uses a local ComfyUI server. Workflows come from a registry:
 
-```ini
-COMFYUI_URL=http://192.168.124.56:8000
-COMFYUI_WORKFLOW=D:/QQ/image_qwen_image_2_1_t2i.json
+- project: `<project>/.gamedream/studio/workflows/*.json`
+- workspace: `<workspace>/.gamedream/studio/workflows/*.json`
+- legacy single file from `COMFYUI_WORKFLOW` / settings (`legacy-qwen`)
+- built-in `builtin-bgm`
+
+Each workflow file describes its name, description, kind (`image` or `audio`),
+the ComfyUI graph, and bindings:
+
+```json
+{
+  "name": "Qwen Image 2.1",
+  "description": "Transparent sprites, props, and concept art",
+  "kind": "image",
+  "workflow": { "459:471": { "class_type": "...", "inputs": {} } },
+  "bindings": {
+    "prompt": [{ "node": "459:471", "input": "prompt" }],
+    "seed": { "node": "459:458", "input": "seed" },
+    "output": { "node": "461", "output": "images", "extension": ".png" },
+    "transparent": {
+      "promptSuffix": ", transparent background, alpha channel",
+      "nodes": {},
+      "output": { "node": "461", "output": "images" }
+    }
+  }
+}
 ```
 
-The **Transparent** mode adds a background-removal graph
-(`LoadBackgroundRemovalModel` → `RemoveBackground` → `InvertMask` →
-`JoinImageWithAlpha`) before saving the image, producing an RGBA PNG. Generated
-images and prompt/seed sidecars are written to
-`.gamedream/studio/generated/` and appear in the asset library.
+The Asset Canvas workflow selector lists valid descriptors. Project
+descriptors override workspace descriptors with the same id. The legacy
+single-file Qwen workflow remains a fallback and keeps its transparent
+background-removal graph. Generated images and prompt/seed sidecars are written
+to `.gamedream/studio/generated/` and appear in the asset library.
+
+The **Batch** chip treats each non-empty prompt line as a separate image asset
+and submits one job per line. Existing 1–4 variant counts remain available when
+Batch is off.
 
 Generation is asynchronous: the API returns one or more job ids and the UI polls
 their progress. Up to four variants can be requested in one batch; each variant
@@ -141,7 +172,25 @@ build. The Web survivor template reads a selected audio asset from
 `game/build-assets/manifest.json`, loops it, and binds the Music slider. The
 Unity survivor loads the same manifest from `Assets/StreamingAssets` after
 Studio mirrors the build assets, loops the first audio track, and logs
-`UNITY_BGM_OK`. SFX generation is not implemented yet.
+`UNITY_BGM_OK`. Local procedural SFX is available; AI text-to-SFX remains a
+later backend option.
+
+## Asset Agent
+
+The Asset Canvas **素材 Agent** panel runs a dedicated tool-using loop over the
+same model/provider settings. It can:
+
+- `list_workflows`, `list_assets`
+- `generate_asset` / `generate_batch` (image or audio)
+- `pack_atlas`, `stage_asset`
+- `save_workflow` into the project workflow directory
+- `finish`
+
+Runs are stored under `.gamedream/studio/asset-agent/<id>/` with
+`run.json` and `events.jsonl`; the browser polls `/api/asset-agent/:id`. When a
+run finishes, generated assets are indexed and automatically placed on the
+canvas. The agent requires a configured model API key (the `fake` provider is
+available for tests).
 
 ## Agent
 
@@ -198,6 +247,23 @@ The approval card's **Always allow** action writes
 Future runs pass the file through `dream develop --permissions`; the server does
 not inject the default `--ask-tool scaffold,mcp` once the policy file exists.
 
+### MCP and skills
+
+`dream develop` and the Studio Agent support multiple MCP servers and multiple
+skill roots:
+
+- MCP configs: `--mcp-config` (comma-separated), project `.mcp.json` /
+  `mcp.json` / `.commandcode/mcp.json` / `.claude/mcp.json`, workspace config,
+  `~/.commandcode/mcp.json`, `~/.claude.json`, and `~/.claude/mcp.json`.
+  Tools are named `server/tool`; the `mcp` tool accepts
+  `{ server, name, arguments }` or a `server/tool` name.
+- Skills: `--skills` (comma-separated), project `.claude/skills`,
+  `.commandcode/skills`, and `skills/`, plus additional roots from Settings or
+  `GAMEDREAM_SKILLS_DIRS`. `SKILL.md` layouts are compatible with Claude Code
+  skills.
+- Settings exposes both path lists; the Agent child receives them through
+  environment variables/CLI args.
+
 The Studio Agent panel accepts a maximum step count, optional token budget, and
 optional USD budget before starting a run. When provider-reported usage reaches
 a limit, the CLI emits `run/budget`, stops before the next tool/model action,
@@ -245,9 +311,9 @@ binding.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/state` | Project, assets, canvas, ComfyUI status |
+| `GET /api/state` | Project, assets, canvas, ComfyUI status, workflows |
 | `GET /api/settings` | Workspace settings with the API key redacted |
-| `POST /api/settings` | Persist model/image/engine settings and apply them |
+| `POST /api/settings` | Persist model/image/engine/agent-extension settings and apply them |
 | `GET /api/projects` | List detected projects under the workspace |
 | `POST /api/projects` | Create a project via `dream create` |
 | `POST /api/projects/open` | Start/open a project Studio on a new local port |
@@ -260,8 +326,13 @@ binding.
 | `POST /api/assets/:id/rename` | Set a display name without changing the asset id or file |
 | `PUT /api/canvas` | Persist canvas nodes and build selection |
 | `POST /api/animation/atlas` | Pack PNG frames into an atlas + Web/Godot descriptors |
-| `POST /api/generate` | Start image/animation jobs or a BGM job (`audio: true, duration: 10-60`) |
+| `POST /api/generate` | Start image/animation/BGM jobs; accepts `workflowId` |
 | `GET /api/jobs/:id` | Poll a generation job |
+| `GET /api/workflows` | List workflow descriptors and default image/audio ids |
+| `GET /api/asset-agent` | List asset-agent runs |
+| `GET /api/asset-agent/:id` | Read one run with events |
+| `POST /api/asset-agent/start` | Start the asset agent with `{ prompt }` |
+| `POST /api/asset-agent/:id/cancel` | Cancel a running asset agent |
 | `GET /api/agent` | Active, queued, and historical Agent batches |
 | `GET /api/agent/policy` | Read the Studio approval policy, available tools, and source path |
 | `POST /api/agent/policy` | Persist a tool mode (`allow`, `ask`, or `deny`) or the default mode |
@@ -300,7 +371,16 @@ expose it on a public interface.
   process inside the same server process.
 - Build selection stages assets under `game/build-assets/` and writes
   `bindings.json`; it does not rewrite user-edited content sprite configs.
-- Generated jobs are not resumed after a server restart.
+- Generated jobs are not resumed after a server restart. Asset-agent runs are
+  marked failed on restart; they are not resumed.
+- Workflow descriptors are validated on read; invalid files appear in
+  `/api/workflows` with `valid: false` and are not selectable.
+- Batch mode creates one image asset per prompt line; it does not batch audio,
+  animation, or SFX.
+- Multiple MCP servers are discovered and namespaced, but a failing server is
+  skipped with an entry in the registry errors; it does not block healthy
+  servers. MCP transport is stdio (`command`/`args`); HTTP/SSE-only configs are
+  skipped.
 - Agent children are resumed with `--resume` after a Studio restart. Persisted
   PIDs are verified against the run id before a stale process tree is reaped; a
   reused PID with a non-matching command line is left alone.

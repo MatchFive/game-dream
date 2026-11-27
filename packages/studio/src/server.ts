@@ -1,9 +1,10 @@
 import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
+import { AssetAgentManager } from './asset-agent.js';
 import { createAnimationAtlas } from './animation-atlas.js';
 import { listProjects, projectNameForDirectory } from './projects.js';
 import {
@@ -14,7 +15,8 @@ import {
   type StudioSettings,
 } from './settings.js';
 import { findAsset, loadCanvas, loadProject, mimeForFile, renameAsset, saveCanvas, scanAssets, setInBuild, syncBuildAssets, toggleInBuild } from './assets.js';
-import { ComfyAudioRunner, ComfyRunner } from './comfyui.js';
+import { ComfyAudioRunner, ComfyWorkflowRunner } from './comfyui.js';
+import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
 import {
@@ -47,8 +49,9 @@ interface StudioRuntime {
   getSettings(): StudioSettings;
   getEnv(): NodeJS.ProcessEnv;
   getComfyui(): ComfyUiConfig;
-  getRunner(): ComfyRunner;
+  getRunner(): ComfyWorkflowRunner;
   getAudioRunner(): ComfyAudioRunner;
+  getAssetAgent(): AssetAgentManager;
 }
 
 export interface StudioServerHandle {
@@ -299,17 +302,36 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       image: {
         url: options.comfyui?.url ?? settings.image.url,
         workflow: options.comfyui?.workflow ?? settings.image.workflow,
+        workflowsDir: settings.image.workflowsDir,
       },
     };
   }
+  const generatedDir = join(root, '.gamedream', 'studio', 'generated');
+  const projectWorkflows = join(root, '.gamedream', 'studio', 'workflows');
+  const createWorkflowRunner = (current: StudioSettings): ComfyWorkflowRunner => {
+    const workspaceWorkflows = current.image.workflowsDir
+      ? resolve(workspaceDir, current.image.workflowsDir)
+      : join(workspaceDir, '.gamedream', 'studio', 'workflows');
+    const registry = new WorkflowRegistry({
+      dirs: [projectWorkflows, workspaceWorkflows],
+      legacyWorkflow: current.image.workflow,
+    });
+    return new ComfyWorkflowRunner(
+      current.image.url,
+      registry,
+      generatedDir,
+      root,
+    );
+  };
   let comfyui: ComfyUiConfig = {
     url: settings.image.url,
     workflow: settings.image.workflow,
+    workflowsDir: settings.image.workflowsDir,
   };
-  let runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
+  let runner = createWorkflowRunner(settings);
   let audioRunner = new ComfyAudioRunner(
     comfyui.url,
-    join(root, '.gamedream', 'studio', 'generated'),
+    generatedDir,
     root,
   );
   const cliEntry = options.cliEntry ?? process.env.GAMEDREAM_CLI;
@@ -321,6 +343,14 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     env: agentEnv,
     provider: settings.model.provider,
   });
+  const assetAgent = new AssetAgentManager({
+    root,
+    getRunner: () => runner,
+    getSettings: () => settings,
+    workflowsDir: projectWorkflows,
+    generatedDir,
+    maxSteps: 16,
+  });
   const runtime: StudioRuntime = {
     root,
     getSettings: () => settings,
@@ -328,17 +358,18 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     getComfyui: () => comfyui,
     getRunner: () => runner,
     getAudioRunner: () => audioRunner,
+    getAssetAgent: () => assetAgent,
   };
   const applySettings = (next: StudioSettings): void => {
     settings = next;
     agentEnv = studioEnv(settings);
-    comfyui = { url: settings.image.url, workflow: settings.image.workflow };
-    runner = new ComfyRunner(comfyui, join(root, '.gamedream', 'studio', 'generated'), root);
-    audioRunner = new ComfyAudioRunner(
-      comfyui.url,
-      join(root, '.gamedream', 'studio', 'generated'),
-      root,
-    );
+    comfyui = {
+      url: settings.image.url,
+      workflow: settings.image.workflow,
+      workflowsDir: settings.image.workflowsDir,
+    };
+    runner = createWorkflowRunner(settings);
+    audioRunner = new ComfyAudioRunner(comfyui.url, generatedDir, root);
     agent.setEnv(agentEnv);
     agent.setDefaultProvider(settings.model.provider);
   };
@@ -485,6 +516,9 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     close: () => new Promise((resolveClose, rejectClose) => {
       stopPlaytest();
       agent.close();
+      for (const run of assetAgent.list()) {
+        if (run.status === 'running') assetAgent.cancel(run.id);
+      }
       for (const child of childServers) {
         void child.close();
       }
@@ -709,6 +743,7 @@ async function handleWorkspaceApi(
         model?: Partial<StudioSettings['model']>;
         image?: Partial<StudioSettings['image']>;
         engines?: Partial<StudioSettings['engines']>;
+        agent?: Partial<StudioSettings['agent']>;
       };
       const next = saveStudioSettings(
         context.workspaceDir,
@@ -811,15 +846,27 @@ async function handleWorkspaceApi(
   if (method === 'POST' && pathname === '/api/projects/open') {
     try {
       const body = (await readJson(request)) as { path?: unknown };
-      const projectPath = resolve(
-        context.workspaceDir,
-        typeof body.path === 'string' ? body.path : '',
-      );
-      if (!projectPath.startsWith(`${resolve(context.workspaceDir)}${requireSeparator()}`)) {
+      const requested = typeof body.path === 'string' ? body.path.trim() : '';
+      if (!requested) throw new Error('project path is required');
+      const workspaceRoot = resolve(context.workspaceDir);
+      const projectPath = isAbsolute(requested)
+        ? resolve(requested)
+        : resolve(workspaceRoot, requested);
+      if (
+        !isAbsolute(requested)
+        && !projectPath.startsWith(`${workspaceRoot}${requireSeparator()}`)
+      ) {
         throw new Error('project path escapes workspace');
       }
       if (!existsSync(projectPath) || !statSync(projectPath).isDirectory()) {
         throw new Error('project not found');
+      }
+      const engine = detectEngine(projectPath);
+      const hasSpec = existsSync(join(projectPath, 'gamedream.yaml'));
+      if (engine === 'unknown' && !hasSpec) {
+        throw new Error(
+          'not a recognized project (expected project.godot, index.html, ProjectSettings/ProjectVersion.txt, or gamedream.yaml)',
+        );
       }
       const url = await context.openProject(projectPath);
       json(response, 200, {
@@ -827,7 +874,7 @@ async function handleWorkspaceApi(
         project: {
           name: projectNameForDirectory(projectPath),
           path: projectPath,
-          engine: detectEngine(projectPath),
+          engine,
         },
       });
     } catch (error) {
@@ -961,6 +1008,43 @@ async function handleApi(
       json(response, 200, { run });
     } catch (error) {
       json(response, 503, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const assetAgent = runtime.getAssetAgent();
+  if (method === 'GET' && pathname === '/api/asset-agent') {
+    json(response, 200, { runs: assetAgent.list() });
+    return;
+  }
+  if (method === 'POST' && pathname === '/api/asset-agent/start') {
+    try {
+      const body = (await readJson(request)) as { prompt?: unknown };
+      const run = assetAgent.start(typeof body.prompt === 'string' ? body.prompt : '');
+      json(response, 202, { run });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+  const assetRunMatch = pathname.match(/^\/api\/asset-agent\/([^/]+)$/);
+  if (assetRunMatch) {
+    if (method === 'GET') {
+      const run = assetAgent.get(assetRunMatch[1]);
+      if (!run) {
+        json(response, 404, { error: 'asset agent run not found' });
+        return;
+      }
+      json(response, 200, { run });
+      return;
+    }
+  }
+  const assetCancelMatch = pathname.match(/^\/api\/asset-agent\/([^/]+)\/cancel$/);
+  if (method === 'POST' && assetCancelMatch) {
+    try {
+      json(response, 200, { run: assetAgent.cancel(assetCancelMatch[1]) });
+    } catch (error) {
+      json(response, 404, { error: (error as Error).message });
     }
     return;
   }
@@ -1249,6 +1333,9 @@ async function handleApi(
         url: comfyui.url,
         workflow: comfyui.workflow,
         workflowExists: runner.workflowExists(),
+        workflows: runner.listWorkflows(),
+        defaultWorkflow: runner.defaultWorkflow('image'),
+        defaultAudio: runner.defaultWorkflow('audio'),
         online,
       },
     };
@@ -1260,6 +1347,16 @@ async function handleApi(
     json(response, 200, {
       comfyui: (await runner.health()) ? 'online' : 'offline',
       workflowExists: runner.workflowExists(),
+      workflows: runner.listWorkflows(),
+    });
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/workflows') {
+    json(response, 200, {
+      workflows: runner.listWorkflows(),
+      defaultImage: runner.defaultWorkflow('image'),
+      defaultAudio: runner.defaultWorkflow('audio'),
     });
     return;
   }
@@ -1365,6 +1462,7 @@ async function handleApi(
       sfx?: unknown;
       duration?: unknown;
       lyrics?: unknown;
+      workflowId?: unknown;
     };
     try {
       body = (await readJson(request)) as typeof body;
@@ -1400,31 +1498,52 @@ async function handleApi(
       }
       return;
     }
+    const requestedWorkflow = typeof body.workflowId === 'string'
+      ? body.workflowId.trim()
+      : '';
     if (body.audio === true) {
       const duration = body.duration === undefined ? 30 : Number(body.duration);
       if (!Number.isFinite(duration) || duration < 10 || duration > 60) {
         json(response, 400, { error: 'audio duration must be between 10 and 60 seconds' });
         return;
       }
-      const job = audioRunner.start(
-        prompt,
-        duration,
-        typeof body.lyrics === 'string' ? body.lyrics.slice(0, 2000) : '',
-      );
+      const lyrics = typeof body.lyrics === 'string' ? body.lyrics.slice(0, 2000) : '';
+      let job;
+      try {
+        job = requestedWorkflow && requestedWorkflow !== 'builtin-bgm'
+          ? runner.startAudio(prompt, duration, lyrics, requestedWorkflow)
+          : audioRunner.start(prompt, duration, lyrics);
+      } catch (error) {
+        json(response, 400, { error: (error as Error).message });
+        return;
+      }
       json(response, 202, { job, jobs: [job] });
       return;
     }
-    if (!runner.workflowExists()) {
+    const selectedWorkflow = requestedWorkflow || runner.defaultWorkflow('image');
+    if (!selectedWorkflow) {
       json(response, 503, { error: `ComfyUI workflow not found: ${comfyui.workflow}` });
       return;
     }
+    const workflow = runner.listWorkflows().find((item) => item.id === selectedWorkflow);
+    if (!workflow?.valid) {
+      json(response, 400, {
+        error: workflow?.error ?? `ComfyUI workflow not found: ${selectedWorkflow}`,
+      });
+      return;
+    }
+    if (workflow.kind !== 'image') {
+      json(response, 400, { error: `ComfyUI workflow is not an image workflow: ${selectedWorkflow}` });
+      return;
+    }
     const jobs = body.animation === true
-      ? runner.startAnimation(prompt, body.transparent === true, count)
-      : runner.startBatch(prompt, body.transparent === true, count);
+      ? runner.startAnimation(prompt, body.transparent === true, count, selectedWorkflow)
+      : runner.startBatch(prompt, body.transparent === true, count, selectedWorkflow);
     json(response, 202, {
       job: jobs[0],
       jobs,
       animationId: jobs[0]?.animationId,
+      workflowId: selectedWorkflow,
     });
     return;
   }

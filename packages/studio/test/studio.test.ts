@@ -280,6 +280,11 @@ describe('studio assets', () => {
       expect(state.canvas.nodes).toEqual([]);
       expect(state.comfyui.workflowExists).toBe(false);
 
+      const assetAgentRuns = await fetch(`${studio.url}/api/asset-agent`)
+        .then((response) => response.json()) as { runs: unknown[] };
+      expect(assetAgentRuns.runs).toEqual([]);
+      expect((await fetch(`${studio.url}/api/asset-agent/missing`)).status).toBe(404);
+
       const project = await fetch(`${studio.url}/api/project`).then((response) => response.json()) as {
         build: { screenshot?: { file: string }; runs: unknown[] };
       };
@@ -341,6 +346,57 @@ describe('studio assets', () => {
         body: JSON.stringify({ prompt: 'a test asset', count: 5 }),
       });
       expect(rejectedCount.status).toBe(400);
+
+      const initialWorkflows = await fetch(`${studio.url}/api/workflows`)
+        .then((response) => response.json()) as {
+          workflows: Array<{ id: string; kind: string }>;
+          defaultAudio: string;
+        };
+      expect(initialWorkflows.workflows.some((entry) => entry.id === 'builtin-bgm')).toBe(true);
+      expect(initialWorkflows.defaultAudio).toBe('builtin-bgm');
+
+      const workflowDir = join(root, '.gamedream', 'studio', 'workflows');
+      mkdirSync(workflowDir, { recursive: true });
+      writeFileSync(
+        join(workflowDir, 'custom.json'),
+        JSON.stringify({
+          name: 'Custom Image',
+          description: 'A custom test workflow',
+          kind: 'image',
+          workflow: {
+            '1': { class_type: 'TextEncode', inputs: { prompt: '' } },
+            '2': { class_type: 'SaveImage', inputs: { seed: 0, images: [] } },
+          },
+          bindings: {
+            prompt: { node: '1', input: 'prompt' },
+            seed: { node: '2', input: 'seed' },
+            output: { node: '2', output: 'images' },
+          },
+        }),
+        'utf8',
+      );
+      const listed = await fetch(`${studio.url}/api/workflows`)
+        .then((response) => response.json()) as {
+          workflows: Array<{ id: string; name: string; kind: string }>;
+        };
+      expect(listed.workflows.find((entry) => entry.id === 'custom')).toMatchObject({
+        name: 'Custom Image',
+        kind: 'image',
+      });
+
+      const customGeneration = await fetch(`${studio.url}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: 'custom test', workflowId: 'custom', count: 2 }),
+      });
+      expect(customGeneration.status).toBe(202);
+      const customBody = await customGeneration.json() as {
+        workflowId: string;
+        jobs: Array<{ workflowId: string; kind: string }>;
+      };
+      expect(customBody.workflowId).toBe('custom');
+      expect(customBody.jobs).toHaveLength(2);
+      expect(customBody.jobs.every((job) => job.workflowId === 'custom')).toBe(true);
     } finally {
       await studio.close();
     }

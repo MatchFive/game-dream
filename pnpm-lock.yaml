@@ -105,6 +105,9 @@ importers:
 
   packages/studio:
     dependencies:
+      '@gamedream/agent':
+        specifier: workspace:*
+        version: link:../agent
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0

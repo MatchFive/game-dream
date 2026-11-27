@@ -11,10 +11,15 @@ export interface StudioSettings {
   image: {
     url: string;
     workflow: string;
+    workflowsDir: string;
   };
   engines: {
     godotBin: string;
     unityBin: string;
+  };
+  agent: {
+    skillsDirs: string[];
+    mcpConfigs: string[];
   };
 }
 
@@ -43,12 +48,30 @@ export function defaultSettings(env: NodeJS.ProcessEnv = process.env): StudioSet
     image: {
       url: env.COMFYUI_URL ?? DEFAULT_IMAGE_URL,
       workflow: env.COMFYUI_WORKFLOW ?? DEFAULT_WORKFLOW,
+      workflowsDir: env.COMFYUI_WORKFLOWS ?? '',
     },
     engines: {
       godotBin: env.GODOT_BIN ?? '',
       unityBin: env.UNITY_BIN ?? '',
     },
+    agent: {
+      skillsDirs: splitPaths(env.GAMEDREAM_SKILLS_DIRS),
+      mcpConfigs: splitPaths(env.GAMEDREAM_MCP_CONFIGS),
+    },
   };
+}
+
+function splitPaths(value: string | undefined): string[] {
+  if (!value) return [];
+  return value.split(/[;,]/).map((entry) => entry.trim()).filter(Boolean);
+}
+
+function stringList(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 function stringValue(value: unknown, fallback: string): string {
@@ -67,6 +90,7 @@ export function loadStudioSettings(
     const model = (raw.model ?? {}) as Partial<StudioSettings['model']>;
     const image = (raw.image ?? {}) as Partial<StudioSettings['image']>;
     const engines = (raw.engines ?? {}) as Partial<StudioSettings['engines']>;
+    const agent = (raw.agent ?? {}) as Partial<StudioSettings['agent']>;
     const provider = model.provider;
     return {
       model: {
@@ -80,10 +104,15 @@ export function loadStudioSettings(
       image: {
         url: stringValue(image.url, defaults.image.url),
         workflow: stringValue(image.workflow, defaults.image.workflow),
+        workflowsDir: stringValue(image.workflowsDir, defaults.image.workflowsDir),
       },
       engines: {
         godotBin: stringValue(engines.godotBin, defaults.engines.godotBin),
         unityBin: stringValue(engines.unityBin, defaults.engines.unityBin),
+      },
+      agent: {
+        skillsDirs: stringList(agent.skillsDirs, defaults.agent.skillsDirs),
+        mcpConfigs: stringList(agent.mcpConfigs, defaults.agent.mcpConfigs),
       },
     };
   } catch {
@@ -98,6 +127,7 @@ export function saveStudioSettings(
     model?: Partial<StudioSettings['model']>;
     image?: Partial<StudioSettings['image']>;
     engines?: Partial<StudioSettings['engines']>;
+    agent?: Partial<StudioSettings['agent']>;
   },
 ): StudioSettings {
   const model = { ...current.model, ...(patch.model ?? {}) };
@@ -113,10 +143,15 @@ export function saveStudioSettings(
       url: String(patch.image?.url ?? current.image.url).trim() || current.image.url,
       workflow: String(patch.image?.workflow ?? current.image.workflow).trim()
         || current.image.workflow,
+      workflowsDir: String(patch.image?.workflowsDir ?? current.image.workflowsDir).trim(),
     },
     engines: {
       godotBin: String(patch.engines?.godotBin ?? current.engines.godotBin).trim(),
       unityBin: String(patch.engines?.unityBin ?? current.engines.unityBin).trim(),
+    },
+    agent: {
+      skillsDirs: stringList(patch.agent?.skillsDirs, current.agent.skillsDirs),
+      mcpConfigs: stringList(patch.agent?.mcpConfigs, current.agent.mcpConfigs),
     },
   };
   const file = settingsPath(workspaceDir);
@@ -129,6 +164,7 @@ export function publicStudioSettings(settings: StudioSettings): PublicStudioSett
   return {
     image: settings.image,
     engines: settings.engines,
+    agent: settings.agent,
     model: {
       provider: settings.model.provider,
       model: settings.model.model,
@@ -146,6 +182,9 @@ export function studioEnv(settings: StudioSettings): NodeJS.ProcessEnv {
     GAMEDREAM_PROVIDER: settings.model.provider,
     COMFYUI_URL: settings.image.url,
     COMFYUI_WORKFLOW: settings.image.workflow,
+    COMFYUI_WORKFLOWS: settings.image.workflowsDir,
+    GAMEDREAM_SKILLS_DIRS: settings.agent.skillsDirs.join(','),
+    GAMEDREAM_MCP_CONFIGS: settings.agent.mcpConfigs.join(','),
     GODOT_BIN: settings.engines.godotBin || process.env.GODOT_BIN,
     UNITY_BIN: settings.engines.unityBin || process.env.UNITY_BIN,
   };

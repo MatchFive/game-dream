@@ -29,8 +29,18 @@ function setSettings(settings) {
     : 'sk-...';
   $('#comfyUrl').value = settings.image.url;
   $('#comfyWorkflow').value = settings.image.workflow;
+  $('#comfyWorkflowsDir').value = settings.image.workflowsDir ?? '';
   $('#godotBin').value = settings.engines.godotBin;
   $('#unityBin').value = settings.engines.unityBin;
+  $('#agentSkillsDirs').value = (settings.agent?.skillsDirs ?? []).join('\n');
+  $('#agentMcpConfigs').value = (settings.agent?.mcpConfigs ?? []).join('\n');
+}
+
+function splitList(value) {
+  return String(value ?? '')
+    .split(/[\n;,]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 async function loadSettings() {
@@ -60,10 +70,15 @@ async function saveSettings(event) {
         image: {
           url: $('#comfyUrl').value,
           workflow: $('#comfyWorkflow').value,
+          workflowsDir: $('#comfyWorkflowsDir').value,
         },
         engines: {
           godotBin: $('#godotBin').value,
           unityBin: $('#unityBin').value,
+        },
+        agent: {
+          skillsDirs: splitList($('#agentSkillsDirs').value),
+          mcpConfigs: splitList($('#agentMcpConfigs').value),
         },
       }),
     });
@@ -115,6 +130,45 @@ async function loadProjects() {
   }
 }
 
+const RECENT_KEY = 'gamedream.recentProjects';
+
+function recentProjects() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((path) => typeof path === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberProject(path) {
+  const next = [path, ...recentProjects().filter((entry) => entry !== path)].slice(0, 8);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    // Private-mode storage failures should not block opening the project.
+  }
+  renderRecentProjects();
+}
+
+function renderRecentProjects() {
+  const recent = recentProjects();
+  $('#recentProjects').innerHTML = recent.length
+    ? recent.map((path) => `
+      <div class="project-row">
+        <div class="name"><strong>${escapeHtml(path.split(/[\\/]/).pop() || path)}</strong><small>${escapeHtml(path)}</small></div>
+        <div class="actions"><button class="button secondary" type="button" data-open="${escapeHtml(path)}">打开</button></div>
+      </div>
+    `).join('')
+    : '<div class="settings-field"><span>最近打开的项目会显示在这里</span></div>';
+  document.querySelectorAll('#recentProjects [data-open]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const url = await openProject(button.dataset.open);
+      if (url) rememberProject(button.dataset.open);
+    });
+  });
+}
+
 async function openProject(path) {
   const tab = window.open('', '_blank');
   try {
@@ -124,9 +178,28 @@ async function openProject(path) {
     });
     if (tab) tab.location.href = data.url;
     else toast(`项目已打开：${data.url}`);
+    rememberProject(path);
+    return data.url;
   } catch (error) {
     if (tab) tab.close();
     toast(`打开失败：${error.message}`);
+    return undefined;
+  }
+}
+
+async function importProject() {
+  const path = $('#importPath').value.trim();
+  if (!path) {
+    $('#importStatus').textContent = '请输入项目路径';
+    return;
+  }
+  $('#importStatus').textContent = '打开中…';
+  const url = await openProject(path);
+  if (url) {
+    $('#importStatus').textContent = '已打开';
+    $('#importPath').value = '';
+  } else {
+    $('#importStatus').textContent = '打开失败';
   }
 }
 
@@ -159,5 +232,7 @@ async function createProject(event) {
 
 $('#settingsForm').addEventListener('submit', saveSettings);
 $('#projectForm').addEventListener('submit', createProject);
+$('#importOpen').addEventListener('click', importProject);
 void loadSettings();
 void loadProjects();
+renderRecentProjects();

@@ -194,7 +194,10 @@ Playable prototype or structured repair loop
   restart only after verifying the process command line contains the run id.
 - Replaceable plugin tree with tool overrides and step/tool/finish hooks.
 - Explicit `prompt_cache_key` boundaries when the provider supports them.
-- MCP bridge for Godot editor tools, discoverable through `mcp.json`.
+- Multi-server MCP bridge with namespaced `server/tool` calls, discovered from
+  project/global configs.
+- Multiple skill roots, including Claude Code style `.claude/skills` and
+  `.commandcode/skills`, plus Studio-configured extra roots.
 
 ## Studio
 
@@ -202,8 +205,13 @@ Playable prototype or structured repair loop
 studio indexes module assets, screenshots, audio, and generated images; stores
 canvas layout under `.gamedream/studio/`; records verification runs; and can
 submit real ComfyUI jobs with transparent PNG output. The UI defaults to
-Chinese and switches between Chinese and English from the top bar. Batch
-generation creates up to four independently seeded variants per request.
+Chinese and switches between Chinese and English from the top bar.
+
+ComfyUI workflows come from a folder of JSON descriptors (name, description,
+kind, graph, and bindings), with a legacy single-file fallback and a built-in
+BGM workflow. The canvas supports one-asset-per-line batch generation and a
+dedicated tool-using Asset Agent that can list workflows/assets, generate
+images or audio, pack atlases, stage assets, and save new workflows.
 
 ```bash
 corepack pnpm build

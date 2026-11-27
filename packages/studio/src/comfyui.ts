@@ -3,11 +3,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { assetIdFor } from './assets.js';
 import type { ComfyJob, ComfyUiConfig } from './types.js';
-
-interface WorkflowNode {
-  class_type?: string;
-  inputs?: Record<string, unknown>;
-}
+import {
+  WorkflowRegistry,
+  type WorkflowBinding,
+  type WorkflowDescriptor,
+  type WorkflowNode,
+} from './workflows.js';
 
 interface HistoryEntry {
   outputs?: Record<string, {
@@ -241,6 +242,298 @@ export class ComfyRunner {
         'utf8',
       );
 
+      const relativeFile = relative(this.root, file).split('\\').join('/');
+      this.update(job, {
+        status: 'done',
+        progress: 'ready',
+        assetId: assetIdFor(relativeFile),
+      });
+    } catch (error) {
+      this.update(job, {
+        status: 'error',
+        progress: 'failed',
+        error: (error as Error).message,
+      });
+    }
+  }
+}
+
+function bindingsOf(
+  value: WorkflowBinding | WorkflowBinding[] | undefined,
+): WorkflowBinding[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function setBinding(
+  workflow: Record<string, WorkflowNode>,
+  binding: WorkflowBinding,
+  value: unknown,
+): void {
+  const node = workflow[binding.node];
+  if (!node) throw new Error(`workflow node not found: ${binding.node}`);
+  node.inputs = { ...(node.inputs ?? {}), [binding.input]: value };
+}
+
+export class ComfyWorkflowRunner {
+  private readonly jobs = new Map<string, ComfyJob>();
+  private healthCache: { at: number; value: boolean } | undefined;
+
+  constructor(
+    private readonly url: string,
+    private readonly registry: WorkflowRegistry,
+    private readonly generatedDir: string,
+    private readonly root: string,
+    private readonly pollIntervalMs = 2000,
+  ) {}
+
+  async health(force = false): Promise<boolean> {
+    if (!force && this.healthCache && Date.now() - this.healthCache.at < 15_000) {
+      return this.healthCache.value;
+    }
+    let value = false;
+    try {
+      const response = await fetch(`${this.url.replace(/\/$/, '')}/system_stats`, {
+        signal: AbortSignal.timeout(2500),
+      });
+      value = response.ok;
+    } catch {
+      value = false;
+    }
+    this.healthCache = { at: Date.now(), value };
+    return value;
+  }
+
+  listWorkflows() {
+    return this.registry.list();
+  }
+
+  defaultWorkflow(kind: 'image' | 'audio'): string | undefined {
+    return this.registry.defaultId(kind);
+  }
+
+  workflowExists(): boolean {
+    return this.registry.hasImageWorkflow();
+  }
+
+  start(input: {
+    prompt: string;
+    transparent: boolean;
+    workflowId?: string;
+    duration?: number;
+    lyrics?: string;
+    variant?: number;
+    batchSize?: number;
+    animation?: { id: string; index: number; count: number };
+  }): ComfyJob {
+    const workflowId = input.workflowId ?? this.registry.defaultId('image');
+    if (!workflowId) throw new Error('no ComfyUI workflow is available');
+    const descriptor = this.registry.get(workflowId);
+    if (!descriptor) throw new Error(`ComfyUI workflow not found: ${workflowId}`);
+    const now = new Date().toISOString();
+    const job: ComfyJob = {
+      id: randomUUID(),
+      status: 'queued',
+      prompt: input.prompt,
+      transparent: input.transparent,
+      seed: Math.floor(Math.random() * 2_147_483_647),
+      createdAt: now,
+      updatedAt: now,
+      progress: 'queued',
+      variant: input.variant,
+      batchSize: input.batchSize,
+      animationId: input.animation?.id,
+      frameIndex: input.animation?.index,
+      frameCount: input.animation?.count,
+      kind: descriptor.kind,
+      duration: input.duration,
+      workflowId: descriptor.id,
+    };
+    this.jobs.set(job.id, job);
+    void this.run(job, descriptor, input.lyrics ?? '');
+    return { ...job };
+  }
+
+  startBatch(prompt: string, transparent: boolean, count: number, workflowId?: string): ComfyJob[] {
+    const requested = Number.isFinite(count) ? Math.trunc(count) : 1;
+    const safeCount = Math.max(1, Math.min(4, requested));
+    return Array.from({ length: safeCount }, (_, index) =>
+      this.start({
+        prompt,
+        transparent,
+        workflowId,
+        variant: index + 1,
+        batchSize: safeCount,
+      }),
+    );
+  }
+
+  startAnimation(
+    prompt: string,
+    transparent: boolean,
+    frames: number,
+    workflowId?: string,
+  ): ComfyJob[] {
+    const requested = Number.isFinite(frames) ? Math.trunc(frames) : 2;
+    const safeFrames = Math.max(2, Math.min(4, requested));
+    const id = `animation-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`;
+    return Array.from({ length: safeFrames }, (_, index) =>
+      this.start({
+        prompt,
+        transparent,
+        workflowId,
+        variant: index + 1,
+        batchSize: safeFrames,
+        animation: { id, index: index + 1, count: safeFrames },
+      }),
+    );
+  }
+
+  startAudio(
+    prompt: string,
+    duration = 30,
+    lyrics = '',
+    workflowId?: string,
+  ): ComfyJob {
+    const selected = workflowId ?? this.registry.defaultId('audio');
+    if (!selected) throw new Error('no ComfyUI audio workflow is available');
+    const descriptor = this.registry.get(selected);
+    if (!descriptor) throw new Error(`ComfyUI workflow not found: ${selected}`);
+    if (descriptor.kind !== 'audio') {
+      throw new Error(`ComfyUI workflow ${selected} is not an audio workflow`);
+    }
+    const safeDuration = Math.max(10, Math.min(60, Math.trunc(duration || 30)));
+    return this.start({
+      prompt,
+      transparent: false,
+      workflowId: selected,
+      duration: safeDuration,
+      lyrics,
+    });
+  }
+
+  getJob(id: string): ComfyJob | undefined {
+    const job = this.jobs.get(id);
+    return job ? { ...job } : undefined;
+  }
+
+  private update(job: ComfyJob, patch: Partial<ComfyJob>): void {
+    Object.assign(job, patch, { updatedAt: new Date().toISOString() });
+  }
+
+  private async run(
+    job: ComfyJob,
+    descriptor: WorkflowDescriptor,
+    lyrics: string,
+  ): Promise<void> {
+    try {
+      const workflow = structuredClone(descriptor.workflow);
+      const transparent = descriptor.bindings.transparent;
+      let finalPrompt = job.prompt;
+      if (job.transparent && descriptor.kind === 'image') {
+        finalPrompt += transparent?.promptSuffix
+          ?? ', transparent background, alpha channel, isolated subject';
+      }
+      for (const binding of bindingsOf(descriptor.bindings.prompt)) {
+        setBinding(workflow, binding, finalPrompt);
+      }
+      for (const binding of bindingsOf(descriptor.bindings.seed)) {
+        setBinding(workflow, binding, job.seed);
+      }
+      for (const binding of bindingsOf(descriptor.bindings.duration)) {
+        setBinding(workflow, binding, job.duration ?? 30);
+      }
+      for (const binding of bindingsOf(descriptor.bindings.lyrics)) {
+        setBinding(workflow, binding, lyrics);
+      }
+      for (const constant of descriptor.bindings.constants ?? []) {
+        setBinding(workflow, constant, constant.value);
+      }
+      let output = descriptor.bindings.output;
+      if (job.transparent && transparent) {
+        Object.assign(workflow, transparent.nodes ?? {});
+        if (transparent.output) output = transparent.output;
+      }
+      const outputType = output.output
+        ?? (descriptor.kind === 'audio' ? 'audio' : 'images');
+
+      this.update(job, { status: 'running', progress: 'submitting to ComfyUI' });
+      const submit = await fetch(`${this.url.replace(/\/$/, '')}/prompt`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          prompt: workflow,
+          client_id: `gamedream-workflow-${job.id}`,
+        }),
+      });
+      const submitted = (await submit.json().catch(() => ({}))) as {
+        prompt_id?: string;
+        error?: unknown;
+      };
+      if (!submit.ok || !submitted.prompt_id) {
+        throw new Error(
+          `ComfyUI submit failed ${submit.status}: ${JSON.stringify(submitted).slice(0, 1000)}`,
+        );
+      }
+      this.update(job, { progress: 'queued in ComfyUI' });
+
+      let outputFile: { filename: string; subfolder?: string; type?: string } | undefined;
+      for (let attempt = 0; attempt < 300; attempt += 1) {
+        await new Promise((resolveWait) => setTimeout(resolveWait, this.pollIntervalMs));
+        const response = await fetch(
+          `${this.url.replace(/\/$/, '')}/history/${submitted.prompt_id}`,
+        );
+        if (!response.ok) continue;
+        const history = (await response.json()) as Record<string, HistoryEntry>;
+        const outputs = history[submitted.prompt_id]?.outputs ?? {};
+        const nodeOutput = outputs[output.node];
+        outputFile = nodeOutput?.[outputType]?.[0]
+          ?? nodeOutput?.files?.[0]
+          ?? nodeOutput?.images?.[0]
+          ?? nodeOutput?.audio?.[0];
+        if (outputFile?.filename) break;
+        this.update(job, { progress: `rendering · ${Math.floor((attempt + 1) * 2)}s` });
+      }
+      if (!outputFile?.filename) throw new Error('ComfyUI generation timed out');
+
+      const query = new URLSearchParams({
+        filename: outputFile.filename,
+        subfolder: outputFile.subfolder ?? '',
+        type: outputFile.type ?? 'output',
+      });
+      const response = await fetch(`${this.url.replace(/\/$/, '')}/view?${query}`);
+      if (!response.ok) throw new Error(`ComfyUI download failed ${response.status}`);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      const extension = output.extension ?? (descriptor.kind === 'audio' ? '.mp3' : '.png');
+      mkdirSync(this.generatedDir, { recursive: true });
+      const file = join(this.generatedDir, `${job.id}${extension}`);
+      writeFileSync(file, bytes);
+      const name = generatedName(job.prompt);
+      const displayName = job.batchSize && job.batchSize > 1
+        ? `${name} ${job.variant ?? 1}`
+        : name;
+      writeFileSync(
+        join(this.generatedDir, `${job.id}.json`),
+        `${JSON.stringify({
+          name: displayName,
+          prompt: job.prompt,
+          seed: job.seed,
+          transparent: job.transparent,
+          variant: job.variant,
+          batchSize: job.batchSize,
+          animationId: job.animationId,
+          frameIndex: job.frameIndex,
+          frameCount: job.frameCount,
+          kind: descriptor.kind,
+          duration: job.duration,
+          workflowId: descriptor.id,
+          workflowName: descriptor.name,
+          file: basename(file),
+          source: outputFile.filename,
+          createdAt: job.createdAt,
+        }, null, 2)}\n`,
+        'utf8',
+      );
       const relativeFile = relative(this.root, file).split('\\').join('/');
       this.update(job, {
         status: 'done',

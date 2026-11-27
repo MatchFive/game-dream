@@ -42,6 +42,17 @@ export interface StudioProject {
 export interface ComfyUiConfig {
   url: string;
   workflow: string;
+  workflowsDir?: string;
+}
+
+export interface ComfyWorkflowInfo {
+  id: string;
+  name: string;
+  description: string;
+  kind: 'image' | 'audio';
+  source: 'project' | 'workspace' | 'legacy' | 'builtin';
+  valid: boolean;
+  error?: string;
 }
 
 export interface StudioState {
@@ -52,6 +63,9 @@ export interface StudioState {
     url: string;
     workflow: string;
     workflowExists: boolean;
+    workflows?: ComfyWorkflowInfo[];
+    defaultWorkflow?: string;
+    defaultAudio?: string;
     online: boolean;
   };
 }
@@ -76,4 +90,5 @@ export interface ComfyJob {
   frameCount?: number;
   kind?: 'image' | 'audio';
   duration?: number;
+  workflowId?: string;
 }

@@ -57,12 +57,20 @@ describe('studio settings and projects', () => {
           model: { provider: 'openai', model: 'gpt-4o', baseUrl: 'https://example.test/v1', apiKey: 'secret' },
           image: { url: 'http://127.0.0.1:8188', workflow: 'C:/workflow.json' },
           engines: { godotBin: 'D:/godot.exe', unityBin: 'D:/unity/Editor' },
+          agent: { skillsDirs: ['D:/skills'], mcpConfigs: ['D:/mcp.json'] },
         }),
       }).then((response) => response.json()) as {
-        settings: { model: { hasApiKey: boolean; apiKey?: string } };
+        settings: {
+          model: { hasApiKey: boolean; apiKey?: string };
+          agent: { skillsDirs: string[]; mcpConfigs: string[] };
+        };
       };
       expect(saved.settings.model.hasApiKey).toBe(true);
       expect(saved.settings.model.apiKey).toBeUndefined();
+      expect(saved.settings.agent).toEqual({
+        skillsDirs: ['D:/skills'],
+        mcpConfigs: ['D:/mcp.json'],
+      });
       const file = settingsPath(workspace);
       expect(existsSync(file)).toBe(true);
       expect(JSON.parse(readFileSync(file, 'utf8')).model.apiKey).toBe('secret');
@@ -87,6 +95,29 @@ describe('studio settings and projects', () => {
       }).then((response) => response.json()) as { url: string };
       const child = await fetch(opened.url);
       expect(child.status).toBe(200);
+
+      const outside = mkdtempSync(join(tmpdir(), 'gamedream-outside-'));
+      writeFileSync(join(outside, 'project.godot'), '[application]\n');
+      const imported = await fetch(`${studio.url}/api/projects/open`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ path: outside }),
+      });
+      expect(imported.status).toBe(200);
+      const importedBody = await imported.json() as {
+        url: string;
+        project: { engine: string; path: string };
+      };
+      expect(importedBody.project).toMatchObject({ engine: 'godot', path: outside });
+      expect((await fetch(importedBody.url)).status).toBe(200);
+
+      const unknown = mkdtempSync(join(tmpdir(), 'gamedream-unknown-'));
+      const rejected = await fetch(`${studio.url}/api/projects/open`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ path: unknown }),
+      });
+      expect(rejected.status).toBe(400);
     } finally {
       await studio.close();
     }

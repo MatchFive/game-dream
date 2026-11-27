@@ -1,4 +1,4 @@
-import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=2';
+import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=3';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -7,7 +7,18 @@ const state = {
   project: { name: 'Project', root: '' },
   assets: [],
   canvas: { nodes: [], inBuild: [] },
-  comfyui: { url: '', workflow: '', workflowExists: false, online: false },
+  comfyui: {
+    url: '',
+    workflow: '',
+    workflowExists: false,
+    workflows: [],
+    defaultWorkflow: '',
+    defaultAudio: '',
+    online: false,
+  },
+  workflowId: '',
+  batchMode: false,
+  assetAgentRun: null,
   selectedId: null,
   filter: 'all',
   search: '',
@@ -26,6 +37,7 @@ const state = {
 
 let saveTimer;
 let jobTimer;
+let assetAgentTimer;
 const animationTimers = new Map();
 const canvas = $('#canvas');
 const world = $('#world');
@@ -96,6 +108,7 @@ async function load() {
     state.project = data.project;
     state.assets = data.assets;
     state.comfyui = data.comfyui;
+    renderWorkflowSelect();
     state.canvas = {
       nodes: Array.isArray(data.canvas.nodes) ? data.canvas.nodes : [],
       inBuild: Array.isArray(data.canvas.inBuild) ? data.canvas.inBuild : [],
@@ -803,6 +816,32 @@ function previewAudio(assetId) {
   audio.play().then(() => toast(t('assets.playing', { name: asset.name }))).catch(() => toast(t('assets.audioFailed')));
 }
 
+function workflowKind() {
+  return state.audioMode ? 'audio' : 'image';
+}
+
+function renderWorkflowSelect() {
+  const select = $('#workflowSelect');
+  if (!select) return;
+  const kind = workflowKind();
+  const workflows = (state.comfyui.workflows ?? [])
+    .filter((workflow) => workflow.valid && workflow.kind === kind);
+  const preferred = kind === 'audio'
+    ? state.comfyui.defaultAudio
+    : state.comfyui.defaultWorkflow;
+  if (!workflows.some((workflow) => workflow.id === state.workflowId)) {
+    state.workflowId = workflows.find((workflow) => workflow.id === preferred)?.id
+      ?? workflows[0]?.id
+      ?? '';
+  }
+  select.innerHTML = workflows.length
+    ? workflows.map((workflow) => `<option value="${escapeHtml(workflow.id)}" title="${escapeHtml(workflow.description)}">${escapeHtml(workflow.name)}</option>`).join('')
+    : '<option value="">无可用工作流</option>';
+  select.value = state.workflowId;
+  select.hidden = state.sfxMode;
+  select.disabled = state.generating || workflows.length === 0;
+}
+
 function setGenerating(active, message = '') {
   state.generating = active;
   const button = $('#generateBtn');
@@ -811,10 +850,15 @@ function setGenerating(active, message = '') {
     ? t('assets.generatingButton')
     : `${t('assets.generateButton')} <span aria-hidden="true">↵</span>`;
   $('#queueLabel').textContent = active ? message || t('assets.comfyQueued') : t('assets.localSandbox');
+  renderWorkflowSelect();
 }
 
 async function generateAsset() {
   if (state.generating) return;
+  if (state.batchMode) {
+    await generateBatch();
+    return;
+  }
   const prompt = $('#promptInput').value.trim();
   if (!prompt) {
     toast(t('assets.promptRequired'));
@@ -825,6 +869,10 @@ async function generateAsset() {
   const sfx = state.sfxMode;
   const audio = !sfx && state.audioMode;
   const animate = !audio && !sfx && state.animate;
+  if (!sfx && !state.workflowId) {
+    toast(t('assets.workflowRequired'));
+    return;
+  }
   const count = sfx || audio ? 1 : animate ? Math.max(2, state.batchSize) : state.batchSize;
   const started = Date.now();
   const nodes = Array.from({ length: count }, (_, index) => {
@@ -860,6 +908,7 @@ async function generateAsset() {
         animation: animate,
         audio,
         sfx,
+        workflowId: sfx ? undefined : state.workflowId,
         duration: audio ? 30 : sfx ? state.sfxDuration : undefined,
       }),
     });
@@ -900,6 +949,211 @@ async function generateAsset() {
     setGenerating(false);
     renderAssetState();
     toast(t('assets.generationFailedToast', { message: error.message }));
+  }
+}
+
+async function generateBatch() {
+  const lines = $('#promptInput').value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) {
+    toast(t('assets.promptRequired'));
+    $('#promptInput').focus();
+    return;
+  }
+  if (state.audioMode || state.sfxMode || state.animate) {
+    toast(t('assets.batchOnlyImage'));
+    return;
+  }
+  if (!state.workflowId) {
+    toast(t('assets.workflowRequired'));
+    return;
+  }
+  const transparent = $('#transparentChip').classList.contains('accent');
+  const started = Date.now();
+  const nodes = lines.map((prompt, index) => ({
+    id: `job-${started}-${index}`,
+    kind: 'asset',
+    x: 390 + (index % 2) * 300,
+    y: 390 + Math.floor(index / 2) * 270,
+    width: 286,
+    generating: true,
+    progress: t('assets.queued'),
+    prompt,
+    batchIndex: index + 1,
+    batchSize: 1,
+  }));
+  state.canvas.nodes.push(...nodes);
+  state.selectedId = nodes[0].id;
+  renderCanvas();
+  renderLibrary();
+  renderInspector();
+  focusNode(nodes[0].id);
+  setGenerating(true, t('assets.batchSubmitting', { count: lines.length }));
+  try {
+    const results = await Promise.all(lines.map((prompt) => request('/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt,
+        transparent,
+        count: 1,
+        animation: false,
+        audio: false,
+        sfx: false,
+        workflowId: state.workflowId,
+      }),
+    })));
+    await Promise.all(nodes.map((node, index) => {
+      const result = results[index];
+      const job = Array.isArray(result.jobs) ? result.jobs[0] : result.job;
+      return job ? pollJob(node, job.id) : Promise.resolve({ node, error: t('assets.indexFailed') });
+    }));
+    const ready = nodes.filter((node) => node.assetId && !node.error);
+    const failed = nodes.length - ready.length;
+    setGenerating(false);
+    renderAssetState();
+    renderMinimap();
+    if (ready.length > 0) {
+      state.selectedId = ready[0].id;
+      focusNode(ready[0].id);
+    }
+    if (failed === 0) toast(t('assets.batchReady', { count: ready.length }));
+    else toast(t('assets.batchPartial', { ready: ready.length, failed }));
+    scheduleSave();
+  } catch (error) {
+    for (const node of nodes) {
+      node.generating = false;
+      node.error = error.message;
+    }
+    setGenerating(false);
+    renderAssetState();
+    toast(t('assets.generationFailedToast', { message: error.message }));
+  }
+}
+
+function assetAgentStatus(run) {
+  if (!run) return t('assets.agentEmpty');
+  if (run.status === 'running') return t('assets.agentRunning');
+  if (run.status === 'finished') return t('assets.agentFinished');
+  return `${t('assets.agentFailed')}${run.error ? `: ${run.error}` : ''}`;
+}
+
+function renderAssetAgent(run = state.assetAgentRun) {
+  const panel = $('#assetAgent');
+  if (!panel) return;
+  $('#assetAgentStatus').textContent = assetAgentStatus(run);
+  $('#assetAgentCancel').hidden = !run || run.status !== 'running';
+  $('#assetAgentStart').disabled = run?.status === 'running';
+  if (!run) {
+    $('#assetAgentLog').textContent = t('assets.agentEmpty');
+    return;
+  }
+  const lines = [];
+  for (const event of run.events ?? []) {
+    if (event.type === 'tool/start') lines.push(`→ ${event.tool}`);
+    else if (event.type === 'tool/end') {
+      const output = event.output ? ` ${String(event.output).replace(/\s+/g, ' ').slice(0, 700)}` : '';
+      lines.push(`${event.ok ? '✓' : '✗'} ${event.tool}${output}`);
+    } else if (event.type === 'assistant/chunk') lines.push(String(event.output ?? ''));
+    else if (event.type === 'asset/end') {
+      lines.push(event.ok ? t('assets.agentFinished') : `${t('assets.agentFailed')}${event.error ? `: ${event.error}` : ''}`);
+    }
+  }
+  $('#assetAgentLog').textContent = lines.join('\n') || t('assets.agentEmpty');
+  $('#assetAgentLog').scrollTop = $('#assetAgentLog').scrollHeight;
+}
+
+async function openAssetAgent() {
+  const panel = $('#assetAgent');
+  panel.hidden = false;
+  const prompt = $('#promptInput').value.trim();
+  if (prompt && !$('#assetAgentPrompt').value.trim()) $('#assetAgentPrompt').value = prompt;
+  $('#assetAgentPrompt').focus();
+  try {
+    const data = await request('/api/asset-agent');
+    if (!state.assetAgentRun && data.runs?.[0]) state.assetAgentRun = data.runs[0];
+  } catch {
+    // The panel still works for a new run if history cannot be loaded.
+  }
+  renderAssetAgent();
+  if (state.assetAgentRun?.status === 'running') pollAssetAgent(state.assetAgentRun.id);
+}
+
+function showAgentAssets() {
+  const generated = state.assets.filter(
+    (asset) => asset.source === 'generated' && !assetNodeFor(asset.id),
+  );
+  if (generated.length === 0) return;
+  generated.forEach((asset, index) => {
+    state.canvas.nodes.push({
+      id: `asset-${asset.id}`,
+      kind: 'asset',
+      assetId: asset.id,
+      x: 390 + (index % 2) * 300,
+      y: 390 + Math.floor(index / 2) * 270,
+      width: 286,
+    });
+  });
+  state.selectedId = state.canvas.nodes.find((node) => node.assetId === generated[0].id)?.id
+    ?? state.selectedId;
+  renderCanvas();
+  renderMinimap();
+  scheduleSave();
+}
+
+async function pollAssetAgent(id) {
+  clearTimeout(assetAgentTimer);
+  try {
+    const data = await request(`/api/asset-agent/${id}`);
+    state.assetAgentRun = data.run;
+    renderAssetAgent(data.run);
+    if (data.run.status === 'running') {
+      assetAgentTimer = setTimeout(() => { void pollAssetAgent(id); }, 1000);
+    } else {
+      await load();
+      showAgentAssets();
+      renderAssetAgent(state.assetAgentRun);
+    }
+  } catch (error) {
+    $('#assetAgentStatus').textContent = `${t('assets.agentFailed')}: ${error.message}`;
+  }
+}
+
+async function startAssetAgent() {
+  const prompt = $('#assetAgentPrompt').value.trim();
+  if (!prompt) {
+    toast(t('assets.agentHint'));
+    $('#assetAgentPrompt').focus();
+    return;
+  }
+  $('#assetAgentStart').disabled = true;
+  $('#assetAgentStatus').textContent = t('assets.agentRunning');
+  try {
+    const data = await request('/api/asset-agent/start', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    });
+    state.assetAgentRun = data.run;
+    renderAssetAgent(data.run);
+    pollAssetAgent(data.run.id);
+  } catch (error) {
+    $('#assetAgentStart').disabled = false;
+    $('#assetAgentStatus').textContent = `${t('assets.agentFailed')}: ${error.message}`;
+  }
+}
+
+async function cancelAssetAgent() {
+  if (!state.assetAgentRun || state.assetAgentRun.status !== 'running') return;
+  try {
+    const data = await request(`/api/asset-agent/${state.assetAgentRun.id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    state.assetAgentRun = data.run;
+    renderAssetAgent(data.run);
+  } catch (error) {
+    toast(`${t('assets.agentFailed')}: ${error.message}`);
   }
 }
 
@@ -960,6 +1214,11 @@ async function pollJob(node, jobId) {
 }
 
 function updateBatchChip() {
+  $('#batchChip').classList.toggle('accent', state.batchMode);
+  if (state.batchMode) {
+    $('#countChip').textContent = t('assets.batchCount');
+    return;
+  }
   $('#countChip').textContent = state.sfxMode
     ? t('assets.sfxOnly')
     : state.audioMode
@@ -974,8 +1233,13 @@ function updateBatchChip() {
 
 function updateAnimationChip() {
   $('#animationChip').classList.toggle('accent', state.animate);
-  if (state.animate) state.batchSize = Math.max(2, state.batchSize);
+  if (state.animate) {
+    state.batchSize = Math.max(2, state.batchSize);
+    state.batchMode = false;
+    $('#batchChip').classList.remove('accent');
+  }
   updateBatchChip();
+  renderWorkflowSelect();
 }
 
 function updateAudioChip() {
@@ -983,11 +1247,14 @@ function updateAudioChip() {
   if (state.audioMode) {
     state.sfxMode = false;
     state.animate = false;
+    state.batchMode = false;
+    $('#batchChip').classList.remove('accent');
     $('#sfxChip').classList.remove('accent');
     $('#sfxDuration').hidden = true;
     $('#animationChip').classList.remove('accent');
   }
   updateBatchChip();
+  renderWorkflowSelect();
 }
 
 function updateSfxChip() {
@@ -995,11 +1262,14 @@ function updateSfxChip() {
   if (state.sfxMode) {
     state.audioMode = false;
     state.animate = false;
+    state.batchMode = false;
+    $('#batchChip').classList.remove('accent');
     $('#audioChip').classList.remove('accent');
     $('#animationChip').classList.remove('accent');
   }
   $('#sfxDuration').hidden = !state.sfxMode;
   updateBatchChip();
+  renderWorkflowSelect();
 }
 
 $('#assetSearch').addEventListener('input', (event) => {
@@ -1061,7 +1331,20 @@ $('#promptInput').addEventListener('keydown', (event) => {
 $('#transparentChip').addEventListener('click', () => {
   $('#transparentChip').classList.toggle('accent');
 });
-$('#modelChip').addEventListener('click', () => toast(t('assets.modelHint')));
+$('#workflowSelect').addEventListener('change', (event) => {
+  state.workflowId = event.target.value;
+  renderWorkflowSelect();
+});
+$('#batchChip').addEventListener('click', () => {
+  state.batchMode = !state.batchMode;
+  $('#batchChip').classList.toggle('accent', state.batchMode);
+  $('#promptInput').placeholder = state.batchMode ? t('assets.batchHint') : '';
+  updateBatchChip();
+});
+$('#assetAgentToggle').addEventListener('click', openAssetAgent);
+$('#assetAgentClose').addEventListener('click', () => { $('#assetAgent').hidden = true; });
+$('#assetAgentStart').addEventListener('click', startAssetAgent);
+$('#assetAgentCancel').addEventListener('click', cancelAssetAgent);
 $('#countChip').addEventListener('click', () => {
   if (state.audioMode) {
     toast(t('assets.audioHint'));
