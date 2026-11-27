@@ -73,6 +73,53 @@ function renderGround(layout: SceneLayout): Buffer {
   return encodePng(width, height, rgba);
 }
 
+
+interface NavMesh {
+  vertices: Array<[number, number]>;
+  polygons: number[][];
+}
+
+/**
+ * 从可行走格生成导航网格：每个可走格一个四边形，顶点按整数坐标去重。
+ * 去重是关键——相邻多边形必须共享完全相同的顶点，导航服务器才会把它们连起来。
+ */
+function buildNavMesh(layout: SceneLayout): NavMesh {
+  const blocked = new Set<string>();
+  for (const building of layout.buildings) {
+    for (let y = building.rect.y; y < building.rect.y + building.rect.h; y += 1) {
+      for (let x = building.rect.x; x < building.rect.x + building.rect.w; x += 1) blocked.add(`${x},${y}`);
+    }
+  }
+  for (const lot of layout.lots) {
+    if (lot.kind !== 'water') continue;
+    for (let y = lot.rect.y; y < lot.rect.y + lot.rect.h; y += 1) {
+      for (let x = lot.rect.x; x < lot.rect.x + lot.rect.w; x += 1) blocked.add(`${x},${y}`);
+    }
+  }
+
+  const size = layout.tileSize;
+  const vertices: Array<[number, number]> = [];
+  const index = new Map<string, number>();
+  const vertexId = (x: number, y: number): number => {
+    const key = `${x},${y}`;
+    const existing = index.get(key);
+    if (existing !== undefined) return existing;
+    const id = vertices.length;
+    vertices.push([x * size, y * size]);
+    index.set(key, id);
+    return id;
+  };
+
+  const polygons: number[][] = [];
+  for (let y = 0; y < layout.bounds.height; y += 1) {
+    for (let x = 0; x < layout.bounds.width; x += 1) {
+      if (blocked.has(`${x},${y}`)) continue;
+      polygons.push([vertexId(x, y), vertexId(x + 1, y), vertexId(x + 1, y + 1), vertexId(x, y + 1)]);
+    }
+  }
+  return { vertices, polygons };
+}
+
 interface ShapeEntry {
   id: string;
   w: number;
@@ -113,6 +160,15 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
   ];
   const wallShapeIds = walls.map((wall) => shapeIdFor(wall.w, wall.h));
 
+  const navMesh = buildNavMesh(layout);
+  const navResource = navMesh.polygons.length > 0
+    ? [
+      `[sub_resource type="NavigationPolygon" id="nav_mesh"]`,
+      `vertices = PackedVector2Array(${navMesh.vertices.map(([x, y]) => `${x}, ${y}`).join(', ')})`,
+      `polygons = [${navMesh.polygons.map((polygon) => `PackedInt32Array(${polygon.join(', ')})`).join(', ')}]`,
+    ].join('\n')
+    : null;
+
   const extResources = [
     '[ext_resource type="Script" path="res://scene/scene_check.gd" id="1_script"]',
     '[ext_resource type="Texture2D" path="res://scene/ground.png" id="2_ground"]',
@@ -120,6 +176,7 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
   const subResources = shapes.map(
     (shape) => `[sub_resource type="RectangleShape2D" id="${shape.id}"]\nsize = Vector2(${shape.w}, ${shape.h})`,
   );
+  if (navResource) subResources.push(navResource);
 
   const lines: string[] = [];
   lines.push(`[gd_scene load_steps=${extResources.length + subResources.length + 1} format=3]`);
@@ -137,6 +194,11 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
   lines.push('[node name="Ground" type="Sprite2D" parent="."]');
   lines.push('texture = ExtResource("2_ground")');
   lines.push('');
+  if (navResource) {
+    lines.push('[node name="Navigation" type="NavigationRegion2D" parent="."]');
+    lines.push('navigation_polygon = SubResource("nav_mesh")');
+    lines.push('');
+  }
   lines.push('[node name="Walls" type="StaticBody2D" parent="."]');
   lines.push('');
   lines.push('[node name="Buildings" type="Node2D" parent="."]');
@@ -213,7 +275,7 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
     [
       'extends Node2D',
       '',
-      '## 由 GameDream 场景导出器生成：加载后自检节点结构与出生点，然后退出。',
+      '## 由 GameDream 场景导出器生成：自检节点结构、导航可达性，然后退出。',
       'func _ready() -> void:',
       '\tvar buildings := get_node("Buildings").get_child_count()',
       '\tvar shapes := 0',
@@ -229,9 +291,39 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
       '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
       '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
       '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
-      '\tvar spawn := get_node_or_null("Anchors/Spawn0")',
-      '\tif spawn:',
-      '\t\tprint("GAMEDREAM_SCENE_SPAWN=%d,%d" % [int(spawn.position.x), int(spawn.position.y)])',
+      '\tvar spawn_node := get_node_or_null("Anchors/Spawn0") as Marker2D',
+      '\tif spawn_node:',
+      '\t\tprint("GAMEDREAM_SCENE_SPAWN=%d,%d" % [int(spawn_node.position.x), int(spawn_node.position.y)])',
+      '',
+      '\tvar region := get_node_or_null("Navigation") as NavigationRegion2D',
+      '\tif region == null:',
+      '\t\tprint("GAMEDREAM_NAV_MISSING=1")',
+      '\telse:',
+      '\t\tvar map: RID = region.get_navigation_map()',
+      '\t\t# 导航地图是异步构建的：轮询到出生点落在网格上再开始测路径',
+      '\t\tfor _i in range(40):',
+      '\t\t\tawait get_tree().physics_frame',
+      '\t\t\tNavigationServer2D.map_force_update(map)',
+      '\t\t\tif NavigationServer2D.map_get_closest_point(map, spawn_node.global_position) != Vector2.ZERO:',
+      '\t\t\t\tbreak',
+      '\t\tvar total := 0',
+      '\t\tvar reached := 0',
+      '\t\tvar failed: Array[String] = []',
+      '\t\tfor child in get_node("Buildings").get_children():',
+      '\t\t\tvar entrance := child.get_node_or_null("Entrance") as Marker2D',
+      '\t\t\tif entrance == null or spawn_node == null:',
+      '\t\t\t\tcontinue',
+      '\t\t\ttotal += 1',
+      '\t\t\tvar path := NavigationServer2D.map_get_path(map, spawn_node.global_position, entrance.global_position, true)',
+      '\t\t\tif path.size() > 0 and path[path.size() - 1].distance_to(entrance.global_position) < 2.0:',
+      '\t\t\t\treached += 1',
+      '\t\t\telse:',
+      '\t\t\t\tfailed.append(String(child.name))',
+      '\t\tprint("GAMEDREAM_NAV_TOTAL=%d" % total)',
+      '\t\tprint("GAMEDREAM_NAV_REACHED=%d" % reached)',
+      '\t\tif failed.size() > 0:',
+      '\t\t\tprint("GAMEDREAM_NAV_FAILED=%s" % ",".join(failed))',
+      '',
       '\tprint("GAMEDREAM_SCENE_OK=1")',
       '\tget_tree().quit()',
       '',
@@ -247,6 +339,8 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
       collisions: shapes.length,
       anchors: layout.anchors.length,
       ground: `${layout.bounds.width * size}x${layout.bounds.height * size}`,
+      navPolygons: navMesh.polygons.length,
+      navVertices: navMesh.vertices.length,
     },
   };
 }

@@ -48,6 +48,8 @@ for (const scene of cases) {
   const buildings = read('GAMEDREAM_SCENE_BUILDINGS');
   const entrances = read('GAMEDREAM_SCENE_ENTRANCES');
   const anchors = read('GAMEDREAM_SCENE_ANCHORS');
+  const navTotal = read('GAMEDREAM_NAV_TOTAL');
+  const navReached = read('GAMEDREAM_NAV_REACHED');
   const ok = output.includes('GAMEDREAM_SCENE_OK=1');
 
   const expected = layout.buildings.length;
@@ -57,14 +59,16 @@ for (const scene of cases) {
   if (entrances !== expected) problems.push(`entrances ${entrances} != ${expected}`);
   if (anchors !== layout.anchors.length) problems.push(`anchors ${anchors} != ${layout.anchors.length}`);
   if (!validation.pass) problems.push('layout gates failed');
+  if (navTotal !== expected) problems.push(`nav targets ${navTotal} != ${expected}`);
+  if (navReached !== expected) problems.push(`nav unreachable ${expected - navReached}`);
 
   if (problems.length > 0) {
     failures += 1;
     console.log(`SCENE_GODOT_FAIL=${scene.id}: ${problems.join('; ')}`);
   } else {
     console.log(
-      `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} anchors=${anchors} `
-      + `spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
+      `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal} `
+      + `anchors=${anchors} spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
     );
   }
 }

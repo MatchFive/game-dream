@@ -119,15 +119,29 @@ scene/layout.json        # 原始布局，便于与节点对照
 节点映射：每栋建筑 → `StaticBody2D`（`Polygon2D` 屋顶 + `CollisionShape2D` 碰撞 +
 `Marker2D` 入口），每个锚点 → `Marker2D`。相同尺寸的建筑共用 `RectangleShape2D`。
 
-验证方式不靠"看起来对"，而是让引擎自己报数：
+### 导航网格
+
+`NavigationRegion2D` 的 `NavigationPolygon` 由可行走栅格直接生成：每个可走格一个
+四边形，**顶点按整数坐标全局去重**。去重是唯一的关键——相邻多边形必须共享完全
+相同的两个顶点索引，导航服务器才会把它们连起来；各算各的顶点会让整张网格变成
+互不相连的孤岛。
+
+导出时把建筑与水面标记为不可走，其余（道路、巷道、广场、绿地、空地）都可走。
+
+验证方式不靠"看起来对"，而是让引擎自己报数：出生点到每个建筑入口求一条路径，
+末点必须落在入口 2 像素内。
 
 ```
 $ GODOT_BIN=... node scripts/scene-godot-smoke.mjs
-SCENE_GODOT_OK=riverbend buildings=12 entrances=12 anchors=3 spawn=1488,2448
-SCENE_GODOT_OK=stonecross buildings=23 entrances=23 anchors=3 spawn=1456,2960
-SCENE_GODOT_OK=lakeside buildings=5 entrances=5 anchors=3 spawn=688,1424
+SCENE_GODOT_OK=riverbend  buildings=12 entrances=12 nav=12/12 anchors=3 spawn=1488,2448
+SCENE_GODOT_OK=stonecross buildings=23 entrances=23 nav=23/23 anchors=3 spawn=1456,2960
+SCENE_GODOT_OK=lakeside   buildings=5  entrances=5  nav=5/5   anchors=3 spawn=688,1424
 GODOT_SCENE_OK=1
 ```
+
+第三个坑：导航地图是**异步构建**的。6894 个多边形的网格在小场景里 3 帧就好，
+大地图要十几帧；只等固定两三帧会得到 `map_get_closest_point() == (0,0)`、路径全空，
+看起来像是网格没生成。导出脚本改成轮询等待出生点落在网格上（上限 40 帧）再测。
 
 两个必须踩过的坑：
 
@@ -148,5 +162,4 @@ S1 已完成，可跑 `node scripts/scene-demo.mjs` 生成三个示例
 - 装饰只有 7 种道具，密度控制是均匀的，没有"街区性格"（商业街 vs 住区）
 - 河道只支持横穿，不支持任意曲线；桥梁只在主干道处
 - 闸门是规则式的，没有学习得到的"好看"评分
-- Godot 侧还没有 navmesh：建筑有碰撞、锚点是 Marker，但角色不能自动寻路（S2.1）
 - 地面是烘焙好的底图，不是 `TileMapLayer`，因此不能在编辑器里逐格刷改

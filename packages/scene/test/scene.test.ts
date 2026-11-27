@@ -170,6 +170,29 @@ describe('godot export', () => {
     expect(tscn).not.toContain('/>'); // Godot 4 的 ext_resource 用 ] 结尾
   });
 
+  it('emits a navigation mesh built from walkable cells', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream godot nav '));
+    const result = exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+
+    expect(tscn).toContain('type="NavigationRegion2D"');
+    expect(tscn).toContain('type="NavigationPolygon"');
+    expect(result.summary.navPolygons).toBeGreaterThan(0);
+
+    // 顶点按整数坐标去重：几何相邻的多边形必须共享同一批顶点索引，
+    // 否则导航服务器不会把它们连通
+    const vertices = Number((tscn.match(/vertices = PackedVector2Array\(([^)]*)\)/) ?? [])[1]?.split(',').length ?? 0) / 2;
+    expect(vertices).toBeGreaterThan(0);
+    expect(vertices).toBe(result.summary.navVertices);
+
+    // 建筑与水面的格子不能出现在导航网格里
+    const blockedCells = layout.buildings.reduce((sum, building) => sum + building.rect.w * building.rect.h, 0);
+    const walkable = layout.bounds.width * layout.bounds.height - blockedCells;
+    expect(result.summary.navPolygons).toBeLessThan(walkable);
+    expect(exportGodotScene(layout, dir).summary.navPolygons).toBe(result.summary.navPolygons);
+  });
+
   it('reports a summary that matches the layout', () => {
     const { layout } = buildSceneWithTrace(baseSpec, kit);
     const dir = mkdtempSync(join(tmpdir(), 'gamedream godot scene summary '));
