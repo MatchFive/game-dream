@@ -12,8 +12,19 @@ export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';
 export { validateScene, pointInKind, type SceneValidation, type SceneIssue } from './validate.js';
 export { renderSceneSvg } from './render.js';
-export { runSceneAgent, extractJsonObject, type SceneAgentOptions, type SceneAgentResult, type SceneAttempt } from './agent.js';
+export { SCENE_SYSTEM_PROMPT, runSceneAgent, extractJsonObject, type SceneAgentOptions, type SceneAgentResult, type SceneAttempt } from './agent.js';
 export { exportGodotScene, type GodotExportResult } from './export/godot.js';
+export {
+  readTraces,
+  summarize,
+  toPreferencePairs,
+  toReviewPairs,
+  toSftSamples,
+  type DatasetStats,
+  type IssueCount,
+  type PreferencePair,
+  type SftSample,
+} from './dataset.js';
 export {
   appendTrace,
   hashKit,

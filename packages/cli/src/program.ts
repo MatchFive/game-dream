@@ -10,7 +10,7 @@ import {
   type TemplatePlatform,
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
-import { sceneBuildCommand } from './commands/scene.js';
+import { sceneBuildCommand, sceneDatasetCommand } from './commands/scene.js';
 import { composeCommand } from './commands/compose.js';
 import {
   createCommand,
@@ -1280,6 +1280,47 @@ export function createProgram(): Command {
           for (const file of result.files) printLine(`  ${file}`);
         }
         if (!result.finished) process.exitCode = 2;
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+
+  sceneCommand
+    .command('dataset')
+    .description('Summarize scene traces and export training data')
+    .requiredOption('--traces <file>', 'JSONL written by scene build')
+    .option('--sft <file>', 'write prompt → spec samples as JSONL')
+    .option('--dpo <file>', 'write preference pairs as JSONL')
+    .option('--json', 'print JSON')
+    .action(async (options: { traces: string; sft?: string; dpo?: string; json?: boolean }) => {
+      try {
+        const result = await sceneDatasetCommand({
+          tracesPath: options.traces,
+          sftPath: options.sft,
+          dpoPath: options.dpo,
+        });
+        if (options.json) {
+          printJson(result);
+        } else {
+          const { stats } = result;
+          printLine(`Samples: ${stats.total} (passed ${stats.passed}, failed ${stats.failed}, skipped ${result.skipped})`);
+          printLine(`Origin: ${Object.entries(stats.byOrigin).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+          printLine(`With prompt: ${stats.withPrompt}  avgBuildings=${stats.avgBuildings} avgDensity=${stats.avgDensity}`);
+          printLine(
+            `Determinism: ${stats.determinism.stable}/${stats.determinism.groups} groups reproducible`
+            + (stats.determinism.conflicts.length ? `, conflicts: ${stats.determinism.conflicts.join('; ')}` : ''),
+          );
+          printLine(`Reviews: ${Object.entries(stats.reviews).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+          if (stats.issues.length > 0) {
+            printLine('Top failures:');
+            for (const issue of stats.issues.slice(0, 6)) printLine(`  ${issue.code}: ${issue.count}`);
+          }
+          if (options.sft) printLine(`SFT: ${result.sft} samples -> ${options.sft}`);
+          if (options.dpo) printLine(`Preference pairs: ${result.dpo} -> ${options.dpo}`);
+        }
       } catch (error) {
         const formatted = formatCliError(error);
         printLine(formatted.message);

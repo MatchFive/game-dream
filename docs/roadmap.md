@@ -178,7 +178,7 @@
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4a | Agent 循环 + CLI `dream scene build`：模型出 spec、闸门失败回喂重试、每次尝试落 trace | Done |
 | S4b | Studio `/scenes` 页：列表 / 布局预览 / 闸门详情 / 人工评审写回 trace | Done |
-| S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
+| S5 | 数据管道：`dream scene dataset` 统计（失败分布/确定性/评审）+ SFT 与偏好对导出 | Done |
 | S6 | 足量后训练布局模型或做监督微调 | Backlog |
 
 S1 的验收：三个示例场景（河湾村 / 石十字镇 / 湖畔小村）全部通过闸门，

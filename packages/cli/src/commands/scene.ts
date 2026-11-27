@@ -115,3 +115,42 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
   const files = result.finished ? writeArtifacts(result.layout, options.outDir) : [];
   return { ...result, files };
 }
+
+export interface SceneDatasetOptions {
+  tracesPath: string;
+  sftPath?: string;
+  dpoPath?: string;
+}
+
+export interface SceneDatasetResult {
+  stats: import('@gamedream/scene').DatasetStats;
+  skipped: number;
+  sft: number;
+  dpo: number;
+}
+
+/**
+ * trace → 数据集。统计用来判断"样本够不够、失败集中在哪里"，
+ * 导出的 SFT / 偏好对则直接喂给训练。
+ */
+export async function sceneDatasetCommand(options: SceneDatasetOptions): Promise<SceneDatasetResult> {
+  const scene = await import('@gamedream/scene');
+  const { traces, skipped } = scene.readTraces(options.tracesPath);
+  const stats = scene.summarize(traces);
+
+  let sft = 0;
+  if (options.sftPath) {
+    const samples = scene.toSftSamples(traces, scene.SCENE_SYSTEM_PROMPT);
+    writeFileSync(options.sftPath, samples.map((sample) => JSON.stringify(sample)).join('\n') + (samples.length ? '\n' : ''), 'utf8');
+    sft = samples.length;
+  }
+
+  let dpo = 0;
+  if (options.dpoPath) {
+    const pairs = [...scene.toPreferencePairs(traces), ...scene.toReviewPairs(traces)];
+    writeFileSync(options.dpoPath, pairs.map((pair) => JSON.stringify(pair)).join('\n') + (pairs.length ? '\n' : ''), 'utf8');
+    dpo = pairs.length;
+  }
+
+  return { stats, skipped, sft, dpo };
+}

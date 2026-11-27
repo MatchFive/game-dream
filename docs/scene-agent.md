@@ -102,7 +102,7 @@
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
 | S4a | Agent 循环 + CLI：`dream scene build`，模型出 spec、闸门失败回喂重试、每次尝试落 trace | **Done** |
 | S4b | Studio 场景页：列表 / 预览 / 闸门详情 / 人工评审写回 trace | **Done** |
-| S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
+| S5 | 数据管道：`dream scene dataset` 统计 + SFT / 偏好对导出 | **Done** |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
 
 ## 7.5 Agent 循环（S4a）
@@ -162,6 +162,41 @@ Studio 新增 `/scenes`：
 （good / acceptable / bad）。偏好对（同一 spec 的 good 与 bad 版本）由此成立。
 
 存储位置：`<project>/.gamedream/studio/scenes/<id>.json` + `traces.jsonl`。
+
+## 7.7 数据管道（S5）
+
+```bash
+dream scene dataset --traces dist/scene-dataset/traces.jsonl \
+  --sft dist/scene-dataset/sft.jsonl --dpo dist/scene-dataset/dpo.jsonl
+```
+
+输出一份统计 + 两个训练集：
+
+```
+Samples: 6 (passed 3, failed 3, skipped 0)
+Origin: agent=6
+With prompt: 6  avgBuildings=10 avgDensity=0.077
+Determinism: 6/6 groups reproducible
+Reviews: good=0 acceptable=0 bad=0 none=6
+Top failures:
+  missing-required: 3
+SFT: 3 samples -> sft.jsonl
+Preference pairs: 3 -> dpo.jsonl
+```
+
+三条规则值得记住：
+
+1. **SFT 只收过闸门的样本。** 把 `missing-required` 的失败样本也塞进去，等于教模型
+   编造不存在的 prefab id。失败样本的去处是偏好对的 `rejected`。
+2. **确定性按完整 spec 指纹分组**，不是 `id + seed`。同 id、同 seed 但 `required`
+   不同是两个不同输入，之前这条会误报"不可复现"。
+3. **坏行跳过并计数**，不让一条脏数据打断整份数据集。
+
+导出格式：
+
+- SFT：`{messages: [system, user(prompt + kit), assistant(spec JSON)]}`
+- 偏好对：`{prompt, chosen, rejected, reason, meta}`；两路来源——闸门（pass vs fail）
+  与人工评审（good vs bad）
 
 ## 8. Godot 导出（S2）
 

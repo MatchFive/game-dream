@@ -15,6 +15,8 @@ export interface SceneTrace {
   createdAt: string;
   /** 构建来源：agent / solver / manual */
   origin: 'agent' | 'solver' | 'manual';
+  /** 人的原始需求（agent 路径才有）；SFT 样本的 input 靠它 */
+  prompt?: string;
   spec: SceneSpec;
   kit: { id: string; hash: string };
   steps: SceneTraceStep[];
@@ -62,6 +64,7 @@ export class TraceRecorder {
     private readonly spec: SceneSpec,
     private readonly kit: { id: string; hash: string },
     private readonly origin: SceneTrace['origin'] = 'solver',
+    private readonly prompt?: string,
   ) {
     this.id = `scene-${this.createdAt.replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
   }
@@ -76,6 +79,7 @@ export class TraceRecorder {
       id: this.id,
       createdAt: this.createdAt,
       origin: this.origin,
+      prompt: this.prompt,
       spec: this.spec,
       kit: this.kit,
       steps: this.steps,

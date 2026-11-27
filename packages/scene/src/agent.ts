@@ -39,7 +39,7 @@ export interface SceneAgentOptions {
   traceFile?: string;
 }
 
-const SYSTEM_PROMPT = `You design settlement layouts for a 2D game.
+export const SCENE_SYSTEM_PROMPT = `You design settlement layouts for a 2D game.
 Return exactly one JSON object, no prose, no code fences. Schema:
 {
   "id": string (lowercase, hyphenated),
@@ -152,12 +152,13 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
       { id: 'pending', name: 'pending', kind: 'village', kitId: kit.id, seed, tileSize: 32, bounds: { width: 0, height: 0 }, required: [], decor: 0, water: 'none' } as SceneSpec,
       { id: kit.id, hash: hashKit(kit) },
       'agent',
+      options.prompt,
     );
     let raw = '';
     let spec: SceneSpec;
     try {
       raw = await options.provider.complete({
-        system: SYSTEM_PROMPT,
+        system: SCENE_SYSTEM_PROMPT,
         user: [
           `Player-facing request:\n${options.prompt}`,
           kitBrief(kit),
