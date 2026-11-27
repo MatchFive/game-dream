@@ -16,13 +16,14 @@
 | Studio 配置/项目 | workspace 模型/生图/引擎设置、密钥不回显、项目列表/创建、独立子 Studio 打开 |
 | Asset Canvas | 无限画布、真实素材索引、上传、Inspector、构建选择、真实 ComfyUI 1–4 变体生成、透明 PNG、2–4 帧动画序列、PNG 图集 |
 | Playtest | Web `/play/` iframe、Godot 外部窗口启动/停止、能力探测 |
-| CI | MCP fixture smoke、真实 Godot 4.4.1 runtime smoke、typecheck/build/full tests |
+| CI | MCP fixture smoke、真实 Godot 4.4.1 runtime smoke、Windows `test-windows` job（含中文路径冒烟）、typecheck/build/full tests |
+| 文件复制 | 统一 `copyPath`，不受 Windows 非 ASCII 路径影响（`fs.cpSync` 会 ENOENT 或段错误） |
 | UI | 中文默认、中英切换、桌面/移动布局 |
 
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**300 passed / 15 skipped**
+- 全量测试：**308 passed / 15 skipped**
 - Agent focused tests：**20 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图、BGM smoke **4/4 pass**
@@ -32,6 +33,7 @@
 
 - `docs/evidence/agent-loop/`
 - `docs/evidence/runtime/godot-runtime.log`
+- `docs/evidence/windows-paths/`
 - `docs/studio.md`
 - `docs/ci.md`
 
@@ -48,6 +50,7 @@
 
 | 阶段 | 目标 | 主要产出 | 状态 |
 |---|---|---|---|
+| M0 | 跨平台正确性 | 统一复制实现、Windows CI job、中文路径回归 | Done |
 | M1 | Agent 运行生产化 | 硬预算、费用预算、队列、策略编辑/参数规则、崩溃回收、历史、重试 | Done |
 | M2 | 验证与试玩闭环 | 真实 playtest、Unity runtime、G6 集成 | Done |
 | M3 | 资产管线完整化 | 动画序列、音频 UI、SFX、构建素材落地 | In progress |
@@ -141,7 +144,20 @@
 | R3 | 真实 MCP CI | 已加 `godot-mcp` CI job，真实 `@coding-solo/godot-mcp` 创建/添加/保存场景并校验节点；本地证据 `godot-mcp-real.log` | 真实 Godot MCP 场景保存回归，不再只靠 fixture | Done |
 | R4 | 发布回滚/签名 | Web/Godot package 写 SHA-256 清单并原子替换，失败保留旧包；Unity release 上传 player/log/screenshot；未做代码签名 | release artifact 可追溯、hash、失败保留旧包 | Done |
 
-## 9. P2 · 长期方向
+## 9. P0 · 跨平台正确性
+
+| ID | 事项 | 验收标准 | 状态 |
+|---|---|---|---|
+| X1 | 非 ASCII 路径复制 | `fs.cpSync` 在 Windows 上对中文源/目标分别抛 `ENOENT` 和原生段错误（exit 139）；已统一改为 `copyPath`，覆盖 core/cli/studio/web/unity 共 12 处调用 | 中文目录 `create`/`verify` 通过、Studio 候选 apply/rollback 通过、源码禁止再出现 `cpSync(` | Done |
+| X2 | Windows CI | CI 只有 ubuntu-esque job，Windows 专属失败无法被发现；已新增 `test-windows`（`windows-latest`）跑 typecheck/test/build + 中文路径冒烟 | Windows job 必过，中文路径 `G1: pass` | Done |
+| X3 | Godot G2 崩溃分类 | G2 间歇崩溃（exit 3221225477/3221226356）被当作硬失败，可修复的引擎抖动被报成项目不可玩 | 崩溃单独分类、有界重试（≤2 次 + 退避），不出现在"项目失败"统计 | Next |
+| X4 | 缺引擎时的 run 启动拦截 | 无 `GODOT_BIN` 时 verify 返回 skip 作为普通工具结果，Agent 不收敛并空转 scaffold | run 启动前抛环境错误，不消耗模型步数 | Next |
+| X5 | 重复 scaffold 告警 | 模型反复 scaffold 时重新复制 kit + recompose，日志噪声且掩盖真实步骤 | 重复调用返回警告并要求显式 reset | Backlog |
+| X6 | Studio 前端框架化 | 6101 行 vanilla JS、350+ 处 querySelector、42 处 innerHTML、三套手写轮询，无类型无测试；任务页左栏堆 6 个同级区块、运行历史左右各一份 | React 19 + Vite + TS + Radix + TanStack Query 重写三页；视觉仍走 theme.css；`/legacy/*` 保留旧页面；`nav.test.ts` 锁定共享导航 | Done |
+
+证据：`docs/evidence/windows-paths/`。
+
+## 10. P2 · 长期方向
 
 - Unreal 适配器与 Unreal MCP。
 - 3D 游戏生成、场景编辑和资产管线。
@@ -149,13 +165,14 @@
 - Studio 远端访问的鉴权、用户隔离、任务沙箱。
 - 多用户并发和远程 GPU 队列。
 
-## 10. 建议的下一步顺序
+## 11. 建议的下一步顺序
 
-1. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
-2. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
-3. **AS6 3D / Unreal / 远端鉴权**：长期方向。
+1. **X3/X4 验证闭环**：G2 崩溃分类与有界重试，缺引擎时启动即失败。
+2. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
+3. **R1 Godot 导出模板**：本机缺 1.2GB 模板，CI job 已接好。
+4. **AS6 3D / Unreal / 远端鉴权**：长期方向。
 
-## 11. Definition of Done
+## 12. Definition of Done
 
 一个事项只有同时满足以下条件才标记 Done：
 
@@ -166,17 +183,18 @@
 - 文档和 `docs/evidence/` 更新。
 - 不把临时 mock、fixture 或手工验证描述成生产通过。
 
-## 12. 风险与阻塞
+## 13. 风险与阻塞
 
 | 风险 | 影响 | 处理 |
 |---|---|---|
 | Unity 许可证/runner 不可用 | V1、R2 阻塞 | 先做本地可复现脚本和可选 self-hosted job，不伪造 CI 通过 |
 | ComfyUI 节点缺失 | 动画、AI SFX 受限 | 先做可用的关键帧/atlas/程序化降级，节点安装独立记录 |
 | 长路径和 Windows 限制 | 候选/资产路径失败 | 使用短路径、路径校验和明确错误 |
+| Windows 专属 fs 行为 | 已发生一次（`cpSync` 段错误） | 复制统一走 `copyPath`；`test-windows` job 兜底 |
 | Studio 无鉴权 | 不能公网暴露 | 保持 localhost；远端化前加认证和沙箱 |
 | Provider usage 缺失 | 预算/成本不准 | 显示未知，禁止用 0 伪造；支持 provider 能力声明 |
 
-## 13. 维护约定
+## 14. 维护约定
 
 - 新事项先加 ID、验收标准和状态，再实现。
 - 完成后把证据路径写回对应行。

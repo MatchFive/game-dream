@@ -40,11 +40,14 @@
     <span class="brand-sub" data-i18n="assets.title">素材画布</span>
   </div>
   <div class="crumb"><strong id="projectName">Project</strong><span class="sep">/</span><span data-i18n="assets.assets">素材</span><span class="sep">·</span><span id="assetCount">0 assets</span></div>
+  <nav class="studio-nav" aria-label="Studio sections">
+    <a href="/" data-i18n="studio.mission">任务</a>
+    <a href="/assets" aria-current="page" data-i18n="studio.assets">素材</a>
+    <a href="/settings" data-i18n="studio.settings">设置</a>
+  </nav>
   <div class="top-actions">
     <span class="saved"><span class="dot" id="saveDot"></span><span id="saveState">加载中</span></span>
     <span class="connection" id="comfyState"><span class="dot"></span>ComfyUI 检查中</span>
-    <a class="button secondary" href="/" style="text-decoration:none" data-i18n="assets.mission">任务</a>
-    <a class="button secondary" href="/settings" style="text-decoration:none" data-i18n="assets.settings">设置</a>
     <button class="icon-btn" data-locale-toggle type="button">EN</button>
     <button class="button secondary" id="libraryToggle" type="button"><svg class="icon"><use href="#i-folder"></use></svg> <span data-i18n="assets.library">素材库</span></button>
     <button class="button secondary" id="inspectorToggle" type="button"><svg class="icon"><use href="#i-layers"></use></svg> <span data-i18n="assets.inspect">检查</span></button>
@@ -153,6 +156,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="/app.js?v=10"></script>
+<script type="module" src="/app.js?v=11"></script>
 </body>
 </html>

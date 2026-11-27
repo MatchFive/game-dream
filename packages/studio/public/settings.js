@@ -1,3 +1,7 @@
+import { initLocale, t } from '/i18n.js?v=11';
+
+initLocale();
+
 const $ = (selector) => document.querySelector(selector);
 let toastTimer;
 const pathLists = { skills: [], mcp: [] };
@@ -26,7 +30,7 @@ function setSettings(settings) {
   $('#modelBaseUrl').value = settings.model.baseUrl;
   $('#modelApiKey').value = '';
   $('#modelApiKey').placeholder = settings.model.hasApiKey
-    ? '已保存；留空保持不变'
+    ? t('settings.apiKeySaved')
     : 'sk-...';
   $('#comfyUrl').value = settings.image.url;
   $('#comfyWorkflow').value = settings.image.workflow;

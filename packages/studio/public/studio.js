@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=10';
+import { t, initLocale, applyStatic, formatDate, locale } from '/i18n.js?v=11';
 
 const state = {
   snapshot: null,
@@ -739,11 +739,11 @@ async function decideAgentApproval(allowed, remember = false) {
           method: 'POST',
           body: JSON.stringify({ tool: approval.tool, mode: 'allow' }),
         });
-        toast(t('studio.agentPolicySaved', { tool: approval.tool, mode: 'allow' }));
+        toast(t('studio.agentPolicyDetailSaved', { tool: approval.tool, mode: 'allow' }));
         renderAgent();
         return;
       } catch (error) {
-        toast(t('studio.agentPolicyFailed', { message: error.message }));
+        toast(t('studio.agentPolicyDetailFailed', { message: error.message }));
       }
     }
     await loadAgent(true);

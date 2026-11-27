@@ -12,3 +12,6 @@ build/
 *.tsbuildinfo
 .DS_Store
 game/
+
+# Vite 产物，由 packages/studio/web 构建生成
+packages/studio/public/app/

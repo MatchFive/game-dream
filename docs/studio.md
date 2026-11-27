@@ -30,6 +30,46 @@ the API server does not hot-reload.
   summary, assets, and evidence.
 - `/assets` is the infinite Asset Canvas.
 
+## Frontend architecture
+
+The Studio UI is a React 19 single-page app built with Vite, served as static
+files from `packages/studio/public/app/`.
+
+```text
+packages/studio/web/          Vite + React + TypeScript
+  src/pages/MissionPage.tsx   左 Agent / 中 产物验证 / 右 项目上下文
+  src/pages/AssetsPage.tsx    素材库 / 画布 / 检查器 + 生成 dock
+  src/pages/SettingsPage.tsx  模型、生图、引擎、Agent 扩展、项目
+  src/components/Topbar.tsx   三页共用的品牌 + 导航 + 语言切换
+  src/components/AgentPanel.tsx  会话流、审批、候选、策略编辑
+  src/api/                    类型化 API client 与 TanStack Query hooks
+  src/i18n/                   与旧页面同源的 zh/en 字典（已内置）
+  src/styles/app.css          布局层；颜色与组件样式仍来自 theme.css
+```
+
+- Server data goes through TanStack Query (`refetchInterval` replaces the
+  hand-written polling loops); the Agent panel subscribes to
+  `/api/agent/events` over SSE and falls back to 3s polling when EventSource is
+  missing.
+- Interactive primitives (tabs, dialogs, tooltips) come from Radix; the visual
+  system is unchanged — `theme.css`, `styles.css`, `studio.css` are still served
+  from `packages/studio/public/` and shared with the legacy pages.
+- The server maps `/`, `/assets`, `/settings`, and `/studio` to
+  `app/index.html`; React Router decides which page renders.
+- The previous multi-page implementation stays available at `/legacy`,
+  `/legacy/assets`, and `/legacy/settings` until the React pages have soaked.
+
+Development loop (backend must be running for `/api` and the shared CSS):
+
+```bash
+node packages/cli/dist/index.js studio --path . --port 6399
+cd packages/studio/web && corepack pnpm dev   # http://127.0.0.1:5173
+```
+
+`corepack pnpm build` at the repository root builds the SPA too; its output is
+`packages/studio/public/app/`. `scripts/start.mjs` treats `packages/studio/web`
+as a build input, so editing the frontend triggers a rebuild on the next launch.
+
 ## Visual system
 
 The three Studio pages share `theme.css`: warm off-white surfaces, ink-black
@@ -37,6 +77,15 @@ primary actions, one low-saturation olive accent, sans-serif UI text, and mono
 only for paths/code/logs. Neon gradients, glows, and multi-colour status panels
 are intentionally absent. Status colour is used on dots, text, and small marks
 only.
+
+The top bar is identical on all three pages: brand, breadcrumb, the
+`studio-nav` segmented switcher (任务 / 素材 / 设置, English MISSION / ASSETS /
+SETTINGS), then page actions. The switcher markup lives in each page but is
+asserted identical by `packages/studio/test/nav.test.ts`; only `aria-current`
+differs. Its style is defined once in `theme.css` — `studio.css` must not
+redefine `.studio-nav`. Labels come from `studio.mission`, `studio.assets`, and
+`studio.settings` in `i18n.js`, and every page carries the `data-locale-toggle`
+language button.
 
 ## Settings and projects
 

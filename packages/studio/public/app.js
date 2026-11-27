@@ -1,4 +1,4 @@
-import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=3';
+import { t, initLocale, applyStatic, formatDate } from '/i18n.js?v=11';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1357,7 +1357,7 @@ $('#countChip').addEventListener('click', () => {
   state.batchSize = state.batchSize % 4 + 1;
   if (state.animate) state.batchSize = Math.max(2, state.batchSize);
   updateBatchChip();
-  toast(t('assets.batchHint', { count: state.batchSize }));
+  toast(t('assets.batchHintCount', { count: state.batchSize }));
 });
 $('#animationChip').addEventListener('click', () => {
   state.animate = !state.animate;

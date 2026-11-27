@@ -42,103 +42,106 @@
     <span class="brand-name">GAMEDREAM</span>
     <span class="brand-sub">STUDIO</span>
   </a>
-  <div class="crumb"><strong>设置</strong><span class="sep">/</span><span>模型 · 生图 · 引擎 · 项目</span></div>
+  <div class="crumb"><strong data-i18n="studio.settings">设置</strong><span class="sep">/</span><span data-i18n="settings.crumbSub">模型 · 生图 · 引擎 · 项目</span></div>
   <nav class="studio-nav" aria-label="Studio sections">
-    <a href="/">MISSION</a>
-    <a href="/assets">ASSETS</a>
-    <a href="/settings" aria-current="page">SETTINGS</a>
+    <a href="/" data-i18n="studio.mission">任务</a>
+    <a href="/assets" data-i18n="studio.assets">素材</a>
+    <a href="/settings" aria-current="page" data-i18n="studio.settings">设置</a>
   </nav>
+  <div class="top-actions">
+    <button class="icon-btn" data-locale-toggle type="button">EN</button>
+  </div>
 </header>
 <main class="settings-main">
   <div class="settings-grid">
     <section class="settings-card">
-      <h1>Studio 设置</h1>
-      <p>保存到当前 workspace 的 <code>.gamedream/studio/settings.json</code>。保存后当前 Studio 立即使用新的模型/生图配置。</p>
+      <h1 data-i18n="settings.title">Studio 设置</h1>
+      <p><span data-i18n="settings.introLead">保存到当前 workspace 的</span> <code>.gamedream/studio/settings.json</code><span data-i18n="settings.introTail">。保存后当前 Studio 立即使用新的模型/生图配置。</span></p>
       <form id="settingsForm">
-        <h2>模型</h2>
+        <h2 data-i18n="settings.sectionModel">模型</h2>
         <label class="settings-field"><span>Provider</span>
           <select id="modelProvider"><option value="auto">auto</option><option value="fake">fake</option><option value="openai">openai</option></select>
         </label>
         <label class="settings-field"><span>Model</span><input id="modelName" placeholder="gpt-4o-mini"></label>
         <label class="settings-field"><span>Base URL</span><input id="modelBaseUrl" placeholder="https://api.openai.com/v1"></label>
-        <label class="settings-field"><span>API Key（留空保持已保存值）</span><input id="modelApiKey" type="password" autocomplete="new-password"></label>
+        <label class="settings-field"><span data-i18n="settings.apiKey">API Key（留空保持已保存值）</span><input id="modelApiKey" type="password" autocomplete="new-password"></label>
 
-        <h2>生图 / 音频</h2>
+        <h2 data-i18n="settings.sectionMedia">生图 / 音频</h2>
         <label class="settings-field"><span>ComfyUI URL</span><input id="comfyUrl" placeholder="http://127.0.0.1:8188"></label>
         <div class="settings-field">
-          <span>旧版单个 workflow 文件</span>
+          <span data-i18n="settings.legacyWorkflow">旧版单个 workflow 文件</span>
           <div class="path-input">
             <input id="comfyWorkflow" placeholder="D:/path/workflow.json">
-            <button class="button secondary" type="button" data-pick-input="comfyWorkflow" data-kind="file" data-title="选择 ComfyUI workflow JSON" data-filter="JSON (*.json)|*.json|All files (*.*)|*.*">浏览…</button>
+            <button class="button secondary" type="button" data-pick-input="comfyWorkflow" data-kind="file" data-title="选择 ComfyUI workflow JSON" data-filter="JSON (*.json)|*.json|All files (*.*)|*.*" data-i18n="settings.browse">浏览…</button>
           </div>
         </div>
         <div class="settings-field">
-          <span>工作流目录</span>
+          <span data-i18n="settings.workflowsDir">工作流目录</span>
           <div class="path-input">
-            <input id="comfyWorkflowsDir" placeholder="workspace 下的 .gamedream/studio/workflows，或绝对路径">
-            <button class="button secondary" type="button" data-pick-input="comfyWorkflowsDir" data-kind="folder" data-title="选择 workflow 目录">浏览…</button>
+            <input id="comfyWorkflowsDir" placeholder="workspace 下的 .gamedream/studio/workflows，或绝对路径" data-i18n-placeholder="settings.workflowsDirPlaceholder">
+            <button class="button secondary" type="button" data-pick-input="comfyWorkflowsDir" data-kind="folder" data-title="选择 workflow 目录" data-i18n="settings.browse">浏览…</button>
           </div>
         </div>
 
-        <h2>Agent 扩展</h2>
+        <h2 data-i18n="settings.sectionAgent">Agent 扩展</h2>
         <div class="settings-field">
           <div class="settings-field-head">
-            <span>Skills 根目录</span>
-            <button class="button secondary path-add" type="button" data-pick-list="skills" data-kind="folder" data-title="选择 skills 根目录">添加目录</button>
+            <span data-i18n="settings.skillsRoot">Skills 根目录</span>
+            <button class="button secondary path-add" type="button" data-pick-list="skills" data-kind="folder" data-title="选择 skills 根目录" data-i18n="settings.addFolder">添加目录</button>
           </div>
           <div class="path-list" id="agentSkillsList"></div>
         </div>
         <div class="settings-field">
           <div class="settings-field-head">
-            <span>MCP 配置</span>
-            <button class="button secondary path-add" type="button" data-pick-list="mcp" data-kind="file" data-title="选择 MCP 配置文件" data-filter="JSON (*.json)|*.json|All files (*.*)|*.*">添加文件</button>
+            <span data-i18n="settings.mcpConfig">MCP 配置</span>
+            <button class="button secondary path-add" type="button" data-pick-list="mcp" data-kind="file" data-title="选择 MCP 配置文件" data-filter="JSON (*.json)|*.json|All files (*.*)|*.*" data-i18n="settings.addFile">添加文件</button>
           </div>
           <div class="path-list" id="agentMcpList"></div>
         </div>
 
-        <h2>引擎</h2>
+        <h2 data-i18n="settings.sectionEngine">引擎</h2>
         <div class="settings-field">
-          <span>Godot 可执行文件</span>
+          <span data-i18n="settings.godotBin">Godot 可执行文件</span>
           <div class="path-input">
             <input id="godotBin" placeholder="D:/godot/Godot.exe">
-            <button class="button secondary" type="button" data-pick-input="godotBin" data-kind="file" data-title="选择 Godot 可执行文件" data-filter="Executable (*.exe)|*.exe|All files (*.*)|*.*">浏览…</button>
+            <button class="button secondary" type="button" data-pick-input="godotBin" data-kind="file" data-title="选择 Godot 可执行文件" data-filter="Executable (*.exe)|*.exe|All files (*.*)|*.*" data-i18n="settings.browse">浏览…</button>
           </div>
         </div>
         <div class="settings-field">
-          <span>Unity Editor 目录</span>
+          <span data-i18n="settings.unityBin">Unity Editor 目录</span>
           <div class="path-input">
             <input id="unityBin" placeholder="D:/unity/6000.6.9f1/Editor">
-            <button class="button secondary" type="button" data-pick-input="unityBin" data-kind="folder" data-title="选择 Unity Editor 目录">浏览…</button>
+            <button class="button secondary" type="button" data-pick-input="unityBin" data-kind="folder" data-title="选择 Unity Editor 目录" data-i18n="settings.browse">浏览…</button>
           </div>
         </div>
-        <div class="settings-actions"><button class="button primary" type="submit">保存设置</button><span class="status" id="settingsStatus"></span></div>
+        <div class="settings-actions"><button class="button primary" type="submit" data-i18n="settings.save">保存设置</button><span class="status" id="settingsStatus"></span></div>
       </form>
     </section>
 
     <section class="settings-card">
-      <h1>项目</h1>
-      <p>Workspace：<code id="workspacePath">—</code></p>
+      <h1 data-i18n="settings.sectionProject">项目</h1>
+      <p><span data-i18n="settings.workspace">Workspace</span>：<code id="workspacePath">—</code></p>
       <form id="projectForm">
-        <h2>新建项目</h2>
-        <label class="settings-field"><span>目录名</span><input id="projectName" placeholder="my-survivor" required></label>
-        <label class="settings-field"><span>游戏想法</span><textarea id="projectPrompt" placeholder="一个霓虹幸存者竞技场，自动攻击，60 秒生存。" required></textarea></label>
-        <div class="settings-actions"><button class="button primary" type="submit" id="projectCreate">创建项目</button><span class="status" id="projectStatus"></span></div>
+        <h2 data-i18n="settings.newProject">新建项目</h2>
+        <label class="settings-field"><span data-i18n="settings.dirName">目录名</span><input id="projectName" placeholder="my-survivor" required></label>
+        <label class="settings-field"><span data-i18n="settings.prompt">游戏想法</span><textarea id="projectPrompt" placeholder="一个霓虹幸存者竞技场，自动攻击，60 秒生存。" required></textarea></label>
+        <div class="settings-actions"><button class="button primary" type="submit" id="projectCreate" data-i18n="settings.create">创建项目</button><span class="status" id="projectStatus"></span></div>
       </form>
-      <h2>打开已有项目</h2>
+      <h2 data-i18n="settings.openExisting">打开已有项目</h2>
       <div class="settings-field">
-        <span>项目路径</span>
+        <span data-i18n="settings.projectPath">项目路径</span>
         <div class="path-input">
           <input id="importPath" placeholder="D:/projects/my-game">
-          <button class="button secondary" type="button" data-pick-input="importPath" data-kind="folder" data-title="选择已有项目文件夹">浏览…</button>
+          <button class="button secondary" type="button" data-pick-input="importPath" data-kind="folder" data-title="选择已有项目文件夹" data-i18n="settings.browse">浏览…</button>
         </div>
       </div>
-      <div class="settings-actions"><button class="button secondary" type="button" id="importOpen">打开项目</button><span class="status" id="importStatus"></span></div>
+      <div class="settings-actions"><button class="button secondary" type="button" id="importOpen" data-i18n="settings.open">打开项目</button><span class="status" id="importStatus"></span></div>
       <div class="project-list" id="recentProjects"></div>
       <div class="project-list" id="projectList"></div>
     </section>
   </div>
 </main>
 <div class="settings-toast" id="toast" role="status"></div>
-<script type="module" src="/settings.js?v=7"></script>
+<script type="module" src="/settings.js?v=8"></script>
 </body>
 </html>

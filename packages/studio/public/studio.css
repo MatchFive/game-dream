@@ -99,10 +99,7 @@
 .studio-agent-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; color: var(--dim); font: 9px/1.4 var(--mono); }
 .studio-agent-foot .button { min-height: 23px; font-size: 9px; }
 
-.studio-nav { display: flex; align-items: center; gap: 3px; padding: 2px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
-.studio-nav a { min-height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 3px; color: var(--dim); font: 9px/1.2 var(--mono); text-decoration: none; letter-spacing: .05em; }
-.studio-nav a:hover { color: var(--text); background: var(--panel-3); }
-.studio-nav a[aria-current="page"] { color: var(--lime); background: var(--lime-soft); }
+/* .studio-nav 统一在 theme.css 定义，三页共用，不要在此覆盖。 */
 
 .studio-head { padding: 15px 14px 12px; border-bottom: 1px solid var(--line); background: linear-gradient(145deg, rgba(199,244,100,.035), transparent 62%); }
 .studio-head h1 { margin: 7px 0 0; font-size: 21px; line-height: 1.1; letter-spacing: -.025em; font-weight: 650; }

@@ -29,9 +29,12 @@ function newestMtime(path) {
 function packageDirectories() {
   const packages = join(root, 'packages');
   try {
-    return readdirSync(packages, { withFileTypes: true })
+    const top = readdirSync(packages, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => join(packages, entry.name));
+    // packages/studio/web 是嵌套 workspace（Vite 前端），也要纳入构建与安装判定
+    const nested = join(packages, 'studio', 'web');
+    return existsSync(join(nested, 'package.json')) ? [...top, nested] : top;
   } catch {
     return [];
   }
