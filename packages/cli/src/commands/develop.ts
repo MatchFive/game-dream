@@ -1,6 +1,5 @@
 import {
   appendFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -24,7 +23,7 @@ import {
   type ModelProvider,
   type ProviderKind,
 } from '@gamedream/agent';
-import { composeProject } from '@gamedream/core';
+import { composeProject, copyPath } from '@gamedream/core';
 import { detectGodot, runCommand, type CommandRunner } from '@gamedream/godot';
 import { verifyCommand, type VerifyReport } from './verify.js';
 import {
@@ -328,8 +327,8 @@ const TOOLS: Tool[] = [
       rmSync(templatesDir, { recursive: true, force: true });
       mkdirSync(modulesDir, { recursive: true });
       mkdirSync(templatesDir, { recursive: true });
-      cpSync(kitModules, modulesDir, { recursive: true });
-      cpSync(kitTemplates, templatesDir, { recursive: true });
+      copyPath(kitModules, modulesDir);
+      copyPath(kitTemplates, templatesDir);
 
       const templateIds = readdirSync(templatesDir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())

@@ -108,6 +108,9 @@ importers:
       '@gamedream/agent':
         specifier: workspace:*
         version: link:../agent
+      '@gamedream/core':
+        specifier: workspace:*
+        version: link:../core
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
@@ -123,6 +126,10 @@ importers:
         version: 2.9.1
 
   packages/unity:
+    dependencies:
+      '@gamedream/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@gamedream/testing':
         specifier: workspace:*
@@ -130,6 +137,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@gamedream/core':
+        specifier: workspace:*
+        version: link:../core
       phaser:
         specifier: 3.90.0
         version: 3.90.0

@@ -1,6 +1,7 @@
-import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModuleRecord } from '../registry/types.js';
+import { copyPath } from '../io/copy-path.js';
 
 export function copyModules(outDir: string, modules: ModuleRecord[]): string[] {
   const targetRoot = join(outDir, 'modules');
@@ -17,7 +18,7 @@ export function copyModules(outDir: string, modules: ModuleRecord[]): string[] {
   for (const module of modules) {
     const target = join(targetRoot, module.manifest.id);
     rmSync(target, { recursive: true, force: true });
-    cpSync(module.dir, target, { recursive: true });
+    copyPath(module.dir, target);
     copied.push(target);
   }
   return copied;

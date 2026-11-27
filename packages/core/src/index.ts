@@ -1,5 +1,6 @@
 export { VERSION } from './version.js';
 export * from './errors.js';
+export * from './io/copy-path.js';
 export * from './schemas/index.js';
 export * from './maps/tiled.js';
 export * from './maps/tile-sheet.js';

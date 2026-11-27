@@ -1,6 +1,5 @@
 import {
   copyFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -12,6 +11,7 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve, sep } from 'node:path';
+import { copyPath } from '@gamedream/core';
 
 export const WEB_PROJECT_FILES = [
   'index.html',
@@ -359,7 +359,7 @@ export function composeWebProject(options: ComposeWebOptions): ComposeWebResult 
   try {
     rmSync(stage, { recursive: true, force: true });
     mkdirSync(stage, { recursive: true });
-    cpSync(templatesDir, stage, { recursive: true });
+    copyPath(templatesDir, stage);
     const vendor = join(stage, 'vendor/phaser.min.js');
     mkdirSync(dirname(vendor), { recursive: true });
     copyFileSync(phaser, vendor);

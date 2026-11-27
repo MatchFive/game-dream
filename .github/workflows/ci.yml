@@ -32,6 +32,36 @@ jobs:
             --project dist/mcp-smoke \
             --scene ui/McpHud.tscn
 
+  # Windows 是主要开发平台（start.cmd、Godot console、Unity）。只在 Linux 跑
+  # 测试会漏掉 Windows 专属失败，例如 fs.cpSync 在非 ASCII 路径下抛 ENOENT 或
+  # 直接段错误，Linux 上却全部通过。
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Chinese project path smoke
+        shell: pwsh
+        run: |
+          node packages/cli/dist/index.js create "做一个俯视角动作RPG" `
+            --out "dist/中文 项目/我的游戏" `
+            --provider fake --modules modules --templates templates
+          if ($LASTEXITCODE -ne 0) { throw "create exited $LASTEXITCODE" }
+          $verify = node packages/cli/dist/index.js verify --path "dist/中文 项目/我的游戏"
+          $verify | Write-Host
+          if ($LASTEXITCODE -ne 0) { throw "verify exited $LASTEXITCODE" }
+          if (-not ($verify -match 'G1: pass')) { throw "G1 did not pass on a non-ASCII path" }
+
   godot-runtime:
     runs-on: ubuntu-24.04
     steps:

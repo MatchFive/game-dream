@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import {
   appendFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -12,6 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { copyPath } from '@gamedream/core';
 
 export type AgentRunStatus =
   | 'queued'
@@ -662,10 +662,7 @@ export class AgentManager {
       batch.lastBackup = this.createBackup(batch, run);
       for (const entry of readdirSync(run.outDir)) {
         if (SKIP_APPLY.has(entry)) continue;
-        cpSync(join(run.outDir, entry), join(this.root, entry), {
-          recursive: true,
-          force: true,
-        });
+        copyPath(join(run.outDir, entry), join(this.root, entry));
       }
     }
     batch.selectedRunId = run.id;
@@ -686,7 +683,7 @@ export class AgentManager {
       rmSync(target, { recursive: true, force: true });
       const source = join(backup.path, entry);
       if (existsSync(source)) {
-        cpSync(source, target, { recursive: true, force: true });
+        copyPath(source, target);
       }
     }
     batch.lastBackup = undefined;
@@ -741,7 +738,7 @@ export class AgentManager {
     for (const entry of entries) {
       const source = join(this.root, entry);
       if (!existsSync(source)) continue;
-      cpSync(source, join(directory, entry), { recursive: true, force: true });
+      copyPath(source, join(directory, entry));
     }
     return {
       path: directory,

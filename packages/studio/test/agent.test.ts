@@ -131,8 +131,7 @@ it('streams approval and completion for a Studio agent run', async () => {
   expect(data.batches[0]?.candidates[0]?.score).toBeGreaterThan(1000);
 });
 
-it('runs candidates and applies the selected candidate', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-candidates-'));
+async function runCandidateApplyFlow(root: string): Promise<void> {
   const cliEntry = fakeAgent(root);
   studio = await startStudioServer({ projectDir: root, port: 0, cliEntry });
   const started = await fetch(`${studio.url}/api/agent/start`, {
@@ -201,6 +200,15 @@ it('runs candidates and applies the selected candidate', async () => {
   });
   expect(rollback.status).toBe(200);
   expect(readFileSync(join(root, 'game', 'fixture.txt'), 'utf8')).toBe('old');
+}
+
+it('runs candidates and applies the selected candidate', async () => {
+  await runCandidateApplyFlow(mkdtempSync(join(tmpdir(), 'gamedream-studio-agent-candidates-')));
+});
+
+// 中文工作区曾让 apply/backup 走 fs.cpSync，在 Windows 上直接段错误杀死 Studio 进程。
+it('applies and rolls back a candidate in a non-ASCII workspace', async () => {
+  await runCandidateApplyFlow(mkdtempSync(join(tmpdir(), 'gamedream-中文工作区-')));
 });
 
 it('persists an always-allow approval policy', async () => {

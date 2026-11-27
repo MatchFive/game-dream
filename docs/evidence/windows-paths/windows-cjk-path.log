@@ -1,0 +1,38 @@
+# Windows 中文路径回归 — 2026-11-27 22:04:36 +0800
+
+## 环境
+v22.22.2
+9.15.0
+
+## 1. copyPath 单元测试
+ [32m✓[39m packages/core/test/no-cp-sync.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m packages/core/test/copy-path.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 79[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 22:04:37
+[2m   Duration [22m 546ms[2m (transform 67ms, setup 0ms, collect 137ms, tests 90ms, environment 1ms, prepare 189ms)[22m
+
+
+## 2. 中文目录 create + verify
+Using the deterministic fake provider; the prompt is not interpreted by a model.
+Provider: fake
+Template: rpg-action-m1 (rule:rpg-action-m1)
+Project: C:/Users/32113/AppData/Local/Temp/gd-cjk-evidence/我的 游戏 Ünïcode
+G1: pass
+G2: skip (Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.)
+G3: skip (Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.)
+--- verify ---
+G1: pass
+G2: skip (Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.)
+G3: skip (Godot 4.4+ not found. Set GODOT_BIN to the console executable (Godot_v4.*_console.exe) or add godot to PATH.)
+
+## 3. Studio apply/rollback 中文工作区
+ [32m✓[39m packages/studio/test/agent.test.ts [2m([22m[2m13 tests[22m[2m | [22m[33m12 skipped[39m[2m)[22m[33m 462[2mms[22m[39m
+   [33m[2m✓[22m[39m applies and rolls back a candidate in a non-ASCII workspace [33m461[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[2m | [22m[33m12 skipped[39m[90m (13)[39m
+[2m   Start at [22m 22:04:40
+[2m   Duration [22m 1.67s[2m (transform 274ms, setup 0ms, collect 854ms, tests 462ms, environment 0ms, prepare 101ms)[22m
+

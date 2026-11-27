@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -11,6 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { copyPath } from '@gamedream/core';
 import type {
   CanvasNode,
   CanvasState,
@@ -352,7 +352,7 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
     const file = safeBuildAssetFile(asset);
     const target = join(root, file);
     mkdirSync(dirname(target), { recursive: true });
-    cpSync(join(root, asset.file), target);
+    copyPath(join(root, asset.file), target);
     return {
       id: asset.id,
       name: asset.name,
@@ -375,7 +375,7 @@ export function syncBuildAssets(root: string): BuildAssetManifest {
     const streaming = join(root, 'Assets', 'StreamingAssets', 'game', 'build-assets');
     rmSync(streaming, { recursive: true, force: true });
     mkdirSync(dirname(streaming), { recursive: true });
-    cpSync(join(root, BUILD_ASSET_ROOT), streaming, { recursive: true });
+    copyPath(join(root, BUILD_ASSET_ROOT), streaming);
   }
   return manifest;
 }

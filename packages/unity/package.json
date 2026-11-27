@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "@gamedream/testing": "workspace:*"
+  },
+  "dependencies": {
+    "@gamedream/core": "workspace:*"
   }
 }

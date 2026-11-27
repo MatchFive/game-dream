@@ -12,6 +12,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@gamedream/core": "workspace:*",
     "@gamedream/agent": "workspace:*",
     "pngjs": "^7.0.0"
   },

@@ -1,5 +1,4 @@
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -10,6 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
+import { copyPath } from '@gamedream/core';
 import { fileURLToPath } from 'node:url';
 
 const SHARED_BGM_PLAYER = fileURLToPath(new URL('../assets/BgmPlayer.cs', import.meta.url));
@@ -307,11 +307,11 @@ export function composeUnityProject(options: ComposeUnityOptions): ComposeUnityR
   rmSync(stage, { recursive: true, force: true });
   try {
     mkdirSync(stage, { recursive: true });
-    cpSync(templatesDir, stage, { recursive: true });
-    cpSync(SHARED_BGM_PLAYER, join(stage, 'Assets/Scripts/BgmPlayer.cs'));
-    cpSync(`${SHARED_BGM_PLAYER}.meta`, join(stage, 'Assets/Scripts/BgmPlayer.cs.meta'));
-    cpSync(SHARED_ASSET_BINDING, join(stage, 'Assets/Scripts/AssetBinding.cs'));
-    cpSync(`${SHARED_ASSET_BINDING}.meta`, join(stage, 'Assets/Scripts/AssetBinding.cs.meta'));
+    copyPath(templatesDir, stage);
+    copyPath(SHARED_BGM_PLAYER, join(stage, 'Assets/Scripts/BgmPlayer.cs'));
+    copyPath(`${SHARED_BGM_PLAYER}.meta`, join(stage, 'Assets/Scripts/BgmPlayer.cs.meta'));
+    copyPath(SHARED_ASSET_BINDING, join(stage, 'Assets/Scripts/AssetBinding.cs'));
+    copyPath(`${SHARED_ASSET_BINDING}.meta`, join(stage, 'Assets/Scripts/AssetBinding.cs.meta'));
     const missing = UNITY_PROJECT_FILES.filter(
       (file) => file !== 'Assets/Resources/GameConfig.json' && !existsSync(join(stage, file)),
     );

@@ -21,6 +21,17 @@ The fixture MCP server is `fixtures/mcp/fake-godot.mjs`. It exercises the same
 stdio protocol and scene-save path as the real Godot MCP server, so CI catches
 client regressions without requiring the editor on the Ubuntu runner.
 
+## Windows job
+
+`test-windows` runs the same install / typecheck / test / build sequence on
+`windows-latest`, then composes and verifies a project whose output path
+contains spaces and CJK characters (`dist/中文 项目/我的游戏`).
+
+The job exists because Linux cannot catch this class of bug: `fs.cpSync` works
+on Ubuntu for non-ASCII paths but raises `ENOENT` on Windows and can crash the
+process with a native segmentation fault. See
+`docs/evidence/windows-paths/README.md`.
+
 GitHub's Ubuntu runner has no Godot export templates, so export tests remain
 local/fake-runner based. The `godot-runtime` job downloads the official Godot
 4.4.1 Linux binary for real headless G2/G3. Run it locally with the same script:
