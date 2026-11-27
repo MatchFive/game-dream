@@ -108,7 +108,7 @@
 | AS1e | Godot 模板动画接入 | 已支持扫描 `game/build-assets/animations/*.tres` 并优先加载首个 `SpriteFrames`；真实 Godot e2e 通过，打印 `GAMEDREAM_ANIMATION_OK` | 模板自动发现并播放动画资源 | Done |
 | AS2 | Asset Canvas BGM 生成 | 已支持 30 秒 MiniMax BGM、任务轮询、mp3/sidecar、素材索引/试听、重命名；SFX 未做 | UI 内生成、显示进度、试听、重命名、加入构建 | Done |
 | AS2b | 音频 SFX | 已支持 Studio 本地程序化 WAV（0.1–3 秒、提示词选类型、自动索引/预览/入构建）；AI 文本 SFX 见 AS3 | 自定义时长、SFX 生成 | Done |
-| AS3 | AI SFX | 当前短音效主要是程序化合成 | 接入可用文本生成 SFX 后端；失败降级到程序化音效 | Backlog |
+| AS3 | AI SFX | 本机 ComfyUI 只有 MiniMax Music 3（音乐模型），无 Stable Audio checkpoint；`MireloVideoToSFX` 需要视频+云鉴权 | 程序化合成已加固（4ms/20ms 淡入淡出、去直流、−1dBFS 归一化、sidecar 标 `engine: procedural`）；接入路径与绑定写法已写进 `docs/comfyui-audio-animation.md`，等 checkpoint 落地即可接入 | Blocked |
 | AS4 | BGM 模板覆盖 | Web/Unity survivor 及其余 Web/Unity 模板均已接入 staged BGM；音量滑杆仅 Web/部分模板 | Web/Unity survivor 统一接入 | Done |
 | AS4b | Unity BGM 接入 | 已同步到 StreamingAssets，真实 Unity player smoke 打出 `UNITY_BGM_OK` | StreamingAssets 打包与音量/循环 | Done |
 | AS4c | 其他模板 BGM | 5 个 Web 模板接入 staged BGM；Unity 6 个模板通过共享 `BgmPlayer` 接入并真实 smoke 打印 `UNITY_BGM_OK`；暂停/独立音量仍简化 | 按模板接入音量/循环与暂停 | Done |

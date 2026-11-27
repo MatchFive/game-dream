@@ -22,6 +22,35 @@ export interface SfxResult {
 
 const SAMPLE_RATE = 44_100;
 
+/** 4ms 淡入 + 20ms 淡出：削掉波形首尾的瞬跳，避免播放时爆音。 */
+const ATTACK_SECONDS = 0.004;
+const RELEASE_SECONDS = 0.02;
+/** -1 dBFS，让 7 种音效在游戏里音量一致，不再"爆炸很响、UI 很轻"。 */
+const TARGET_PEAK = 0.89;
+
+function edgeEnvelope(index: number, total: number): number {
+  const attack = Math.max(1, Math.round(ATTACK_SECONDS * SAMPLE_RATE));
+  const release = Math.max(1, Math.round(RELEASE_SECONDS * SAMPLE_RATE));
+  const rising = Math.min(1, (index + 1) / attack);
+  const falling = Math.min(1, (total - index) / release);
+  return Math.min(rising, falling);
+}
+
+/** 去直流 + 峰值归一化：原地处理，保持确定性。 */
+function normalize(samples: number[]): number[] {
+  if (samples.length === 0) return samples;
+  const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  let peak = 0;
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index] -= mean;
+    peak = Math.max(peak, Math.abs(samples[index]));
+  }
+  if (peak < 1e-6) return samples;
+  const gain = TARGET_PEAK / peak;
+  for (let index = 0; index < samples.length; index += 1) samples[index] *= gain;
+  return samples;
+}
+
 export function sfxTypeFromPrompt(prompt: string): SfxType {
   const value = prompt.toLowerCase();
   if (/(coin|pickup|collect|gem|item|power)/.test(value)) return 'pickup';
@@ -45,7 +74,6 @@ function noise(seed: number): () => number {
 
 function sample(type: SfxType, time: number, progress: number, random: () => number): number {
   const decay = Math.exp(-4.5 * progress);
-  const attack = Math.min(1, time * 120);
   switch (type) {
     case 'pickup':
       return Math.sin(2 * Math.PI * (880 + progress * 660) * time) * decay * 0.5;
@@ -105,8 +133,10 @@ export function generateSfx(root: string, options: SfxOptions): SfxResult {
   for (let index = 0; index < count; index += 1) {
     const time = index / SAMPLE_RATE;
     const progress = time / duration;
-    samples.push(sample(type, time, progress, random) * 0.8);
+    const raw = sample(type, time, progress, random) * 0.8;
+    samples.push(raw * edgeEnvelope(index, count));
   }
+  normalize(samples);
   const digest = createHash('sha1')
     .update(`${prompt}:${type}:${duration}:${seed}`)
     .digest('hex')
@@ -127,6 +157,7 @@ export function generateSfx(root: string, options: SfxOptions): SfxResult {
       duration,
       type,
       kind: 'sfx',
+      engine: 'procedural',
       file: basename(file),
       createdAt: now,
     }, null, 2)}\n`,

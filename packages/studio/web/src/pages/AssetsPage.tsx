@@ -613,6 +613,7 @@ export function AssetsPage() {
                 {generating ? t('assets.generating') : t('assets.generate')}
               </button>
             </div>
+            {mode === 'sfx' && <p className="dock-note">{t('assets.sfxProceduralHint')}</p>}
           </div>
         </section>
 
