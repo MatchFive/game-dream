@@ -1,6 +1,7 @@
 import type {
   AgentBatch,
   AgentSnapshots,
+  AssetAgentRun,
   ComfyJob,
   PolicyPayload,
   PolicyRule,
@@ -107,6 +108,12 @@ export const api = {
   assetRaw: (id: string) => `/api/assets/${id}/raw`,
   renameAsset: (id: string, name: string) =>
     post<unknown>(`/api/assets/${id}/rename`, { name }),
+  assetAgentList: () => request<{ runs: AssetAgentRun[] }>('/api/asset-agent'),
+  assetAgentStart: (prompt: string) =>
+    post<{ run: AssetAgentRun }>('/api/asset-agent/start', { prompt }),
+  assetAgentGet: (id: string) => request<{ run: AssetAgentRun }>(`/api/asset-agent/${id}`),
+  assetAgentCancel: (id: string) =>
+    post<{ run: AssetAgentRun }>(`/api/asset-agent/${id}/cancel`),
   useAsset: (id: string, inBuild: boolean) =>
     post<unknown>(`/api/assets/${id}/use`, { inBuild }),
   upload: (name: string, data: string) => post<unknown>('/api/upload', { name, data }),

@@ -112,6 +112,28 @@ export interface WorkflowInfo {
   error?: string;
 }
 
+export interface AssetAgentEvent {
+  seq: number;
+  at: string;
+  type: string;
+  tool?: string;
+  ok?: boolean;
+  output?: string;
+  data?: unknown;
+  error?: string;
+}
+
+export interface AssetAgentRun {
+  id: string;
+  prompt: string;
+  status: 'running' | 'finished' | 'failed' | 'canceled';
+  createdAt: string;
+  finishedAt?: string;
+  events: AssetAgentEvent[];
+  result?: Record<string, unknown>;
+  error?: string;
+}
+
 export interface PolicyRule {
   tool: string;
   mode: 'allow' | 'ask' | 'deny';

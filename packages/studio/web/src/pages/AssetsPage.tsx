@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useStudioState, useWorkflowsQuery } from '../api/hooks';
+import { AssetAgentDialog } from '../components/AssetAgentDialog';
 import { Icon } from '../components/Sprite';
 import { Topbar } from '../components/Topbar';
 import { useToast } from '../components/Toast';
@@ -37,6 +38,7 @@ export function AssetsPage() {
   const [duration, setDuration] = useState(30);
   const [workflowId, setWorkflowId] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; nodeX: number; nodeY: number } | null>(null);
   const panRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
@@ -441,6 +443,9 @@ export function AssetsPage() {
           <div className="generate-dock">
             <div className="dock-head">
               <span>{t('assets.generateArt')}</span>
+              <button className="chip" type="button" onClick={() => setAgentOpen(true)}>
+                <Icon name="spark" /> {t('assets.agentTitle')}
+              </button>
               <span className="refs">
                 {state.data?.comfyui.online ? t('common.online') : t('common.offline')}
               </span>
@@ -564,6 +569,15 @@ export function AssetsPage() {
           )}
         </aside>
       </main>
+
+      <AssetAgentDialog
+        open={agentOpen}
+        onOpenChange={setAgentOpen}
+        initialPrompt={prompt}
+        onFinished={() => {
+          void queryClient.invalidateQueries({ queryKey: ['studio'] });
+        }}
+      />
     </>
   );
 }
