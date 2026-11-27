@@ -11,3 +11,4 @@ build/
 !docs/evidence/**/*.log
 *.tsbuildinfo
 .DS_Store
+game/
