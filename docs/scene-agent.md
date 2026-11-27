@@ -100,9 +100,45 @@
 | S1 | 引擎无关的 spec/kit/layout + 求解器 + 闸门 + trace + 俯视渲染 | **Done** |
 | S2 | Godot 导出：锚点/建筑/碰撞/地面底图，真实引擎加载核对节点数 | **Done** |
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
-| S4 | Agent 工具：`scene.plan` / `scene.build` / `scene.revise` / `scene.validate`，接进 develop 工具集与 Studio 画布 | Next |
+| S4a | Agent 循环 + CLI：`dream scene build`，模型出 spec、闸门失败回喂重试、每次尝试落 trace | **Done** |
+| S4b | Studio 场景画布 + 接进 develop 工具集 | Next |
 | S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
+
+## 7.5 Agent 循环（S4a）
+
+命令行：
+
+```bash
+# 模型写 spec，失败会把 issues 回喂重试（默认 3 次尝试）
+dream scene build --prompt "一个靠河的渔村，需要酒馆、教堂和铁匠铺" \
+  --kit packages/scene/kits/village-euro.json --out dist/scene/portside \
+  --provider auto --trace dist/scene/agent-traces.jsonl
+
+# 已经有 spec：跳过模型，直接构建与导出
+dream scene build --spec my-spec.json --kit ... --out ... 
+```
+
+模型只被要求产出一件事：`SceneSpec`。几何仍然全部由求解器决定。
+
+**失败回喂**：闸门不过时，下一轮提示词里会带上
+`issues[].code + detail`、上一版 spec 和 metrics，要求模型只改必要字段。
+实测一个典型 badcase——模型编了套件里不存在的 `grand-cathedral`
+
+```
+attempt 1: FAIL ["missing-required"]   ← 模型幻觉的 prefab id
+attempt 2: PASS
+trace lines 2, origin=agent
+```
+
+模型输出不稳的两处兜底：
+
+1. 常见包在 ```json 里或前后带解释 → `extractJsonObject` 取第一个平衡的 `{}`
+2. zod 校验失败的原始错误是几百行 JSON → 压成 `id: Required; name: Required` 一行
+
+每次尝试（成功的和失败的都算）写一行 trace，`origin: "agent"`。一次 run 通常产出
+2–3 条样本：一条失败样本带明确的失败类别，一条成功样本带完整指标。这正是
+badcase 分析与偏好对（good vs bad）的原料。
 
 ## 8. Godot 导出（S2）
 

@@ -17,7 +17,8 @@
     "@gamedream/studio": "workspace:*",
     "@gamedream/unity": "workspace:*",
     "@gamedream/web": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "@gamedream/scene": "workspace:*"
   },
   "devDependencies": {
     "@gamedream/testing": "workspace:*",

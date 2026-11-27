@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "zod": "^3.23.8",
-    "@gamedream/core": "workspace:*"
+    "@gamedream/core": "workspace:*",
+    "@gamedream/agent": "workspace:*"
   },
   "devDependencies": {
     "@gamedream/testing": "workspace:*"

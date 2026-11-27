@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { buildScene } from './layout.js';
 import { kitSchema, parseSceneSpec, type Kit, type SceneSpec } from './schema.js';
 import { validateScene, type SceneValidation } from './validate.js';
-import { TraceRecorder, type SceneTrace } from './trace.js';
+import { hashKit, TraceRecorder, type SceneTrace } from './trace.js';
 import type { SceneLayout } from './schema.js';
 
 export * from './schema.js';
@@ -12,9 +11,11 @@ export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';
 export { validateScene, pointInKind, type SceneValidation, type SceneIssue } from './validate.js';
 export { renderSceneSvg } from './render.js';
+export { runSceneAgent, extractJsonObject, type SceneAgentOptions, type SceneAgentResult, type SceneAttempt } from './agent.js';
 export { exportGodotScene, type GodotExportResult } from './export/godot.js';
 export {
   appendTrace,
+  hashKit,
   hashLayout,
   hashSpec,
   TraceRecorder,
@@ -24,10 +25,6 @@ export {
 
 export function loadKit(path: string): Kit {
   return kitSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
-}
-
-export function hashKit(kit: Kit): string {
-  return createHash('sha1').update(JSON.stringify(kit, Object.keys(kit).sort())).digest('hex').slice(0, 16);
 }
 
 export interface BuildSceneResult {

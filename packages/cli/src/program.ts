@@ -10,6 +10,7 @@ import {
   type TemplatePlatform,
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
+import { sceneBuildCommand } from './commands/scene.js';
 import { composeCommand } from './commands/compose.js';
 import {
   createCommand,
@@ -1211,6 +1212,80 @@ export function createProgram(): Command {
         }
       },
     );
+
+
+  const sceneCommand = program
+    .command('scene')
+    .description('Lay out a settlement and export it to an engine project');
+
+  sceneCommand
+    .command('build')
+    .option('--prompt <text>', 'describe the settlement; the model writes the spec')
+    .option('--spec <file>', 'build from a SceneSpec JSON instead of the model')
+    .option('--kit <path>', 'building kit JSON', 'packages/scene/kits/village-euro.json')
+    .requiredOption('--out <dir>', 'output directory')
+    .option('--seed <n>', 'layout seed', (value) => Number(value))
+    .option('--attempts <n>', 'max model attempts', (value) => Number(value))
+    .option('--provider <kind>', 'auto, fake, or openai', 'auto')
+    .option('--constraint <text...>', 'extra hard constraints for the model')
+    .option('--trace <file>', 'append every attempt to this JSONL file')
+    .option('--json', 'print JSON')
+    .action(async (options: {
+      prompt?: string;
+      spec?: string;
+      kit: string;
+      out: string;
+      seed?: number;
+      attempts?: number;
+      provider: string;
+      constraint?: string[];
+      trace?: string;
+      json?: boolean;
+    }) => {
+      try {
+        const result = await sceneBuildCommand({
+          prompt: options.prompt,
+          specPath: options.spec,
+          kitPath: options.kit,
+          outDir: options.out,
+          seed: options.seed,
+          attempts: options.attempts,
+          provider: parseProviderKind(options.provider),
+          constraints: options.constraint,
+          traceFile: options.trace,
+          onAttempt: (index, _layout, validation, passed) => {
+            if (options.json) return;
+            const state = passed
+              ? 'pass'
+              : validation.issues.length > 0
+                ? `fail(${validation.issues.map((issue) => issue.code).join(',')})`
+                : 'invalid spec';
+            const metrics = Object.keys(validation.metrics).length > 0
+              ? ` ${JSON.stringify(validation.metrics)}`
+              : '';
+            printLine(`attempt ${index + 1}: ${state}${metrics}`);
+          },
+        });
+        if (options.json) {
+          printJson({
+            finished: result.finished,
+            attempts: result.attempts,
+            failure: result.failure,
+            metrics: result.validation.metrics,
+            files: result.files,
+          });
+        } else {
+          printLine(`Scene: ${result.layout.name} (${result.layout.buildings.length} buildings, ${result.layout.props.length} props)`);
+          printLine(`Gates: ${result.finished ? 'pass' : `fail: ${result.failure ?? 'unknown'}`}`);
+          for (const file of result.files) printLine(`  ${file}`);
+        }
+        if (!result.finished) process.exitCode = 2;
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
 
   const mapCommand = program
     .command('map')

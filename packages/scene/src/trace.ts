@@ -47,6 +47,11 @@ export function hashSpec(spec: SceneSpec): string {
   return createHash('sha1').update(JSON.stringify(spec, Object.keys(spec).sort())).digest('hex');
 }
 
+/** 建筑套件指纹：换了 kit 内容，同 spec 也不该被当成同一份数据。 */
+export function hashKit(kit: { id: string; prefabs: unknown[] }): string {
+  return createHash('sha1').update(JSON.stringify(kit, Object.keys(kit).sort())).digest('hex').slice(0, 16);
+}
+
 export class TraceRecorder {
   private readonly steps: SceneTraceStep[] = [];
   private readonly startedAt = Date.now();

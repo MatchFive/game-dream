@@ -48,6 +48,9 @@ importers:
       '@gamedream/godot':
         specifier: workspace:*
         version: link:../godot
+      '@gamedream/scene':
+        specifier: workspace:*
+        version: link:../scene
       '@gamedream/studio':
         specifier: workspace:*
         version: link:../studio
@@ -105,6 +108,9 @@ importers:
 
   packages/scene:
     dependencies:
+      '@gamedream/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@gamedream/core':
         specifier: workspace:*
         version: link:../core
