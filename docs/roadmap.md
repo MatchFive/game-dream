@@ -177,7 +177,7 @@
 | S2.1 | 导航：从可行走栅格生成 `NavigationPolygon`（顶点去重保证连通），引擎内验证出生点到每个入口都可寻路 | Done |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4a | Agent 循环 + CLI `dream scene build`：模型出 spec、闸门失败回喂重试、每次尝试落 trace | Done |
-| S4b | Studio 场景画布 + trace 浏览器 + 接进 develop 工具集 | Next |
+| S4b | Studio `/scenes` 页：列表 / 布局预览 / 闸门详情 / 人工评审写回 trace | Done |
 | S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
 | S6 | 足量后训练布局模型或做监督微调 | Backlog |
 

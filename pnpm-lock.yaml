@@ -130,6 +130,9 @@ importers:
       '@gamedream/core':
         specifier: workspace:*
         version: link:../core
+      '@gamedream/scene':
+        specifier: workspace:*
+        version: link:../scene
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0

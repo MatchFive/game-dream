@@ -1,5 +1,7 @@
 import type {
   AgentBatch,
+  SceneSummary,
+  StoredScene,
   AgentSnapshots,
   AssetAgentRun,
   ComfyJob,
@@ -99,6 +101,12 @@ export const api = {
     request<{ workflows: WorkflowInfo[]; defaultImage?: string; defaultAudio?: string }>(
       '/api/workflows',
     ),
+  scenes: () => request<{ scenes: SceneSummary[] }>('/api/scenes'),
+  scene: (id: string) => request<{ scene: StoredScene }>(`/api/scenes/${id}`),
+  buildScene: (body: { prompt?: string; spec?: unknown; kitId?: string; seed?: number; attempts?: number }) =>
+    post<{ scene: StoredScene; finished: boolean; failure?: string }>('/api/scenes', body),
+  reviewScene: (id: string, body: { verdict: 'good' | 'acceptable' | 'bad'; score?: number; notes?: string }) =>
+    post<{ scene: StoredScene }>(`/api/scenes/${id}/review`, body),
   choosePath: (body: { kind: 'file' | 'folder'; title?: string; filter?: string }) =>
     post<{ path: string | null }>('/api/dialog', body),
   job: (id: string) => request<{ job: ComfyJob }>(`/api/jobs/${id}`),

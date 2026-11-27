@@ -14,7 +14,8 @@
   "dependencies": {
     "@gamedream/core": "workspace:*",
     "@gamedream/agent": "workspace:*",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "@gamedream/scene": "workspace:*"
   },
   "devDependencies": {
     "@types/pngjs": "^6.0.5"

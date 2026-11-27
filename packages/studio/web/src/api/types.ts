@@ -151,3 +151,40 @@ export interface PolicyPayload {
   availableTools: string[];
   source: string;
 }
+
+export interface SceneReview {
+  verdict: 'good' | 'acceptable' | 'bad';
+  score?: number;
+  notes?: string;
+  at: string;
+}
+
+export interface SceneSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  buildings: number;
+  pass: boolean;
+  issues: string[];
+  attempts: number;
+  review?: SceneReview;
+}
+
+export interface StoredScene {
+  id: string;
+  name: string;
+  createdAt: string;
+  spec: Record<string, unknown>;
+  layout: {
+    buildings: Array<{ id: string; prefab: string; rect: { x: number; y: number; w: number; h: number } }>;
+    props: Array<{ id: string; type: string }>;
+    lots: Array<{ id: string; kind: string }>;
+    anchors: Array<{ id: string; kind: string }>;
+    bounds: { width: number; height: number };
+  };
+  validation: { pass: boolean; metrics: Record<string, number>; issues: Array<{ code: string; detail: string }> };
+  svg: string;
+  traceId: string;
+  attempts: number;
+  review?: SceneReview;
+}

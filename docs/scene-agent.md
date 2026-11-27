@@ -101,7 +101,7 @@
 | S2 | Godot 导出：锚点/建筑/碰撞/地面底图，真实引擎加载核对节点数 | **Done** |
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
 | S4a | Agent 循环 + CLI：`dream scene build`，模型出 spec、闸门失败回喂重试、每次尝试落 trace | **Done** |
-| S4b | Studio 场景画布 + 接进 develop 工具集 | Next |
+| S4b | Studio 场景页：列表 / 预览 / 闸门详情 / 人工评审写回 trace | **Done** |
 | S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
 
@@ -139,6 +139,29 @@ trace lines 2, origin=agent
 每次尝试（成功的和失败的都算）写一行 trace，`origin: "agent"`。一次 run 通常产出
 2–3 条样本：一条失败样本带明确的失败类别，一条成功样本带完整指标。这正是
 badcase 分析与偏好对（good vs bad）的原料。
+
+## 7.6 Studio 场景页（S4b）
+
+Studio 新增 `/scenes`：
+
+```
+┌ 场景列表 ───────────┬ 布局预览 ────────────┬ 检查器 ──────────┐
+│ ● 河湾村      12    │                      │ 闸门 通过 / 0 项  │
+│   好                │   SVG 俯视图          │ 指标表            │
+│ ● Portside     9    │                      │ 人工评审 + 备注    │
+└─────────────────────┴──────────────────────┴──────────────────┘
+```
+
+- 顶部输入一句话 → `POST /api/scenes {prompt}`：走 agent（失败回喂重试），
+  闸门没过也照样落盘，因为失败的布局同样值得看、值得评
+- `GET /api/scenes` 只回摘要（不含 svg），`GET /api/scenes/:id` 才带完整布局
+- 评审三个按钮写 `POST /api/scenes/:id/review`：更新场景 JSON **并**在
+  `scenes/traces.jsonl` 追加一条带 `review` 的 trace。
+
+这样数据里就有了三类标签：闸门的客观指标、导航可达率（引擎侧）、人的主观判断
+（good / acceptable / bad）。偏好对（同一 spec 的 good 与 bad 版本）由此成立。
+
+存储位置：`<project>/.gamedream/studio/scenes/<id>.json` + `traces.jsonl`。
 
 ## 8. Godot 导出（S2）
 

@@ -20,6 +20,7 @@ import { ComfyAudioRunner, ComfyWorkflowRunner } from './comfyui.js';
 import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
+import { buildScene, listScenes, loadScene, reviewScene } from './scenes.js';
 import {
   assertTrustedMutation,
   HttpSecurityError,
@@ -486,7 +487,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         response.end();
         return;
       }
-      const SPA_ROUTES = new Set(['/', '/assets', '/assets/', '/settings', '/settings/', '/studio']);
+      const SPA_ROUTES = new Set(['/', '/assets', '/assets/', '/scenes', '/scenes/', '/settings', '/settings/', '/studio']);
       const relativePath = SPA_ROUTES.has(pathname)
         ? 'app/index.html'
         : pathname.replace(/^\/+/, '');
@@ -1349,6 +1350,69 @@ async function handleApi(
         typeof body.reason === 'string' ? body.reason : undefined,
       );
       json(response, 200, { approval });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/scenes') {
+    json(response, 200, { scenes: listScenes(root) });
+    return;
+  }
+
+  const sceneReviewMatch = pathname.match(/^\/api\/scenes\/([^/]+)\/review$/);
+  if (method === 'POST' && sceneReviewMatch) {
+    try {
+      const body = (await readJson(request)) as { verdict?: unknown; score?: unknown; notes?: unknown };
+      const verdict = body.verdict === 'good' || body.verdict === 'bad' || body.verdict === 'acceptable'
+        ? body.verdict
+        : null;
+      if (!verdict) {
+        json(response, 400, { error: 'verdict must be good, acceptable, or bad' });
+        return;
+      }
+      const scene = reviewScene(root, sceneReviewMatch[1], {
+        verdict,
+        score: typeof body.score === 'number' ? body.score : undefined,
+        notes: typeof body.notes === 'string' ? body.notes : undefined,
+      });
+      json(response, 200, { scene });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  const sceneMatch = pathname.match(/^\/api\/scenes\/([^/]+)$/);
+  if (method === 'GET' && sceneMatch) {
+    const scene = loadScene(root, sceneMatch[1]);
+    if (!scene) {
+      json(response, 404, { error: 'scene not found' });
+      return;
+    }
+    json(response, 200, { scene });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/scenes') {
+    try {
+      const body = (await readJson(request)) as {
+        spec?: unknown;
+        prompt?: unknown;
+        kitId?: unknown;
+        seed?: unknown;
+        attempts?: unknown;
+      };
+      const outcome = await buildScene(root, {
+        spec: body.spec,
+        prompt: typeof body.prompt === 'string' ? body.prompt : undefined,
+        kitId: typeof body.kitId === 'string' ? body.kitId : undefined,
+        seed: typeof body.seed === 'number' ? body.seed : undefined,
+        attempts: typeof body.attempts === 'number' ? body.attempts : undefined,
+        env: studioEnvironment,
+      });
+      json(response, 201, { scene: outcome.scene, finished: outcome.finished, failure: outcome.failure });
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }

@@ -6,6 +6,7 @@ import { hashKit, TraceRecorder, type SceneTrace } from './trace.js';
 import type { SceneLayout } from './schema.js';
 
 export * from './schema.js';
+export { builtinKits, findBuiltinKit, villageEuroKit } from './kits.js';
 export { Grid } from './grid.js';
 export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';

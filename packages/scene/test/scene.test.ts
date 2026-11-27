@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appendTrace,
+  parseKit,
+  villageEuroKit,
   buildSceneWithTrace,
   exportGodotScene,
   hashLayout,
@@ -200,5 +202,13 @@ describe('godot export', () => {
     expect(result.summary.buildings).toBe(layout.buildings.length);
     expect(result.summary.anchors).toBe(layout.anchors.length);
     expect(result.summary.collisions).toBeGreaterThan(0);
+  });
+});
+
+describe('builtin kit', () => {
+  it('matches the editable json kit', () => {
+    // 内置对象与 kits/*.json 必须一致，否则 CLI/Studio 与文档会悄悄分叉
+    // 用 schema 归一化后再比：JSON 里省略的默认字段（如 mainRoad:false）会被补齐
+    expect(parseKit(villageEuroKit)).toEqual(parseKit(JSON.parse(readFileSync(kitPath, 'utf8'))));
   });
 });

@@ -647,3 +647,99 @@
   .assets-canvas-col { order: 0; min-height: 60vh; }
   .assets-inspector { order: 2; border-inline-start: 0; border-top: 1px solid var(--line); }
 }
+
+/* 场景页 */
+.scenes-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr) 320px;
+  gap: 12px;
+  height: calc(100vh - 64px);
+  padding: 12px;
+}
+
+.scenes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.scene-item {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  grid-template-areas: 'dot name count' 'dot verdict verdict';
+  gap: 2px 8px;
+  align-items: center;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-item.active { border-color: var(--lime); }
+.scene-item .dot { grid-area: dot; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.scene-item .dot.ok { background: var(--lime); }
+.scene-item .dot.bad { background: var(--coral); }
+.scene-item-name { grid-area: name; font: 600 12px/1.3 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-item small { grid-area: count; color: var(--muted); font: 10px/1 var(--mono); }
+.scene-item .verdict { grid-area: verdict; font: 10px/1.3 var(--sans); color: var(--muted); }
+.scene-item .verdict.good { color: var(--lime); }
+.scene-item .verdict.bad { color: var(--coral); }
+
+.scenes-canvas {
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.scene-svg svg {
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 120px);
+  border-radius: 8px;
+  box-shadow: var(--shadow-2);
+}
+
+.scenes-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.scene-build { display: flex; gap: 8px; align-items: center; }
+.scene-build input {
+  width: min(46vw, 460px);
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: 11px/1.4 var(--sans);
+}
+.scene-notes {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: 11px/1.5 var(--sans);
+  resize: vertical;
+}
+.scene-verdicts { display: flex; gap: 6px; }
