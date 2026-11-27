@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { useI18n } from '../i18n';
 import type { AssetAgentRun } from '../api/types';
+import { agentLogLines, agentStatusText } from '../lib/agent-log';
 import { Icon } from './Sprite';
 import { useToast } from './Toast';
 
@@ -11,33 +12,6 @@ interface AssetAgentDialogProps {
   onOpenChange: (open: boolean) => void;
   initialPrompt?: string;
   onFinished: () => void;
-}
-
-function statusText(run: AssetAgentRun | undefined, t: (key: string) => string): string {
-  if (!run) return t('assets.agentEmpty');
-  if (run.status === 'running') return t('assets.agentRunning');
-  if (run.status === 'finished') return t('assets.agentFinished');
-  return `${t('assets.agentFailed')}${run.error ? `: ${run.error}` : ''}`;
-}
-
-function logLines(run: AssetAgentRun | undefined, t: (key: string) => string): string[] {
-  if (!run) return [];
-  const lines: string[] = [];
-  for (const event of run.events ?? []) {
-    if (event.type === 'tool/start') lines.push(`→ ${event.tool ?? ''}`);
-    else if (event.type === 'tool/end') {
-      const output = event.output ? ` ${String(event.output).replace(/\s+/g, ' ').slice(0, 700)}` : '';
-      lines.push(`${event.ok ? '✓' : '✗'} ${event.tool ?? ''}${output}`);
-    } else if (event.type === 'assistant/chunk') lines.push(String(event.output ?? ''));
-    else if (event.type === 'asset/end') {
-      lines.push(
-        event.ok
-          ? t('assets.agentFinished')
-          : `${t('assets.agentFailed')}${event.error ? `: ${event.error}` : ''}`,
-      );
-    }
-  }
-  return lines;
 }
 
 /** 素材 Agent：一句话铺满画布，后台跑 ComfyUI 任务，这里只做观测与取消。 */
@@ -126,7 +100,7 @@ export function AssetAgentDialog({ open, onOpenChange, initialPrompt, onFinished
     }
   }
 
-  const lines = logLines(run, t);
+  const lines = agentLogLines(run, t);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -157,7 +131,7 @@ export function AssetAgentDialog({ open, onOpenChange, initialPrompt, onFinished
                 {t('assets.agentStop')}
               </button>
             )}
-            <span className={`agent-dialog-status ${run?.status ?? 'idle'}`}>{statusText(run, t)}</span>
+            <span className={`agent-dialog-status ${run?.status ?? 'idle'}`}>{agentStatusText(run, t)}</span>
           </div>
           <pre className="asset-agent-log" ref={logRef}>
             {lines.length > 0 ? lines.join('\n') : t('assets.agentEmpty')}

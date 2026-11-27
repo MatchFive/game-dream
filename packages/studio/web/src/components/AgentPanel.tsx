@@ -415,7 +415,13 @@ export function AgentPanel({ snapshot, connected, onChanged }: AgentPanelProps) 
               className="button secondary"
               type="button"
               disabled={busy}
-              onClick={() => void runAction(() => api.approve(batch.id, run.id, pending.id, true), 'studio.agentApprovalFailed')}
+              onClick={() =>
+                void runAction(async () => {
+                  // "始终允许" 必须真的落一条 allow 规则，否则和"允许一次"没区别
+                  setPolicy(await api.savePolicyTool(pending.tool, 'allow'));
+                  await api.approve(batch.id, run.id, pending.id, true);
+                }, 'studio.agentApprovalFailed')
+              }
             >
               {t('studio.agentAllowAlways')}
             </button>

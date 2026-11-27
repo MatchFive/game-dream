@@ -5,6 +5,8 @@ export default defineConfig({
   // vitest 默认把 SSR 转换缓存写到 %TEMP%，Windows Defender 偶尔会锁住文件，
   // 导致 worker 直接挂掉（表现为少数用例凭空消失 + "Errors 1"）。放到项目内更稳。
   cacheDir: 'node_modules/.vitest-cache',
+  // 前端测试用 .tsx：让 esbuild 走自动 JSX 运行时，无需在每个文件里 import React
+  esbuild: { jsx: 'automatic' },
   resolve: {
     alias: {
       '@gamedream/agent': fileURLToPath(
@@ -31,7 +33,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['packages/*/test/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'packages/studio/web/src/**/*.test.{ts,tsx}'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
     // 一部分用例会真的拉起 CLI 进程和 Chrome（program / web-genres / screenshot）。

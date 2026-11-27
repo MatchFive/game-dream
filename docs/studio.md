@@ -72,6 +72,13 @@ cd packages/studio/web && corepack pnpm dev   # http://127.0.0.1:5173
 `packages/studio/public/app/`. `scripts/start.mjs` treats `packages/studio/web`
 as a build input, so editing the frontend triggers a rebuild on the next launch.
 
+Front-end tests live next to the code (`src/**/*.test.ts[x]`) and run in the
+same `pnpm test` as the rest of the repo. Pure helpers are tested directly
+(`lib/gates.ts`, `lib/agent-log.ts`); components and hooks use jsdom — the agent
+feed test drives a fake `EventSource` to cover both the SSE path and the 3s
+polling fallback, and the approval test asserts that "always allow" writes a
+policy rule instead of just approving once.
+
 ## Visual system
 
 The three Studio pages share `theme.css`: warm off-white surfaces, ink-black

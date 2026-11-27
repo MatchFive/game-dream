@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAgentFeed, useProjectSnapshot } from '../api/hooks';
 import { AgentPanel } from '../components/AgentPanel';
+import { gateStatusClass, gateStatusKey } from '../lib/gates';
 import { Icon } from '../components/Sprite';
 import { Topbar } from '../components/Topbar';
 import { useToast } from '../components/Toast';
@@ -11,26 +12,11 @@ import type { GateSnapshot, VerifyRun } from '../api/types';
 
 type PreviewTab = 'build' | 'evidence';
 
-function gateStatusClass(status: string | undefined): string {
-  if (status === 'pass') return 'ok';
-  if (status === 'fail') return 'bad';
-  if (status === 'error') return 'error';
-  return 'warn';
-}
-
-function gateWord(status: string | undefined, t: (key: string) => string): string {
-  if (status === 'pass') return t('common.pass');
-  if (status === 'fail') return t('common.fail');
-  if (status === 'skip') return t('common.skip');
-  if (status === 'error') return t('studio.gateError');
-  return t('studio.notRun');
-}
-
 function GateList({ run }: { run?: VerifyRun }) {
-  const { t } = useI18n();
+  const { t: translate } = useI18n();
   const gates = Object.entries(run?.gates ?? {});
   if (gates.length === 0) {
-    return <div className="studio-agent-empty">{t('studio.noRunRecorded')}</div>;
+    return <div className="studio-agent-empty">{translate('studio.noRunRecorded')}</div>;
   }
   return (
     <div className="studio-gate-list">
@@ -38,7 +24,7 @@ function GateList({ run }: { run?: VerifyRun }) {
         <div className={`studio-gate-row ${gateStatusClass(gate.status)}`} key={name}>
           <span className="dot" />
           <strong>{name}</strong>
-          <span className="gate-state">{gateWord(gate.status, t)}</span>
+          <span className="gate-state">{translate(gateStatusKey(gate.status))}</span>
           <small>{gate.detail ?? ''}</small>
         </div>
       ))}
