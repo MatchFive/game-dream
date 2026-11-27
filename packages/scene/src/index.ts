@@ -12,6 +12,7 @@ export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';
 export { validateScene, pointInKind, type SceneValidation, type SceneIssue } from './validate.js';
 export { renderSceneSvg } from './render.js';
+export { exportGodotScene, type GodotExportResult } from './export/godot.js';
 export {
   appendTrace,
   hashLayout,

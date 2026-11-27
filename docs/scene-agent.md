@@ -98,11 +98,44 @@
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
 | S1 | 引擎无关的 spec/kit/layout + 求解器 + 闸门 + trace + 俯视渲染 | **Done** |
-| S2 | Godot 导出：`.tscn` + `TileMapLayer` + `NavigationRegion2D` + 碰撞，`smoke:godot` 里走一遍 | Next |
+| S2 | Godot 导出：锚点/建筑/碰撞/地面底图，真实引擎加载核对节点数 | **Done** |
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
 | S4 | Agent 工具：`scene.plan` / `scene.build` / `scene.revise` / `scene.validate`，接进 develop 工具集与 Studio 画布 | Next |
 | S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
+
+## 8. Godot 导出（S2）
+
+`exportGodotScene(layout, dir)` 产出一个可直接用 Godot 4.4 打开的项目：
+
+```
+project.godot            # main_scene 指向 scene/scene.tscn，gl_compatibility
+scene/ground.png         # 地块 + 道路的底图（建筑不烘焙进去）
+scene/scene.tscn         # Sprite2D 地面 + 建筑 StaticBody2D + 四面边界墙 + Marker2D 锚点
+scene/scene_check.gd     # 加载后打印节点统计并退出，供 CI 核对
+scene/layout.json        # 原始布局，便于与节点对照
+```
+
+节点映射：每栋建筑 → `StaticBody2D`（`Polygon2D` 屋顶 + `CollisionShape2D` 碰撞 +
+`Marker2D` 入口），每个锚点 → `Marker2D`。相同尺寸的建筑共用 `RectangleShape2D`。
+
+验证方式不靠"看起来对"，而是让引擎自己报数：
+
+```
+$ GODOT_BIN=... node scripts/scene-godot-smoke.mjs
+SCENE_GODOT_OK=riverbend buildings=12 entrances=12 anchors=3 spawn=1488,2448
+SCENE_GODOT_OK=stonecross buildings=23 entrances=23 anchors=3 spawn=1456,2960
+SCENE_GODOT_OK=lakeside buildings=5 entrances=5 anchors=3 spawn=688,1424
+GODOT_SCENE_OK=1
+```
+
+两个必须踩过的坑：
+
+1. `[ext_resource ...]` 用 `]` 结尾，不是 `/>` —— 写成自闭合会让 Godot 报
+   "Parse Error: Unexpected end of file"，且错误行号指向第一条 ext_resource，
+   极具误导性
+2. `load_steps` 必须等于 ext + sub + 1；边界墙的碰撞体也是 sub_resource，
+   若在写 header 之后才登记，数量会偏少，同样表现为 EOF 错误
 
 S1 已完成，可跑 `node scripts/scene-demo.mjs` 生成三个示例
 （河湾村 / 石十字镇 / 湖畔小村），输出 `dist/scene-demo/*.svg|json` 与
@@ -115,3 +148,5 @@ S1 已完成，可跑 `node scripts/scene-demo.mjs` 生成三个示例
 - 装饰只有 7 种道具，密度控制是均匀的，没有"街区性格"（商业街 vs 住区）
 - 河道只支持横穿，不支持任意曲线；桥梁只在主干道处
 - 闸门是规则式的，没有学习得到的"好看"评分
+- Godot 侧还没有 navmesh：建筑有碰撞、锚点是 Marker，但角色不能自动寻路（S2.1）
+- 地面是烘焙好的底图，不是 `TileMapLayer`，因此不能在编辑器里逐格刷改

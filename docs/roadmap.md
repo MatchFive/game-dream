@@ -173,7 +173,8 @@
 | 编号 | 事项 | 状态 |
 | --- | --- | --- |
 | S1 | 引擎无关 spec/kit/layout + 确定性求解器 + 质量闸门 + trace 数据集 + 俯视渲染 | Done |
-| S2 | Godot 导出：`.tscn` + `TileMapLayer` + 导航/碰撞 | Next |
+| S2 | Godot 导出：`.tscn`（地面底图 + 建筑碰撞 + 入口/锚点 Marker），真实引擎加载并核对节点数 | Done |
+| S2.1 | 导航：`NavigationRegion2D` 从可行走栅格烘焙，角色可寻路 | Next |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4 | Agent 工具 `scene.plan/build/revise/validate` + Studio 场景画布 + trace 浏览器 | Next |
 | S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |

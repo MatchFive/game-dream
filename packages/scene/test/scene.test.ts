@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appendTrace,
   buildSceneWithTrace,
+  exportGodotScene,
   hashLayout,
   loadKit,
   renderSceneSvg,
@@ -139,5 +140,42 @@ describe('trace dataset', () => {
   it('marks agent-originated traces differently from solver ones', () => {
     const { trace } = buildSceneWithTrace(baseSpec, kit, { origin: 'agent' });
     expect(trace.origin).toBe('agent');
+  });
+});
+
+describe('godot export', () => {
+  it('writes a loadable project with matching node counts', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream godot scene '));
+    const result = exportGodotScene(layout, dir);
+
+    for (const file of result.files) {
+      expect(existsSync(join(dir, file))).toBe(true);
+    }
+
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+    // header 的 load_steps 必须等于 ext + sub + 1，否则 Godot 会报 Unexpected end of file
+    const loadSteps = Number((tscn.match(/load_steps=(\d+)/) ?? [])[1]);
+    const ext = (tscn.match(/^\[ext_resource/gm) ?? []).length;
+    const sub = (tscn.match(/^\[sub_resource/gm) ?? []).length;
+    expect(loadSteps).toBe(ext + sub + 1);
+
+    // 每栋建筑一个 StaticBody2D + 碰撞体 + 入口标记
+    // 建筑各一个 + Walls 容器本身
+    expect((tscn.match(/type="StaticBody2D"/g) ?? []).length).toBe(layout.buildings.length + 1);
+    expect((tscn.match(/type="CollisionShape2D"/g) ?? []).length)
+      .toBe(layout.buildings.length + 4); // 每栋建筑一个 + 四面边界墙
+    expect((tscn.match(/parent="Buildings"/g) ?? []).length).toBe(layout.buildings.length);
+    expect((tscn.match(/parent="Anchors"/g) ?? []).length).toBe(layout.anchors.length);
+    expect(tscn).not.toContain('/>'); // Godot 4 的 ext_resource 用 ] 结尾
+  });
+
+  it('reports a summary that matches the layout', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream godot scene summary '));
+    const result = exportGodotScene(layout, dir);
+    expect(result.summary.buildings).toBe(layout.buildings.length);
+    expect(result.summary.anchors).toBe(layout.anchors.length);
+    expect(result.summary.collisions).toBeGreaterThan(0);
   });
 });
