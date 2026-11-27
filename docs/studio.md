@@ -53,11 +53,13 @@ packages/studio/web/          Vite + React + TypeScript
   missing.
 - Interactive primitives (tabs, dialogs, tooltips) come from Radix; the visual
   system is unchanged — `theme.css`, `styles.css`, `studio.css` are still served
-  from `packages/studio/public/` and shared with the legacy pages.
+  from `packages/studio/public/` and styled by the same tokens as before.
 - The server maps `/`, `/assets`, `/settings`, and `/studio` to
-  `app/index.html`; React Router decides which page renders.
-- The previous multi-page implementation stays available at `/legacy`,
-  `/legacy/assets`, and `/legacy/settings` until the React pages have soaked.
+  `app/index.html`; React Router decides which page renders. `/legacy*` now
+  302-redirects to the matching route, so old bookmarks keep working.
+- The previous multi-page implementation (7 files, ~6100 lines of vanilla JS)
+  has been deleted; `packages/studio/public/` holds only the three shared CSS
+  files and the built SPA.
 
 Development loop (backend must be running for `/api` and the shared CSS):
 

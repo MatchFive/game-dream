@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,6 +44,25 @@ describe('studio top bar navigation', () => {
       expect(server).toContain(route);
     }
     expect(existsSync(join(root, 'packages/studio/web/index.html'))).toBe(true);
+  });
+
+  it('ships no legacy multi-page front end', () => {
+    const publicDir = join(root, 'packages/studio/public');
+    const entries = readdirSync(publicDir);
+    for (const legacy of ['studio.html', 'index.html', 'settings.html', 'studio.js', 'app.js', 'settings.js', 'i18n.js']) {
+      expect(entries).not.toContain(legacy);
+    }
+    // 共享样式仍在，React 页面依赖它们
+    expect(entries).toContain('theme.css');
+    expect(entries).toContain('studio.css');
+    expect(entries).toContain('styles.css');
+  });
+
+  it('redirects old /legacy links to the spa route', () => {
+    const server = readFileSync(join(root, 'packages/studio/src/server.ts'), 'utf8');
+    expect(server).toContain("pathname.startsWith('/legacy/')");
+    expect(server).not.toContain("'studio.html'");
+    expect(server).not.toContain("'settings.html'");
   });
 
   it('defines the nav style once, in theme.css', () => {

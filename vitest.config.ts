@@ -2,6 +2,9 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // vitest 默认把 SSR 转换缓存写到 %TEMP%，Windows Defender 偶尔会锁住文件，
+  // 导致 worker 直接挂掉（表现为少数用例凭空消失 + "Errors 1"）。放到项目内更稳。
+  cacheDir: 'node_modules/.vitest-cache',
   resolve: {
     alias: {
       '@gamedream/agent': fileURLToPath(

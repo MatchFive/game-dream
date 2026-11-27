@@ -22,7 +22,6 @@ export default defineConfig({
       '/styles.css': backend,
       '/theme.css': backend,
       '/studio.css': backend,
-      '/runtime.css': backend,
     },
   },
   resolve: {

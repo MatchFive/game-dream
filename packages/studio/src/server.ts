@@ -479,18 +479,17 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         response.end('Method not allowed');
         return;
       }
-      // React 单页应用：三条路由都返回同一份 app/index.html，由前端路由渲染。
-      // 旧页面保留在 /legacy/* 下，便于出问题时对照或回退。
+      // 单页应用：三条路由都返回同一份 app/index.html，由前端路由渲染。
+      // 旧的多页实现已删除，/legacy/* 只是给旧书签一个回落。
+      if (pathname === '/legacy' || pathname.startsWith('/legacy/')) {
+        response.writeHead(302, { location: pathname.replace('/legacy', '') || '/' });
+        response.end();
+        return;
+      }
       const SPA_ROUTES = new Set(['/', '/assets', '/assets/', '/settings', '/settings/', '/studio']);
       const relativePath = SPA_ROUTES.has(pathname)
         ? 'app/index.html'
-        : pathname === '/legacy'
-          ? 'studio.html'
-          : pathname === '/legacy/assets'
-            ? 'index.html'
-            : pathname === '/legacy/settings'
-              ? 'settings.html'
-              : pathname.replace(/^\/+/, '');
+        : pathname.replace(/^\/+/, '');
       const publicRoot = resolve(PUBLIC_DIR);
       const file = resolve(publicRoot, relativePath);
       if (
