@@ -213,6 +213,11 @@ BGM workflow. The canvas supports one-asset-per-line batch generation and a
 dedicated tool-using Asset Agent that can list workflows/assets, generate
 images or audio, pack atlases, stage assets, and save new workflows.
 
+The Studio UI uses a quiet warm-neutral theme (ink primary actions, one olive
+accent, sans UI text). Settings paths have a native file/folder picker on
+localhost, with manual entry retained for remote sessions; skills and MCP paths
+are editable lists.
+
 ```bash
 corepack pnpm build
 node packages/cli/dist/index.js studio --path . --open

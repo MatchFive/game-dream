@@ -22,7 +22,7 @@
 当前验证基线：
 
 - `pnpm typecheck` / `pnpm build`：exit `0`
-- 全量测试：**296 passed / 15 skipped**
+- 全量测试：**300 passed / 15 skipped**
 - Agent focused tests：**20 passed**
 - 真实 Godot runtime：`G1=pass`、`G2=pass`、`G3=pass`、`engine=present`
 - 真实 Unity 6000.6.9f1：EditorVerifier、Windows build、runtime smoke、截图、BGM smoke **4/4 pass**
@@ -120,6 +120,7 @@
 | AS7 | ComfyUI 工作流目录 | 一个工作流一个 JSON（name/description/kind/graph/bindings），UI 选择，Agent 可保存；旧单文件 fallback | Done |
 | AS8 | 素材批量与 Asset Agent | 多行批量生成、素材 Agent 工具（生成/批量/图集/入构建/保存工作流）、事件与自动上画布 | Done |
 | AS9 | 多 MCP / 多 skills | 多 server 命名空间、项目/全局配置发现、Claude Code `.claude/skills`、Studio 设置与 Agent 传递 | Done |
+| AS10 | Studio 视觉简化与路径选择 | 暖白/墨黑/单一橄榄色主题；设置页所有路径支持本机文件/文件夹选择器，skills/MCP 为可增删列表 | Done |
 
 ## 7. P1 · 游戏内容深度
 

@@ -667,7 +667,7 @@ function renderInspector() {
   }
   if (node.kind === 'brief') {
     body.innerHTML = `
-      <div class="inspect-preview brief-preview"><span class="preview-badge">${t('common.brief')}</span><div style="padding:22px 18px;color:#dbe2d1;font-size:12px;line-height:1.65">${t('assets.briefText', { name: state.project.name })}</div></div>
+      <div class="inspect-preview brief-preview"><span class="preview-badge">${t('common.brief')}</span><div style="padding:22px 18px;color:var(--muted);font-size:12px;line-height:1.65">${t('assets.briefText', { name: state.project.name })}</div></div>
       <h2 class="inspect-name">${t('assets.creativeBrief')}</h2>
       <div class="inspect-sub">${escapeHtml(state.project.root)}</div>
       <div class="inspect-tags"><span class="tag good">${t('assets.projectLabel')}</span><span class="tag">${t('assets.title')}</span></div>
@@ -715,7 +715,7 @@ function renderInspector() {
   }
   if (node.error) {
     body.innerHTML = `
-      <div class="inspect-preview audio-preview"><span class="preview-badge" style="color:var(--coral)">${t('assets.generationFailed')}</span><div style="padding:20px;color:var(--coral);font:9px/1.5 var(--mono)">${escapeHtml(node.error)}</div></div>
+      <div class="inspect-preview audio-preview"><span class="preview-badge" style="color:var(--coral)">${t('assets.generationFailed')}</span><div style="padding:20px;color:var(--coral);font:10px/1.5 var(--mono)">${escapeHtml(node.error)}</div></div>
       <h2 class="inspect-name">${t('assets.generationFailed')}</h2>
       <div class="inspect-sub">${t('assets.assetNotSaved')}</div>
       <div class="inspect-actions"><button class="button secondary full" type="button" data-retry>${t('assets.editRetry')}</button></div>

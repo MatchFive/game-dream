@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 let toastTimer;
+const pathLists = { skills: [], mcp: [] };
 
 function toast(message) {
   const element = $('#toast');
@@ -32,15 +33,75 @@ function setSettings(settings) {
   $('#comfyWorkflowsDir').value = settings.image.workflowsDir ?? '';
   $('#godotBin').value = settings.engines.godotBin;
   $('#unityBin').value = settings.engines.unityBin;
-  $('#agentSkillsDirs').value = (settings.agent?.skillsDirs ?? []).join('\n');
-  $('#agentMcpConfigs').value = (settings.agent?.mcpConfigs ?? []).join('\n');
+  pathLists.skills = [...(settings.agent?.skillsDirs ?? [])];
+  pathLists.mcp = [...(settings.agent?.mcpConfigs ?? [])];
+  renderPathLists();
 }
 
-function splitList(value) {
-  return String(value ?? '')
-    .split(/[\n;,]/)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+function renderPathList(key) {
+  const target = key === 'skills' ? $('#agentSkillsList') : $('#agentMcpList');
+  if (!target) return;
+  const empty = key === 'skills' ? '还没有额外 skills 目录' : '还没有额外 MCP 配置';
+  target.innerHTML = pathLists[key].length
+    ? pathLists[key].map((path, index) => `
+        <div class="path-row">
+          <span title="${escapeHtml(path)}">${escapeHtml(path)}</span>
+          <button type="button" data-remove-list="${key}" data-index="${index}" aria-label="删除 ${escapeHtml(path)}">×</button>
+        </div>
+      `).join('')
+    : `<div class="path-empty">${empty}</div>`;
+}
+
+function renderPathLists() {
+  renderPathList('skills');
+  renderPathList('mcp');
+}
+
+async function choosePath(button) {
+  const data = await request('/api/dialog', {
+    method: 'POST',
+    body: JSON.stringify({
+      kind: button.dataset.kind === 'folder' ? 'folder' : 'file',
+      title: button.dataset.title ?? '选择路径',
+      filter: button.dataset.filter ?? '',
+    }),
+  });
+  return typeof data.path === 'string' ? data.path : '';
+}
+
+async function pickIntoInput(button) {
+  const input = document.getElementById(button.dataset.pickInput);
+  if (!input) return;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = '选择中…';
+  try {
+    const path = await choosePath(button);
+    if (path) input.value = path;
+  } catch (error) {
+    toast(`无法打开选择器：${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function pickIntoList(button) {
+  const key = button.dataset.pickList;
+  if (!pathLists[key]) return;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = '选择中…';
+  try {
+    const path = await choosePath(button);
+    if (path && !pathLists[key].includes(path)) pathLists[key].push(path);
+    renderPathList(key);
+  } catch (error) {
+    toast(`无法打开选择器：${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 async function loadSettings() {
@@ -77,8 +138,8 @@ async function saveSettings(event) {
           unityBin: $('#unityBin').value,
         },
         agent: {
-          skillsDirs: splitList($('#agentSkillsDirs').value),
-          mcpConfigs: splitList($('#agentMcpConfigs').value),
+          skillsDirs: pathLists.skills,
+          mcpConfigs: pathLists.mcp,
         },
       }),
     });
@@ -230,6 +291,21 @@ async function createProject(event) {
   }
 }
 
+document.querySelectorAll('[data-pick-input]').forEach((button) => {
+  button.addEventListener('click', () => pickIntoInput(button));
+});
+document.querySelectorAll('[data-pick-list]').forEach((button) => {
+  button.addEventListener('click', () => pickIntoList(button));
+});
+document.addEventListener('click', (event) => {
+  const remove = event.target.closest('[data-remove-list]');
+  if (!remove) return;
+  const key = remove.dataset.removeList;
+  const index = Number(remove.dataset.index);
+  if (!pathLists[key] || !Number.isInteger(index)) return;
+  pathLists[key].splice(index, 1);
+  renderPathList(key);
+});
 $('#settingsForm').addEventListener('submit', saveSettings);
 $('#projectForm').addEventListener('submit', createProject);
 $('#importOpen').addEventListener('click', importProject);

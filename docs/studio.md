@@ -22,6 +22,14 @@ run it from a terminal if a double-click closes immediately.
   summary, assets, and evidence.
 - `/assets` is the infinite Asset Canvas.
 
+## Visual system
+
+The three Studio pages share `theme.css`: warm off-white surfaces, ink-black
+primary actions, one low-saturation olive accent, sans-serif UI text, and mono
+only for paths/code/logs. Neon gradients, glows, and multi-colour status panels
+are intentionally absent. Status colour is used on dots, text, and small marks
+only.
+
 ## Settings and projects
 
 `/settings` configures the current workspace:
@@ -34,6 +42,9 @@ run it from a terminal if a double-click closes immediately.
   `.claude/skills` / `.commandcode/skills` / `.mcp.json` are discovered
   automatically.
 - Godot and Unity executable/editor paths.
+- Every file/folder field has a **浏览…** button that opens the host OS picker
+  through `POST /api/dialog`; the text remains editable for remote sessions.
+  Skills and MCP paths are lists with add/remove controls instead of textareas.
 
 Settings are stored under the workspace at
 `.gamedream/studio/settings.json`. The workspace defaults to
@@ -43,9 +54,10 @@ Settings are stored under the workspace at
 The same page lists projects directly under the workspace whose engine can be
 detected. **Create** runs `dream create` with the configured provider and opens
 the new project in a separate Studio server/tab; an **Open existing project**
-field accepts a server-side absolute path for projects outside the workspace
-(it validates that the directory looks like a GameDream/Godot/Web/Unity
-project). Recent paths are kept in browser storage. **Open** starts another
+field accepts a server-side absolute path (or the folder picker) for projects
+outside the workspace; it validates that the directory looks like a
+GameDream/Godot/Web/Unity project. Recent paths are kept in browser storage.
+**Open** starts another
 project Studio on an ephemeral localhost port. The current project remains
 untouched.
 
@@ -314,6 +326,7 @@ binding.
 | `GET /api/state` | Project, assets, canvas, ComfyUI status, workflows |
 | `GET /api/settings` | Workspace settings with the API key redacted |
 | `POST /api/settings` | Persist model/image/engine/agent-extension settings and apply them |
+| `POST /api/dialog` | Open a local native file/folder picker and return `{ path }` |
 | `GET /api/projects` | List detected projects under the workspace |
 | `POST /api/projects` | Create a project via `dream create` |
 | `POST /api/projects/open` | Start/open a project Studio on a new local port |
@@ -381,6 +394,9 @@ expose it on a public interface.
   skipped with an entry in the registry errors; it does not block healthy
   servers. MCP transport is stdio (`command`/`args`); HTTP/SSE-only configs are
   skipped.
+- Native file/folder pickers only work when the browser and Studio server are
+  on the same machine; remote/LAN sessions receive a 403 and keep the manual
+  path field. Linux needs `zenity` or `kdialog`.
 - Agent children are resumed with `--resume` after a Studio restart. Persisted
   PIDs are verified against the run id before a stale process tree is reaped; a
   reused PID with a non-matching command line is left alone.

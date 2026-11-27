@@ -5,6 +5,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path
 import { fileURLToPath } from 'node:url';
 import { AgentManager, AGENT_POLICY_TOOLS } from './agent.js';
 import { AssetAgentManager } from './asset-agent.js';
+import { isLoopbackAddress, pickPath, type DialogRequest } from './dialog.js';
 import { createAnimationAtlas } from './animation-atlas.js';
 import { listProjects, projectNameForDirectory } from './projects.js';
 import {
@@ -42,6 +43,7 @@ export interface StudioServerOptions {
   comfyui?: Partial<ComfyUiConfig>;
   cliEntry?: string;
   workspaceDir?: string;
+  openDialog?: (request: DialogRequest) => Promise<string | undefined>;
 }
 
 interface StudioRuntime {
@@ -402,7 +404,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
           }
           throw error;
         }
-        if (pathname.startsWith('/api/settings') || pathname.startsWith('/api/projects')) {
+        if (
+          pathname === '/api/dialog'
+          || pathname.startsWith('/api/settings')
+          || pathname.startsWith('/api/projects')
+        ) {
           await handleWorkspaceApi(request, response, pathname, {
             workspaceDir,
             root,
@@ -410,6 +416,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
             cliEntry,
             host,
             applySettings,
+            openDialog: options.openDialog ?? pickPath,
             openProject: async (projectPath) => {
               const child = await startStudioServer({
                 projectDir: projectPath,
@@ -720,6 +727,7 @@ interface WorkspaceApiContext {
   host: string;
   applySettings: (settings: StudioSettings) => void;
   openProject: (projectPath: string) => Promise<string>;
+  openDialog: (request: DialogRequest) => Promise<string | undefined>;
 }
 
 async function handleWorkspaceApi(
@@ -729,6 +737,29 @@ async function handleWorkspaceApi(
   context: WorkspaceApiContext,
 ): Promise<void> {
   const method = request.method ?? 'GET';
+  if (method === 'POST' && pathname === '/api/dialog') {
+    if (!isLoopbackAddress(request.socket.remoteAddress)) {
+      json(response, 403, { error: 'native path picker is available on localhost only' });
+      return;
+    }
+    try {
+      const body = (await readJson(request)) as {
+        kind?: unknown;
+        title?: unknown;
+        filter?: unknown;
+      };
+      const selected = await context.openDialog({
+        kind: body.kind === 'folder' ? 'folder' : 'file',
+        title: typeof body.title === 'string' ? body.title : undefined,
+        filter: typeof body.filter === 'string' ? body.filter : undefined,
+      });
+      json(response, 200, { path: selected ?? null });
+    } catch (error) {
+      json(response, 501, { error: (error as Error).message });
+    }
+    return;
+  }
+
   if (method === 'GET' && pathname === '/api/settings') {
     json(response, 200, {
       settings: publicStudioSettings(context.runtime.getSettings()),

@@ -317,7 +317,7 @@ function agentThreadMarkup(run) {
       continue;
     }
     if (event.type === 'run/error') {
-      items.push(`<div class="studio-agent-msg assistant" style="border-color:rgba(255,138,106,.45)">${escapeHtml(t('studio.agentRunError', { error: String(event.error ?? '') }))}</div>`);
+      items.push(`<div class="studio-agent-msg assistant" style="border-color:var(--coral)">${escapeHtml(t('studio.agentRunError', { error: String(event.error ?? '') }))}</div>`);
       continue;
     }
     if (event.type === 'run/canceled') {
