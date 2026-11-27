@@ -103,6 +103,16 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/scene:
+    dependencies:
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@gamedream/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/studio:
     dependencies:
       '@gamedream/agent':

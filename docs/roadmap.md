@@ -165,6 +165,23 @@
 - Studio 远端访问的鉴权、用户隔离、任务沙箱。
 - 多用户并发和远程 GPU 队列。
 
+## 10.5 场景构建主线（S1–S6）
+
+产品首要目标从"生成可玩切片"扩展到"在 Unity/Godot 里搭可复用、可追溯的场景"，
+设计见 `docs/scene-agent.md`。
+
+| 编号 | 事项 | 状态 |
+| --- | --- | --- |
+| S1 | 引擎无关 spec/kit/layout + 确定性求解器 + 质量闸门 + trace 数据集 + 俯视渲染 | Done |
+| S2 | Godot 导出：`.tscn` + `TileMapLayer` + 导航/碰撞 | Next |
+| S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
+| S4 | Agent 工具 `scene.plan/build/revise/validate` + Studio 场景画布 + trace 浏览器 | Next |
+| S5 | 数据管道：trace 聚合、badcase 看板、SFT/偏好数据集导出 | Backlog |
+| S6 | 足量后训练布局模型或做监督微调 | Backlog |
+
+S1 的验收：三个示例场景（河湾村 / 石十字镇 / 湖畔小村）全部通过闸门，
+入口可达率 1.0，同种子布局哈希稳定。
+
 ## 11. 建议的下一步顺序
 
 1. **AS3 AI SFX**：需要可用文本音效后端；当前保留程序化降级。
