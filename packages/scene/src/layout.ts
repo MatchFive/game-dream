@@ -7,6 +7,7 @@ import type {
   Prefab,
   Rect,
   Road,
+  Interaction,
   SceneLayout,
   SceneProp,
   SceneSpec,
@@ -405,6 +406,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
   const buildings: Building[] = [];
   const props: SceneProp[] = [];
   const anchors: Anchor[] = [];
+  const interactions: Interaction[] = [];
 
   // 1. 路网：十字主干道 + 大图次级街道。所有道路都记成"带"，
   //    地块直接在带与带之间的空隙里切，天生临街——这是街墙能成立的前提。
@@ -546,6 +548,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
   };
 
   let buildingIndex = 0;
+  let interactionIndex = 0;
   /** 院落/后院：留给树与杂物，避免整块地全被建筑占满 */
   const yards: Rect[] = [];
 
@@ -594,6 +597,18 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       band,
       elevation: elevationLevel(rect, spec.elevation, spec.bounds),
     });
+    // 交互点落在正门那一格：玩家走到门口就能触发，不需要额外的坐标约定
+    for (const declared of prefab.interactions ?? []) {
+      interactions.push({
+        id: `interaction-${interactionIndex}`,
+        kind: declared.kind,
+        building: `building-${buildingIndex}`,
+        at: entrance,
+        radius: declared.radius,
+        label: `${prefab.id}:${declared.kind}`,
+      });
+      interactionIndex += 1;
+    }
     const alley = carveAlley(grid, entrance, side);
     if (alley) roads.push({ id: `alley-${buildingIndex}`, kind: 'alley', width: 1, points: alley });
     buildingIndex += 1;
@@ -1026,6 +1041,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     buildings,
     props,
     anchors,
+    interactions,
     walls,
     gates,
     cliffs: cliffPlan.cliffs,

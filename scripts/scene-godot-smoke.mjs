@@ -90,6 +90,8 @@ for (const scene of cases) {
     const lights = read('GAMEDREAM_SCENE_LIGHTS');
     const zones = read('GAMEDREAM_SCENE_ZONES');
     const markers = read('GAMEDREAM_SCENE_MARKERS');
+    const interactions = read('GAMEDREAM_SCENE_INTERACTIONS');
+    const kinds = (output.match(/GAMEDREAM_SCENE_INTERACTION_KINDS=(.*)/) ?? [])[1]?.trim() ?? '';
     const ok = output.includes('GAMEDREAM_SCENE_OK=1');
 
     const expected = layout.buildings.length;
@@ -118,12 +120,20 @@ for (const scene of cases) {
     if (lights !== countNodes('light')) problems.push(`lights ${lights} != ${countNodes('light')}`);
     if (zones !== countNodes('area')) problems.push(`zones ${zones} != ${countNodes('area')}`);
     if (markers !== countNodes('marker')) problems.push(`markers ${markers} != ${countNodes('marker')}`);
+    // 交互点：数量要对，kind 集合也要对——只剩数量对而类型错，等于游戏里什么都触发不了
+    if (interactions !== layout.interactions.length) {
+      problems.push(`interactions ${interactions} != ${layout.interactions.length}`);
+    }
+    // 引擎里的顺序按节点遍历来，和 layout 不一致是正常的，比集合
+    const expectedKinds = [...new Set(layout.interactions.map((item) => item.kind))].sort().join(',');
+    const reportedKinds = (kinds ? kinds.split(',') : []).sort().join(',');
+    if (reportedKinds !== expectedKinds) problems.push(`interaction kinds "${reportedKinds}" != "${expectedKinds}"`);
     if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
 
     engineLine = `buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal}`
       + ` anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps}`
       + ` walls=${townWalls} cliffs=${cliffs} floors=${read('GAMEDREAM_SCENE_FLOORS')}`
-      + ` lights=${lights} zones=${zones} markers=${markers}`
+      + ` lights=${lights} zones=${zones} markers=${markers} interactions=${interactions}[${kinds}]`
       + ` spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`;
   }
 

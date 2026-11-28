@@ -28,6 +28,7 @@ export const villageEuroKit: Kit = {
       roof: 'gable',
       mainRoad: false,
       nodes: [],
+      interactions: [],
     },
     {
       id: 'house-long',
@@ -38,6 +39,7 @@ export const villageEuroKit: Kit = {
       roof: 'hip',
       mainRoad: false,
       nodes: [],
+      interactions: [],
     },
     {
       id: 'smithy',
@@ -51,6 +53,7 @@ export const villageEuroKit: Kit = {
       nodes: [
         { type: 'light', name: 'ForgeGlow', at: [0.5, 0.5], props: { anchor: 'entrance', color: '#ff9b57', energy: 1.3, radius: 2.6 } },
       ],
+      interactions: [{ kind: 'craft', radius: 1 }],
     },
     {
       id: 'tavern',
@@ -65,6 +68,7 @@ export const villageEuroKit: Kit = {
         { type: 'light', name: 'DoorLamp', at: [0.5, 0.9], props: { anchor: 'entrance', color: '#ffcf8a', energy: 1.2, radius: 3.2, shadow: true } },
         { type: 'marker', name: 'SignBoard', at: [0.5, 0.5], props: {} },
       ],
+      interactions: [{ kind: 'rest', radius: 1 }, { kind: 'shop', radius: 1.5 }],
     },
     {
       id: 'chapel',
@@ -77,6 +81,7 @@ export const villageEuroKit: Kit = {
       nodes: [
         { type: 'marker', name: 'ShrinePoint', at: [0.5, 0.5], props: {} },
       ],
+      interactions: [{ kind: 'worship', radius: 1 }],
     },
     {
       id: 'market-hall',
@@ -90,6 +95,7 @@ export const villageEuroKit: Kit = {
       nodes: [
         { type: 'area', name: 'MarketStall', at: [0.5, 1], props: { anchor: 'entrance', width: 3, height: 2 } },
       ],
+      interactions: [{ kind: 'trade', radius: 2 }],
     },
     {
       id: 'dock-house',
@@ -102,6 +108,7 @@ export const villageEuroKit: Kit = {
       nodes: [
         { type: 'light', name: 'QuayLamp', at: [0.5, 0.9], props: { anchor: 'entrance', color: '#ffd9a0', energy: 1, radius: 2.8 } },
       ],
+      interactions: [{ kind: 'fish', radius: 1 }],
     },
   ],
 };

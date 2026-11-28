@@ -39,7 +39,7 @@
 
 ```
 pnpm typecheck / build              9 包通过
-pnpm test                           451 passed / 15 skipped / 0 failed
+pnpm test                           454 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
 CI scene-export job                 有引擎跑真机加载；无引擎仍导出六工程做结构核对并写明 skip
@@ -47,6 +47,7 @@ CI scene-export job                 有引擎跑真机加载；无引擎仍导�
   地形 / 道路 / 道具三层             道具 84/99/37/97/113/91 格，与 layout.props 相等
   楼层进引擎                         floors 和，与 layout 相等
   附加节点进引擎                     lights/zones/markers 与 kit 声明逐项相等（六场景全绿）
+  交互点进引擎                       interactions 4/4/1/4/4/5，kind 集合与 layout 相等
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 19 带 unmet；too-sparse×3、missing-required×2
@@ -77,6 +78,9 @@ badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 
 - **道具进引擎**：树/井/灯/箱/牌/码头/花做成透明底瓦片，导出成 `Props` TileMapLayer
   （排在地形与道路之后）。之前它们只存在于预览 SVG，导出的城里全是空地。
   证据 `docs/evidence/s15-props/`
+- **场景交互点**：`kit.prefabs[].interactions[]`（rest/shop/trade/worship/craft/fish）→
+  `layout.interactions[]`（落在正门那一格）→ 导出 `Area2D` + `metadata/kind`；
+  新闸门 `interaction-blocked`，指标 `interactions`/`interactionKinds`。证据 `docs/evidence/s11-interactions/`
 - **prefab 附加节点**：`kit.prefabs[].nodes[]`（light/area/marker），位置按 footprint 比例，
   `anchor: "entrance"` 的节点跟着门走；导出成 `PointLight2D`/`Area2D`/`Marker2D`，
   引擎自检点数与 kit 声明对账。证据 `docs/evidence/s9-prefab-nodes/`
@@ -119,7 +123,6 @@ badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 
 | S8 | 世界地图与区域连接 | 只能造单点聚落；RPG 需要"多场景 + 连接" | `WorldSpec`（聚落 + 道路 + 地形带）→ 世界布局；每个聚落可单独展开；导出含区域跳转标记 | S3 或 S2 | L |
 | U1 | Studio 场景编辑（拖拽/微调） | agent 出的布局总要人修两笔；不能改就只能重生成 | 画布拖动建筑、改门朝向，保存回 layout 并写 `origin=human-edit` 的 trace | — | L |
 | T2 | 建筑贴图一致性生产化 | 7 张图靠提示词碰运气，一套 kit 像两三套素材 | 参考图 + i2i 或风格 LoRA；给出可量化的色调/笔触一致性对比 | ComfyUI edit 工作流 | M |
-| S11 | 场景交互点 | 场景只能看不能碰（商店门、可拾取、触发器） | layout 支持 `interactions[]`，导出为 Area2D + 元数据；引擎内可触发 | S9 | M |
 | R5 | 导出工程版本迁移 | Godot 小版本升级后 `.tscn`/TileSet 格式可能漂移 | 固定 `format=3` 校验 + 目标版本声明；升级时有回归用例 | — | S |
 
 ### P2 · 长期 / 外部依赖

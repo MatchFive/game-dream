@@ -11,7 +11,8 @@ export interface SceneIssue {
     | 'too-dense'
     | 'too-sparse'
     | 'missing-required'
-    | 'sealed-walls';
+    | 'sealed-walls'
+    | 'interaction-blocked';
   detail: string;
 }
 
@@ -104,6 +105,16 @@ export function validateScene(
     issues.push({ code: 'no-buildings', detail: 'solver placed nothing' });
   }
 
+  // 交互点必须站在能走、且走得到的地方——它和门一样，是"玩家要到达的点"
+  const blockedInteractions = layout.interactions.filter((item) =>
+    !walkable(item.at[0], item.at[1]) || !reachable.has(`${item.at[0]},${item.at[1]}`));
+  if (blockedInteractions.length > 0) {
+    issues.push({
+      code: 'interaction-blocked',
+      detail: blockedInteractions.slice(0, 5).map((item) => `${item.id}(${item.kind})`).join(', '),
+    });
+  }
+
   // 城墙围死了没有门：城里出不去，等于把玩家关起来。
   // 只有一路堵死时才会出现（四面都是建筑、没有路穿过墙），所以是真缺陷不是噪声。
   if (layout.walls.length > 0 && layout.gates.length === 0) {
@@ -175,6 +186,9 @@ export function validateScene(
     ramps: layout.ramps.length,
     terraces: layout.terraces.length,
     coast: layout.coastSide === null ? 0 : 1,
+    // 场景里能碰的地方：按 kind 计数，游戏侧要"有没有商店"直接看它
+    interactions: layout.interactions.length,
+    interactionKinds: new Set(layout.interactions.map((item) => item.kind)).size,
     // 天际线：楼层均值与最高层。全是同一个数字就说明高度没分层，还是撒方块
     floorMean: layout.buildings.length === 0
       ? 0

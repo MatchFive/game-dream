@@ -183,6 +183,7 @@
 | S2.7 | 需求覆盖：`spec.unmet[]` + 提示词禁止静默替换 + 统计聚类 + Studio/CLI 展示；重跑同批 19/25 声明了做不到的需求 | Done |
 | S13 | 地形与边界表达力：`water: coast`（起伏岸线 + 沙岸）、`walls`（贴建成区成环、路口自动开门、`TownWalls` 碰撞体）、`elevation`（按 `step` 切台阶、错开 ±1 格走等高线、路穿崖处变坡道、`Cliffs` 碰撞体）；瓦片新增 `sand/rock/wall`；新闸门 `sealed-walls`。真引擎六场景 nav 全通（墙/崖碰撞体数与 layout 一致）；五条相关需求真模型重跑 5/5 过闸门，其中三条 unmet 归零 | Done |
 | Q1 | 场景导出进 CI：新增 `scene-export` job，`scripts/scene-godot-smoke.mjs` 支持"无引擎"分支（仍导出六工程 + 结构核对 + 显式 skip 与 job summary），确定有引擎时用 `--require` 跑真机加载 | Done |
+| S11 | 场景交互点：`kit.prefabs[].interactions[] { kind, radius }` → `layout.interactions[]`（落在正门格）→ 导出 `Interactions/Area2D` + `metadata/kind`/`metadata/building`；新闸门 `interaction-blocked`；自检比较数量与 kind 集合 | Done |
 | S9 | prefab 附加节点：`kit.prefabs[].nodes[]`（light/area/marker，位置按 footprint 比例，`anchor:"entrance"` 跟门走），导出为 PointLight2D（共用生成的 `scene/light.png`）/ Area2D + RectangleShape2D / Marker2D，实例用 index 覆盖位置；`scene_check.gd` 点数与 kit 对账；顺带修正 prefab `load_steps` 数行数不数资源 | Done |
 | S14 | 路网参数：`roads { mainWidth 2–7, streetWidth 1–4, spacing 13–40 }`（默认 4/2/18）；次级路网出现条件改成"能放下 4/6 个街区"（城镇/村子分档）；修路面偏一格（折线中心格统一成 `start+floor((w−1)/2)`，SVG 只挪宽度轴）与每排尾巴固定空 4 格。真模型两条路宽需求 unmet 归零 | Done |
 | D2 | badcase 看板：`/scenes/insights` 三栏（聚类 → 样本 → 布局），按 `issue.code` 与 `spec.unmet` 聚类（括号注释剥掉、原话保留在 variants），bad 计数排序，选中写进 URL，一簇导出 JSONL（含 floors/band 标签）；顺带修掉 `/scenes` 页 unmet 列表的两端对齐 | Done |

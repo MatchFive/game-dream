@@ -231,7 +231,7 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
       recorder.step('plan', `spec rejected: ${failure}`);
       // 解析失败也记一条，badcase 里能看到模型吐了什么
       const brokenTrace = recorder.finish(
-        { id: 'invalid', name: 'invalid', kind: 'village', kitId: kit.id, style: kit.style, seed, tileSize: 32, bounds: { width: 0, height: 0 }, palette: kit.palette, roads: [], lots: [], buildings: [], props: [], anchors: [], walls: [], gates: [], cliffs: [], ramps: [], terraces: [], coastSide: null },
+        { id: 'invalid', name: 'invalid', kind: 'village', kitId: kit.id, style: kit.style, seed, tileSize: 32, bounds: { width: 0, height: 0 }, palette: kit.palette, roads: [], lots: [], buildings: [], props: [], anchors: [], interactions: [], walls: [], gates: [], cliffs: [], ramps: [], terraces: [], coastSide: null },
         { pass: false, metrics: {}, issues: [] },
       );
       traces.push(brokenTrace);
@@ -295,6 +295,7 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
     buildings: [],
     props: [],
     anchors: [],
+    interactions: [],
     walls: [],
     gates: [],
     cliffs: [],

@@ -180,6 +180,26 @@ export function renderSceneSvg(
     }
   }
 
+  // 交互点：一圈半透明色块。评审时要看得见"哪儿能碰"，不然它只存在于 layout.json
+  const INTERACTION_COLORS: Record<string, string> = {
+    craft: '#d98a4a',
+    rest: '#8f7bd8',
+    shop: '#3b9dd8',
+    trade: '#2f9e5f',
+    worship: '#e0c14a',
+    fish: '#4aa9c9',
+  };
+  for (const item of layout.interactions) {
+    const cx = item.at[0] * t + t / 2;
+    const cy = item.at[1] * t + t / 2;
+    const radius = Math.max(4, item.radius * t * 0.6);
+    const color = INTERACTION_COLORS[item.kind] ?? '#8a8f98';
+    parts.push(
+      `<circle cx="${cx}" cy="${cy}" r="${radius.toFixed(1)}" fill="${color}" opacity="0.28"/>`,
+      `<circle cx="${cx}" cy="${cy}" r="${radius.toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.2"/>`,
+    );
+  }
+
   for (const anchor of layout.anchors) {
     const cx = anchor.at[0] * t + t / 2;
     const cy = anchor.at[1] * t + t / 2;

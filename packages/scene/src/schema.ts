@@ -111,6 +111,19 @@ export const prefabNodeSchema = z.object({
   props: z.record(z.union([z.string(), z.number(), z.boolean()])).default({}),
 });
 
+/**
+ * kit 侧的交互声明：这个 prefab 能做什么。
+ *
+ * 语义写在 kit 里（酒馆能休息、集市能交易），位置交给求解器（跟着建筑正门），
+ * 导出成 Area2D + 元数据。这样"场景里有没有能交易的地方"是数据，不是注释。
+ */
+export const prefabInteractionSchema = z.object({
+  /** 交互类型，游戏侧按它分派：shop / rest / trade / worship / craft / fish … */
+  kind: z.string().min(1),
+  /** 交互区边长（格），默认 1 */
+  radius: z.number().min(0.5).max(6).default(1),
+});
+
 export const prefabSchema = z.object({
   id: z.string().min(1),
   role: z.enum(['house', 'shop', 'workshop', 'civic', 'landmark', 'dock']),
@@ -130,6 +143,8 @@ export const prefabSchema = z.object({
   mainRoad: z.boolean().default(false),
   /** 挂在 prefab 上的节点：门口一盏灯、一块交互区、一个路点 */
   nodes: z.array(prefabNodeSchema).default([]),
+  /** 语义交互点：这栋房子能做什么 */
+  interactions: z.array(prefabInteractionSchema).default([]),
 });
 
 export const kitSchema = z.object({
@@ -201,6 +216,19 @@ export const propSchema = z.object({
   at: point,
 });
 
+/** 求解出来的交互点：进门就能触发的那一格。 */
+export const interactionSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  /** 属于哪栋建筑（一栋房子可以有多个交互） */
+  building: z.string(),
+  /** 触发位置（格），就是正门前那一格 */
+  at: point,
+  /** 交互区边长（格） */
+  radius: z.number(),
+  label: z.string().optional(),
+});
+
 export const anchorSchema = z.object({
   id: z.string(),
   kind: z.enum(['spawn', 'exit', 'poi']),
@@ -250,6 +278,8 @@ export const sceneLayoutSchema = z.object({
   buildings: z.array(buildingSchema),
   props: z.array(propSchema),
   anchors: z.array(anchorSchema),
+  /** 场景里能碰的地方：导出成 Area2D，游戏按 kind 分派 */
+  interactions: z.array(interactionSchema).default([]),
   /** 城墙段与门洞；没开城墙时为空 */
   walls: z.array(wallSchema).default([]),
   gates: z.array(gateSchema).default([]),
@@ -267,6 +297,8 @@ export type Lot = z.infer<typeof lotSchema>;
 export type Building = z.infer<typeof buildingSchema>;
 export type SceneProp = z.infer<typeof propSchema>;
 export type Anchor = z.infer<typeof anchorSchema>;
+export type Interaction = z.infer<typeof interactionSchema>;
+export type PrefabInteraction = z.infer<typeof prefabInteractionSchema>;
 export type WallSegment = z.infer<typeof wallSchema>;
 export type Gate = z.infer<typeof gateSchema>;
 export type Terrace = z.infer<typeof terraceSchema>;

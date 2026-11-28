@@ -131,6 +131,18 @@ const CHECK_SCRIPT = [
   '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
   '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
   '\tprint("GAMEDREAM_SCENE_FLOORS=%d" % floors)',
+  '\tvar interaction_root := get_node_or_null("Interactions")',
+  '\tvar interactions := 0',
+  '\tvar kind_text := ""',
+  '\tif interaction_root:',
+  '\t\tfor child in interaction_root.get_children():',
+  '\t\t\tif child is Area2D:',
+  '\t\t\t\tinteractions += 1',
+  '\t\t\t\tvar kind := str(child.get_meta("kind", ""))',
+  '\t\t\t\tif kind != "" and not kind_text.split(",").has(kind):',
+  '\t\t\t\t\tkind_text += ("" if kind_text == "" else ",") + kind',
+  '\tprint("GAMEDREAM_SCENE_INTERACTIONS=%d" % interactions)',
+  '\tprint("GAMEDREAM_SCENE_INTERACTION_KINDS=%s" % kind_text)',
   '\tprint("GAMEDREAM_SCENE_LIGHTS=%d" % lights)',
   '\tprint("GAMEDREAM_SCENE_ZONES=%d" % zones)',
   '\tprint("GAMEDREAM_SCENE_MARKERS=%d" % markers)',
@@ -294,6 +306,10 @@ export function exportGodotScene(
   const cliffShapeIds = layout.cliffs.map((cliff) =>
     shapeIdFor(cliff.rect.w * size, cliff.rect.h * size));
 
+  // 交互区形状也走同一个池子：同半径的区共用一个 RectangleShape2D
+  const zoneShapeIds = layout.interactions.map((item) =>
+    shapeIdFor(item.radius * 2 * size, item.radius * 2 * size));
+
   const navMesh = buildNavMesh(layout);
   const navResource = navMesh.polygons.length > 0
     ? [
@@ -368,6 +384,10 @@ export function exportGodotScene(
     lines.push('[node name="Gates" type="Node2D" parent="."]');
     lines.push('');
   }
+  if (layout.interactions.length > 0) {
+    lines.push('[node name="Interactions" type="Node2D" parent="."]');
+    lines.push('');
+  }
   lines.push('[node name="Buildings" type="Node2D" parent="."]');
   lines.push('');
   lines.push('[node name="Anchors" type="Node2D" parent="."]');
@@ -393,6 +413,21 @@ export function exportGodotScene(
     lines.push(`[node name="${cliff.id}" type="CollisionShape2D" parent="Cliffs"]`);
     lines.push(`position = Vector2(${rect.x * size + (rect.w * size) / 2}, ${rect.y * size + (rect.h * size) / 2})`);
     lines.push(`shape = SubResource("${cliffShapeIds[index]}")`);
+    lines.push('');
+  });
+
+  // 交互点：Area2D + 元数据。游戏不认节点名，认 metadata/kind —— 名字只是给人看的
+  layout.interactions.forEach((item, index) => {
+    const px = item.at[0] * size + size / 2;
+    const py = item.at[1] * size + size / 2;
+    lines.push(`[node name="${item.id}" type="Area2D" parent="Interactions"]`);
+    lines.push(`position = Vector2(${px}, ${py})`);
+    lines.push('monitoring = true');
+    lines.push(`metadata/kind = "${item.kind}"`);
+    lines.push(`metadata/building = "${item.building}"`);
+    lines.push('');
+    lines.push(`[node name="Shape" type="CollisionShape2D" parent="Interactions/${item.id}"]`);
+    lines.push(`shape = SubResource("${zoneShapeIds[index]}")`);
     lines.push('');
   });
 
@@ -488,6 +523,8 @@ export function exportGodotScene(
       ramps: layout.ramps.length,
       terraces: layout.terraces.length,
       coastSide: layout.coastSide,
+      interactions: layout.interactions.length,
+      interactionKinds: [...new Set(layout.interactions.map((item) => item.kind))].sort(),
       prefabNodes: {
         lights: layout.buildings.reduce((sum, building) => sum + (kitNodeCount(kitNodes, building.prefab, 'light')), 0),
         zones: layout.buildings.reduce((sum, building) => sum + (kitNodeCount(kitNodes, building.prefab, 'area')), 0),

@@ -492,6 +492,70 @@ describe('skyline', () => {
   });
 });
 
+describe('scene interactions', () => {
+  const spec = {
+    ...baseSpec,
+    id: 'shops',
+    kind: 'town' as const,
+    bounds: { width: 110, height: 92 },
+    required: ['tavern', 'chapel', 'market-hall', 'smithy'],
+    water: 'none' as const,
+  };
+
+  it('turns kit semantics into interaction points on each door', () => {
+    const parsed = parseSceneSpec(spec);
+    const { layout, grid } = buildScene(parsed, kit);
+    const spawn = layout.anchors.find((anchor) => anchor.kind === 'spawn') as { at: [number, number] };
+    const validation = validateScene(layout, parsed, (x, y) => grid.walkable(x, y), grid.flood(spawn.at[0], spawn.at[1]));
+    expect(layout.interactions.length).toBeGreaterThan(3);
+
+    const kinds = new Set(layout.interactions.map((item) => item.kind));
+    for (const expected of ['rest', 'shop', 'worship', 'trade', 'craft']) {
+      expect(kinds.has(expected)).toBe(true);
+    }
+    // 交互点站在正门那一格：玩家走到门口就能触发，不需要另一套坐标约定
+    for (const item of layout.interactions) {
+      const building = layout.buildings.find((entry) => entry.id === item.building);
+      expect(building).toBeDefined();
+      expect(item.at).toEqual((building as { entrance: [number, number] }).entrance);
+      expect(grid.walkable(item.at[0], item.at[1])).toBe(true);
+    }
+    expect(validation.metrics.interactions).toBe(layout.interactions.length);
+    expect(validation.metrics.interactionKinds).toBe(kinds.size);
+  });
+
+  it('flags an interaction point that no longer stands on a reachable cell', () => {
+    const { layout } = buildScene(parseSceneSpec(spec), kit);
+    // 把第一个交互点推到墙里：这类错在游戏里表现为"门就在眼前但点不动"
+    const broken: SceneLayout = {
+      ...layout,
+      interactions: layout.interactions.map((item, index) => (index === 0 ? { ...item, at: [-3, -3] } : item)),
+    };
+    const validation = validateScene(broken, parseSceneSpec(spec), () => true, new Set(['0,0']));
+    expect(validation.issues.map((issue) => issue.code)).toContain('interaction-blocked');
+  });
+
+  it('exports each interaction as an Area2D carrying its kind', () => {
+    const { layout } = buildScene(parseSceneSpec(spec), kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream interactions '));
+    const result = exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+
+    expect((tscn.match(/parent="Interactions"/g) ?? []).length).toBe(layout.interactions.length);
+    // 游戏侧认 metadata 不认节点名
+    for (const item of layout.interactions) {
+      expect(tscn).toContain(`metadata/kind = "${item.kind}"`);
+      expect(tscn).toContain(`metadata/building = "${item.building}"`);
+    }
+    const summary = result.summary as { interactions: number; interactionKinds: string[] };
+    expect(summary.interactions).toBe(layout.interactions.length);
+    expect(summary.interactionKinds).toEqual([...new Set(layout.interactions.map((item) => item.kind))].sort());
+    // 形状必须真的给了：没有 CollisionShape2D 的 Area2D 永远不会触发
+    const shapes = tscn.slice(tscn.indexOf('node name="Interactions"'));
+    expect((shapes.match(/type="CollisionShape2D"/g) ?? []).length).toBeGreaterThanOrEqual(layout.interactions.length);
+  });
+});
+
 describe('prefab nodes from the kit', () => {
   const spec = {
     ...baseSpec,
