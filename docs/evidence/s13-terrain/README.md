@@ -32,7 +32,7 @@ mountain elevation bands · terraced hillside · contour-aligned · mountain pas
 - 瓦片新增 `sand` / `rock` / `wall` 三种地形（atlas 从 9 格涨到 14 格）
 - kit palette 新增可选 `sand` / `rock` / `wall`，不给就按既有色推导（老 kit 不改也能导）
 - 开城墙时城区内缩 9 格，墙外留田野并在预览里撒树——否则墙永远贴着地图边，看起来像画框
-  （引擎导出暂不含道具，树/灯/井只出现在 SVG 预览，已记为 S15）
+  （当时的引擎导出还不含道具，树/灯/井只出现在 SVG 预览；S15 已补上，见 `../s15-props/`）
 - 新闸门 `sealed-walls`：墙围了一圈却一个门都没有
 - 新指标 `walls / gates / cliffs / ramps / terraces / coast / elevationMax`
 

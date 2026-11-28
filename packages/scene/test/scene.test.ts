@@ -189,16 +189,16 @@ describe('godot export', () => {
     expect(tscn).not.toContain('/>'); // Godot 4 的 ext_resource 用 ] 结尾
   });
 
-  it('paints the ground as two tile layers', () => {
+  it('paints ground, roads and props as tile layers', () => {
     const { layout } = buildSceneWithTrace(baseSpec, kit);
     const dir = mkdtempSync(join(tmpdir(), 'gamedream godot tiles '));
     const result = exportGodotScene(layout, dir);
     const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
 
-    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(2);
+    // 地形 / 道路 / 道具三层
+    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(3);
     expect(tscn).toContain('tile_set = ExtResource("2_tileset")');
-    // 两层各一份 tile_map_data
-    expect((tscn.match(/tile_map_data = PackedByteArray\(/g) ?? []).length).toBe(2);
+    expect((tscn.match(/tile_map_data = PackedByteArray\(/g) ?? []).length).toBe(3);
 
     // 地形层必须铺满整张图：漏一格就会露出引擎底色
     const cells = layout.bounds.width * layout.bounds.height;
@@ -248,6 +248,23 @@ describe('godot export', () => {
     expect(result.summary.buildings).toBe(layout.buildings.length);
     expect(result.summary.anchors).toBe(layout.anchors.length);
     expect(result.summary.prefabs).toBe(new Set(layout.buildings.map((b) => b.prefab)).size);
+  });
+
+  it('puts props into the engine as a transparent tile layer', () => {
+    // 道具以前只画在预览 SVG 里，导出的城是空的——院子、广场、街边什么都没有
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    expect(layout.props.length).toBeGreaterThan(10);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream props '));
+    const result = exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+    expect(tscn).toContain('node name="Props" type="TileMapLayer"');
+    const tiles = result.summary.tiles as { propCells: number };
+    expect(tiles.propCells).toBe(layout.props.length);
+    // 道具层必须排在地形和道路之后，否则会被地面盖住
+    expect(tscn.indexOf('node name="Props"')).toBeGreaterThan(tscn.indexOf('node name="Roads"'));
+    // 一格只放一个道具：叠在一起引擎里只会画出一个，计数也会对不上
+    const unique = new Set(layout.props.map((prop) => `${prop.at[0]},${prop.at[1]}`));
+    expect(unique.size).toBe(layout.props.length);
   });
 });
 

@@ -55,6 +55,7 @@ for (const scene of cases) {
   const anchors = read('GAMEDREAM_SCENE_ANCHORS');
   const tilesGround = read('GAMEDREAM_TILES_GROUND');
   const tilesRoads = read('GAMEDREAM_TILES_ROADS');
+  const tilesProps = read('GAMEDREAM_TILES_PROPS');
   const navTotal = read('GAMEDREAM_NAV_TOTAL');
   const navReached = read('GAMEDREAM_NAV_REACHED');
   const townWalls = read('GAMEDREAM_SCENE_WALLS');
@@ -78,6 +79,8 @@ for (const scene of cases) {
   const cells = layout.bounds.width * layout.bounds.height;
   if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
   if (tilesRoads <= 0) problems.push('road tiles missing');
+  // 道具必须真的落进引擎：之前它们只存在于预览 SVG 里，导出的城是空的
+  if (tilesProps !== layout.props.length) problems.push(`prop tiles ${tilesProps} != ${layout.props.length}`);
   if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
 
   if (problems.length > 0) {
@@ -86,7 +89,7 @@ for (const scene of cases) {
   } else {
     console.log(
       `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal} `
-      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads} walls=${townWalls} cliffs=${cliffs} `
+      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps} walls=${townWalls} cliffs=${cliffs} `
       + `spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
     );
   }

@@ -113,11 +113,13 @@ const CHECK_SCRIPT = [
   '',
   '\tvar ground := get_node_or_null("Ground") as TileMapLayer',
   '\tvar roads := get_node_or_null("Roads") as TileMapLayer',
+  '\tvar props := get_node_or_null("Props") as TileMapLayer',
   '\tif ground == null or roads == null:',
   '\t\tprint("GAMEDREAM_TILES_MISSING=1")',
   '\telse:',
   '\t\tprint("GAMEDREAM_TILES_GROUND=%d" % ground.get_used_cells().size())',
   '\t\tprint("GAMEDREAM_TILES_ROADS=%d" % roads.get_used_cells().size())',
+  '\t\tprint("GAMEDREAM_TILES_PROPS=%d" % (props.get_used_cells().size() if props else 0))',
   '\t\tprint("GAMEDREAM_TILES_ATLAS=%s" % str(ground.tile_set != null))',
   '',
   '\tvar spawn_node := get_node_or_null("Anchors/Spawn0") as Marker2D',
@@ -293,6 +295,13 @@ export function exportGodotScene(
   lines.push(`tile_map_data = ${encodeTileMapData(layers.roads)}`);
   lines.push('tile_set = ExtResource("2_tileset")');
   lines.push('');
+  // 道具层放在地形与道路之后：TileMapLayer 按节点顺序叠，树/灯/井要压在地面上
+  if (layers.props.length > 0) {
+    lines.push('[node name="Props" type="TileMapLayer" parent="."]');
+    lines.push(`tile_map_data = ${encodeTileMapData(layers.props)}`);
+    lines.push('tile_set = ExtResource("2_tileset")');
+    lines.push('');
+  }
 
   if (navResource) {
     lines.push('[node name="Navigation" type="NavigationRegion2D" parent="."]');
@@ -435,6 +444,7 @@ export function exportGodotScene(
       tiles: {
         cells: layers.ground.length,
         roadCells: layers.roads.length,
+        propCells: layers.props.length,
         byTerrain: layers.counts,
       },
       tileAtlas: `${atlas.total} tiles @ ${atlas.tileSize}px`,

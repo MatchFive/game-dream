@@ -75,7 +75,8 @@ describe('studio scene store', () => {
     expect(existsSync(join(result.dir, 'prefabs', `${outcome.scene.layout.buildings[0].prefab}.tscn`))).toBe(true);
 
     const tscn = readFileSync(join(result.dir, 'scene/scene.tscn'), 'utf8');
-    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(2);
+    // 地形 / 道路 / 道具三层：道具层是后加的，别让它在导出路径上被漏掉
+    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(3);
     expect((tscn.match(/instance=ExtResource\("prefab_/g) ?? []).length)
       .toBe(outcome.scene.layout.buildings.length);
     expect(result.summary.buildings).toBe(outcome.scene.layout.buildings.length);

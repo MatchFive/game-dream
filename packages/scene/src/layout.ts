@@ -858,8 +858,13 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
 
   // 6. 装饰：沿主干道布灯，广场放水井，绿地种树，水边放码头
   let propIndex = 0;
+  /** 一格只放一个道具：叠在一起的话引擎里只会画出一个，预览也会糊成一团 */
+  const occupied = new Set<string>();
   const addProp = (type: SceneProp['type'], x: number, y: number) => {
     if (!grid.inside(x, y) || grid.get(x, y) === 'building' || grid.get(x, y) === 'water') return;
+    const key = `${x},${y}`;
+    if (occupied.has(key)) return;
+    occupied.add(key);
     props.push({ id: `prop-${propIndex}`, type, at: [x, y] });
     propIndex += 1;
   };
@@ -913,9 +918,30 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       addProp('flower', plaza.rect.x + Math.floor(plaza.rect.w / 2) + dx, plaza.rect.y + Math.floor(plaza.rect.h / 2) + dy);
     }
   }
-  const waterLot = lots.find((lot) => lot.kind === 'water');
-  if (waterLot && kit.prefabs.some((prefab) => prefab.role === 'dock')) {
-    addProp('dock', waterLot.rect.x + Math.floor(waterLot.rect.w / 2), waterLot.rect.y - 1);
+  const dockKit = kit.prefabs.some((prefab) => prefab.role === 'dock');
+  if (dockKit) {
+    if (coastSide !== null) {
+      // 海岸：水面是沿岸线合并出来的窄长条，第一块多半贴着地图边，
+      // 照老逻辑取"水面上一格"会落到图外。改成取面积最大的一段，贴它的陆地一侧，
+      // 也就是码头的栈桥从岸上伸到海里。
+      const biggest = lots
+        .filter((lot) => lot.kind === 'water')
+        .sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)[0];
+      if (biggest) {
+        const { x, y, w, h } = biggest.rect;
+        const at: [number, number] = coastSide === 1
+          ? [x - 1, y + Math.floor(h / 2)]
+          : coastSide === 3
+            ? [x + w, y + Math.floor(h / 2)]
+            : coastSide === 0
+              ? [x + Math.floor(w / 2), y + h]
+              : [x + Math.floor(w / 2), y - 1];
+        addProp('dock', at[0], at[1]);
+      }
+    } else {
+      const waterLot = lots.find((lot) => lot.kind === 'water');
+      if (waterLot) addProp('dock', waterLot.rect.x + Math.floor(waterLot.rect.w / 2), waterLot.rect.y - 1);
+    }
   }
 
   // 7. 锚点：出生点在南端主干道，出口在东端。

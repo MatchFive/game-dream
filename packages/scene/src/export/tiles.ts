@@ -28,8 +28,21 @@ export interface TileAtlas {
   /** 每种地形在 atlas 里的起始列（全部排在第 0 行） */
   start: Record<Terrain, number>;
   variants: Record<Terrain, number>;
+  /** 道具瓦片：透明底，叠在地形层之上 */
+  propStart: Record<PropKind, number>;
   total: number;
 }
+
+/**
+ * 道具瓦片：树、井、灯、箱、招牌、码头、花。
+ *
+ * 和地形瓦片的关键区别是**透明底**——地形是铺满的色块，道具是浮在地面上的
+ * 一个小图。之前的导出根本不含道具，城里的院子、广场、街边全是空的，
+ * 这是"看着像色块图"最直接的原因。
+ */
+export type PropKind = 'tree' | 'well' | 'lamp' | 'crate' | 'sign' | 'dock' | 'flower';
+
+export const PROP_KINDS: PropKind[] = ['tree', 'well', 'lamp', 'crate', 'sign', 'dock', 'flower'];
 
 const hexToRgb = (hex: string): [number, number, number] => {
   const value = hex.replace('#', '');
@@ -84,6 +97,11 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
   for (const terrain of TERRAINS) {
     start[terrain] = cursor;
     cursor += VARIANTS[terrain];
+  }
+  const propStart = {} as Record<PropKind, number>;
+  for (const kind of PROP_KINDS) {
+    propStart[kind] = cursor;
+    cursor += 1;
   }
   const total = cursor;
 
@@ -174,7 +192,126 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
     }
   }
 
-  return { png: encodePng(width, height, rgba), tileSize, start, variants: VARIANTS, total };
+  // 道具瓦片：先画在 32×32 的逻辑画布上（图标不随 tileSize 变复杂），再整块放大
+  const scale = tileSize / ICON;
+  for (const kind of PROP_KINDS) {
+    const icon = drawPropIcon(kind, layout.palette);
+    const originX = propStart[kind] * tileSize;
+    for (let y = 0; y < tileSize; y += 1) {
+      for (let x = 0; x < tileSize; x += 1) {
+        const sx = Math.min(ICON - 1, Math.floor(x / scale));
+        const sy = Math.min(ICON - 1, Math.floor(y / scale));
+        const source = (sy * ICON + sx) * 4;
+        const target = (y * width + originX + x) * 4;
+        rgba[target] = icon[source];
+        rgba[target + 1] = icon[source + 1];
+        rgba[target + 2] = icon[source + 2];
+        rgba[target + 3] = icon[source + 3];
+      }
+    }
+  }
+
+  return { png: encodePng(width, height, rgba), tileSize, start, variants: VARIANTS, propStart, total };
+}
+
+/** 道具图标的逻辑画布尺寸（放大到 tileSize 后仍然清晰）。 */
+const ICON = 32;
+
+/**
+ * 画一个道具图标：透明底 + 具体物件。
+ *
+ * 这些图形只求"远看能认出来"：一棵树是绿冠 + 树干，一口井是灰环 + 水面，
+ * 一盏灯是杆子 + 光点。真正的美术在 T1（真 tileset）里替换，
+ * 但"有东西"和"什么都没有"是两回事——之前导出的城里没有任何道具，
+ * 院子、广场、街边全是空的。
+ */
+function drawPropIcon(kind: PropKind, palette: SceneLayout['palette']): Buffer {
+  const icon = Buffer.alloc(ICON * ICON * 4); // 全 0 = 全透明
+
+  const set = (x: number, y: number, hex: string, alpha = 255) => {
+    const px = Math.round(x);
+    const py = Math.round(y);
+    if (px < 0 || py < 0 || px >= ICON || py >= ICON) return;
+    const [r, g, b] = hexToRgb(hex);
+    const offset = (py * ICON + px) * 4;
+    icon[offset] = r;
+    icon[offset + 1] = g;
+    icon[offset + 2] = b;
+    icon[offset + 3] = alpha;
+  };
+  const box = (x: number, y: number, w: number, h: number, hex: string, alpha = 255) => {
+    for (let dy = 0; dy < h; dy += 1) {
+      for (let dx = 0; dx < w; dx += 1) set(x + dx, y + dy, hex, alpha);
+    }
+  };
+  const disc = (cx: number, cy: number, radius: number, hex: string, alpha = 255) => {
+    for (let dy = -radius; dy <= radius; dy += 1) {
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        if (dx * dx + dy * dy <= radius * radius) set(cx + dx, cy + dy, hex, alpha);
+      }
+    }
+  };
+
+  switch (kind) {
+    case 'tree': {
+      // 缩到 8px 时只剩"外轮廓 + 明暗"两件事能看清，
+      // 所以边压暗、主体中间调、高光小一圈——高光画大了远看就成空心环
+      const canopy = darken(palette.green, 0.34);
+      box(15, 20, 3, 11, '#6b4a2f'); // 树干先画，树冠盖住上半截
+      disc(16, 13, 13, darken(canopy, 0.3));
+      disc(16, 13, 12, canopy);
+      disc(12, 9, 4, mix(canopy, '#ffffff', 0.14));
+      break;
+    }
+    case 'well': {
+      disc(16, 18, 11, '#7c7c74');
+      disc(16, 18, 8, '#4a4a44');
+      disc(16, 18, 6, mix(palette.water, '#000000', 0.25));
+      box(5, 7, 3, 12, '#6b5a44');
+      box(24, 7, 3, 12, '#6b5a44');
+      box(5, 6, 22, 2, '#8a6f4d');
+      break;
+    }
+    case 'lamp': {
+      disc(16, 10, 10, '#f2c14e', 45); // 光晕
+      box(15, 10, 2, 18, '#4c4a45');
+      disc(16, 9, 4, '#f2c14e');
+      disc(16, 9, 2, '#fff6cf');
+      break;
+    }
+    case 'crate': {
+      box(8, 9, 16, 16, '#a9793f');
+      box(8, 9, 16, 2, '#c08f52');
+      box(8, 23, 16, 2, '#8a5f30');
+      for (let i = 0; i < 16; i += 1) set(8 + i, 9 + i, '#8a5f30');
+      break;
+    }
+    case 'sign': {
+      box(15, 12, 2, 14, '#6b5a44');
+      box(7, 4, 18, 11, '#8a6f4d');
+      box(8, 7, 16, 1, mix(palette.ground, '#ffffff', 0.4));
+      box(8, 11, 11, 1, mix(palette.ground, '#ffffff', 0.4));
+      break;
+    }
+    case 'dock': {
+      box(2, 12, 28, 8, '#8b5e3c');
+      for (let x = 2; x < 30; x += 4) box(x, 12, 1, 8, '#6b4429');
+      box(2, 12, 28, 1, '#a97a52');
+      break;
+    }
+    case 'flower': {
+      disc(16, 19, 9, darken(palette.green, 0.25));
+      disc(11, 14, 3, '#e07aa8');
+      disc(20, 15, 3, '#e07aa8');
+      disc(16, 10, 3, '#f3a6c4');
+      disc(16, 19, 2, '#f7d774');
+      break;
+    }
+    default:
+      break;
+  }
+
+  return icon;
 }
 
 /** TileSet 资源：一张 atlas + 每种地形一个瓦片。 */
@@ -189,6 +326,9 @@ export function tileSetResource(layout: SceneLayout, atlas: TileAtlas): string {
     for (let variant = 0; variant < atlas.variants[terrain]; variant += 1) {
       lines.push(`${atlas.start[terrain] + variant}:0/0 = 0`);
     }
+  }
+  for (const kind of PROP_KINDS) {
+    lines.push(`${atlas.propStart[kind]}:0/0 = 0`);
   }
   lines.push('');
   lines.push('[resource]');
@@ -206,6 +346,7 @@ export interface TileCell {
 export interface TileLayers {
   ground: TileCell[];
   roads: TileCell[];
+  props: TileCell[];
   counts: Record<Terrain, number>;
 }
 
@@ -319,7 +460,15 @@ export function buildTileLayers(layout: SceneLayout, atlas: TileAtlas): TileLaye
     }
   }
 
-  return { ground, roads: roadCells, counts };
+  // 道具：每格一个，透明底叠在地形之上。坐标就是格子坐标，不用额外校准。
+  const propCells: TileCell[] = [];
+  for (const prop of layout.props) {
+    const [x, y] = prop.at;
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    propCells.push({ x, y, atlas: atlas.propStart[prop.type] });
+  }
+
+  return { ground, roads: roadCells, props: propCells, counts };
 }
 
 /**

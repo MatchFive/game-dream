@@ -31,7 +31,7 @@
 | M1 Agent 运行生产化 | 预算、队列、审批策略、崩溃回收、重试 | 8/8 | Done |
 | M2 验证与试玩闭环 | Godot/Unity runtime、G6 视觉门、MCP 回归 | 7/7 | Done |
 | M3 资产管线 | 动画/图集/BGM/SFX/绑定 | 16/18 | 差 AS3（缺模型）/ AS6（3D） |
-| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 10/12 | **当前主线**（差 S3 Unity / S6 训练） |
+| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 14/16 | **当前主线**（差 S3 Unity / S6 训练） |
 | M4 内容深度 | 7 类游戏模板的短局循环 | 5/5 | Done |
 | M5 平台扩展 | Unity/Unreal/3D/协作 | 0/4 | Backlog |
 
@@ -39,10 +39,11 @@
 
 ```
 pnpm typecheck / build              9 包通过
-pnpm test                           435 passed / 15 skipped / 0 failed
+pnpm test                           436 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
   海岸 / 城墙 / 三级台阶            walls=22、cliffs=28 碰撞体与 layout 逐项相等
+  地形 / 道路 / 道具三层             道具 84/99/37/97/113/91 格，与 layout.props 相等
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 ```
@@ -52,9 +53,9 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 已经能用、且经过真实引擎验证的能力（不要当待做项重新规划）：
 
 - `dream scene build --prompt "临河小镇…"` → `SceneSpec` → 布局 → **可编辑 Godot 工程**
-- 工程内容：`TileMapLayer` ×2（地形/道路）、`prefabs/*.tscn` 实例、碰撞、正门 Marker、
+- 工程内容：`TileMapLayer` ×3（地形/道路/道具）、`prefabs/*.tscn` 实例、碰撞、正门 Marker、
   `NavigationRegion2D`（出生点到每栋建筑的门都能寻路）、四面边界墙
-- 闸门 9 类（越界/重叠/压水/门口被堵/不可达/空场景/过密/过疏/缺要素）+ 形态指标
+- 闸门 10 类（越界/重叠/压水/门口被堵/不可达/空场景/过密/过疏/缺要素/城墙围死）+ 形态指标
   （`streetWall` / `courtyards` / `standalone` / `attachedShare`）
 - 每次尝试写 trace → `dream scene dataset` 出统计、SFT 样本、偏好对
 - Studio `/scenes`：列表、布局预览、闸门详情、人工评审、**导出 Godot 工程**
@@ -68,6 +69,9 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
   `walls`（贴建成区成环、路口自动开门、导出 `TownWalls` 碰撞体与 `Gates` 标记）、
   `elevation`（按 `step` 切台阶、崖线错开走等高线、路穿崖处变坡道、导出 `Cliffs` 碰撞体）；
   城墙外留一圈田野。证据 `docs/evidence/s13-terrain/`
+- **道具进引擎**：树/井/灯/箱/牌/码头/花做成透明底瓦片，导出成 `Props` TileMapLayer
+  （排在地形与道路之后）。之前它们只存在于预览 SVG，导出的城里全是空地。
+  证据 `docs/evidence/s15-props/`
 
 ## 3. 当前焦点
 
@@ -94,7 +98,6 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
-| S15 | 道具导出到引擎 | 场景里的树/井/灯/箱/牌/码头/花只画在预览里，**引擎工程里一个都没有**：导出的城里除了房子和地面是空的，遮不住"色块感" | 道具进 atlas（带透明底）；导出 `Props` TileMapLayer；引擎内格子数 == `layout.props` | — | S |
 | S14 | 路网参数（主路宽/街宽/巷道密度） | 真模型批次里 `narrow street width` 仍只能写进 unmet：主路宽写死 4 格，做不了"窄街老城" | `roads: { mainWidth, streetWidth, density }` 进 spec；三档宽度各出一张对比图 | — | S |
 | S7 | 场景高度与天际线 | 纯平面，城市"好看"主要靠高度与遮挡；`floors` 目前随机 | 高度按街区分层（主街高、背街低），预览与导出体现楼层差 | — | M |
 | S9 | prefab 附加节点（kit 扩展） | prefab 只有贴图+碰撞，灯光/招牌/交互挂不上去，不算真 prefab | kit 支持 `nodes[]`（type/name/offset/props），导出写进 `prefabs/*.tscn`；引擎加载节点数匹配 | — | M |
