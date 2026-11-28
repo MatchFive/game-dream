@@ -15,7 +15,13 @@ const shade = (hex: string, amount: number): string => {
  */
 export function renderSceneSvg(
   layout: SceneLayout,
-  options: { art?: Map<string, Buffer>; artUrl?: (prefab: string) => string | undefined } = {},
+  options: {
+    art?: Map<string, Buffer>;
+    artUrl?: (prefab: string) => string | undefined;
+    artSize?: (prefab: string) => { width: number; height: number } | undefined;
+    /** 与 Godot 导出保持一致：tile 铺满，billboard 底边对齐并向上溢出 */
+    artStyle?: 'tile' | 'billboard';
+  } = {},
 ): string {
   const t = 12;
   const width = layout.bounds.width * t;
@@ -61,7 +67,18 @@ export function renderSceneSvg(
     if (art || artLink) {
       // 有素材就铺贴图：优先用 URL（可缓存、SVG 不会膨胀），否则内嵌 data-uri
       const href = artLink ?? `data:image/png;base64,${(art as Buffer).toString('base64')}`;
-      parts.push(`<image x="${x}" y="${y}" width="${w}" height="${h}" href="${href}" preserveAspectRatio="none"/>`);
+      if (options.artStyle === 'billboard') {
+        const size = options.artSize?.(building.prefab);
+        const scale = size ? w / size.width : 1;
+        const drawH = size ? size.height * scale : h;
+        // 底边落在 footprint 底边，向上溢出
+        parts.push(
+          `<image x="${x}" y="${(y + h - drawH).toFixed(2)}" width="${w}" height="${drawH.toFixed(2)}" href="${href}" preserveAspectRatio="none"/>`,
+        );
+        parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${roofShade}" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.35"/>`);
+      } else {
+        parts.push(`<image x="${x}" y="${y}" width="${w}" height="${h}" href="${href}" preserveAspectRatio="none"/>`);
+      }
       parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${roofShade}" stroke-width="0.6" opacity="0.5"/>`);
       const [ex, ey] = building.entrance;
       parts.push(

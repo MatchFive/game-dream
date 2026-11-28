@@ -21,7 +21,20 @@ const apiBase = arg('api', 'http://127.0.0.1:6399');
 const projectDir = resolve(arg('project', join(root, 'dist/nav-verify/无尽仙途')));
 const workflowId = arg('workflow', 'legacy-qwen');
 const only = arg('only', '');
-const artDir = join(projectDir, '.gamedream', 'studio', 'art', kit.id);
+const artDir = resolve(arg('out', join(projectDir, '.gamedream', 'studio', 'art', kit.id)));
+
+/**
+ * 全套共用同一段风格描述：只有"屋顶类型 + 材质"逐张变化，
+ * 光照、笔触、饱和度、轮廓处理都锁死，否则七张图会像三套素材。
+ */
+const STYLE_ANCHOR = [
+  'hand-painted top-down map texture for a medieval village',
+  'consistent art style across the whole set',
+  'muted earthy palette of warm brown, olive green and cream',
+  'soft ambient light from the upper left, gentle ambient occlusion',
+  'clean silhouette, smooth cel shading, no harsh black outlines',
+  'painted at the same level of detail as a small village building',
+].join(', ');
 
 const ROOF_WORDS = { gable: 'gabled', hip: 'hipped', flat: 'flat' };
 const PAINT_WORDS = {
@@ -44,11 +57,13 @@ const ROLE_WORDS = {
 
 function promptFor(prefab) {
   return [
-    `strict orthographic top-down view of a ${ROLE_WORDS[prefab.role] ?? 'medieval building'} roof`,
-    'seen from directly above, only the roof is visible',
+    // 目标风格是"高位 3/4 视角"：屋顶占主体，同时露出正面墙——这样在俯视地图上
+    // 建筑才有体积感，导出时按 billboard 处理（底边贴合 footprint，向上溢出）
+    `hand-painted medieval ${ROLE_WORDS[prefab.role] ?? 'building'} seen from a high three-quarter angle`,
+    'roof dominant, front wall visible with door and windows, whole building in frame',
     `${ROOF_WORDS[prefab.roof] ?? 'gabled'} roof of ${PAINT_WORDS[prefab.id] ?? 'brown shingles'}`,
-    '2D game tile asset, flat even lighting, crisp edges',
-    'transparent background, no walls, no ground shadow, no text, centered',
+    STYLE_ANCHOR,
+    'transparent background, isolated building, no ground, no cast shadow, no people, no text, centered',
   ].join(', ');
 }
 
@@ -117,6 +132,7 @@ for (const prefab of targets) {
     await api('/api/generate', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
+      // /api/generate 目前不接受 seed（每个 job 内部随机），风格一致性只能靠提示词锚
       body: JSON.stringify({ prompt, count: 1, transparent: true, workflowId }),
     })
   ).json();

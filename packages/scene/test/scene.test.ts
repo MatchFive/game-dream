@@ -280,3 +280,23 @@ describe('artwork layer', () => {
     expect(svg).toContain('<rect');
   });
 });
+
+describe('billboard artwork', () => {
+  it('anchors sprites to the footprint bottom and keeps the aspect ratio', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream scene billboard '));
+    writeKitArtwork(kit, join(dir, 'art'), { tileSize: 32 });
+
+    const tiled = exportGodotScene(layout, join(dir, 'tile'), { artDir: join(dir, 'art') });
+    const billboard = exportGodotScene(layout, join(dir, 'billboard'), {
+      artDir: join(dir, 'art'),
+      artStyle: 'billboard',
+    });
+    expect(tiled.summary.textures).toBe(billboard.summary.textures);
+
+    const scene = readFileSync(join(dir, 'billboard', 'scene/scene.tscn'), 'utf8');
+    // 等宽 + 底边对齐：靠 centered=false 与负 offset 实现
+    expect((scene.match(/centered = false/g) ?? []).length).toBe(layout.buildings.length);
+    expect(scene).toMatch(/offset = Vector2\(-[\d.]+, -[\d.]+\)/);
+  });
+});

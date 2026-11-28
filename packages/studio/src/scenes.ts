@@ -70,6 +70,26 @@ export function artDir(root: string): string {
  * 贴图引用：用稳定的 URL 而不是 base64 内嵌。
  * 一套 1024² 贴图内嵌会让 SVG 涨到几 MB，页面直接卡死。
  */
+/** 读 PNG 头拿尺寸，billboard 模式按长宽比决定向上溢出多少。 */
+function pngSizeOf(file: string): { width: number; height: number } | undefined {
+  try {
+    const buffer = readFileSync(file);
+    if (buffer.length < 24 || buffer.toString('ascii', 1, 4) !== 'PNG') return undefined;
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  } catch {
+    return undefined;
+  }
+}
+
+function artSizeFor(root: string, kitId: string): (prefab: string) => { width: number; height: number } | undefined {
+  const dir = join(artDir(root), kitId);
+  const cache = new Map<string, { width: number; height: number } | undefined>();
+  return (prefab) => {
+    if (!cache.has(prefab)) cache.set(prefab, pngSizeOf(join(dir, `${prefab}.png`)));
+    return cache.get(prefab);
+  };
+}
+
 function artUrlFor(root: string, kitId: string, prefabIds: Iterable<string>): (prefab: string) => string | undefined {
   const dir = join(artDir(root), kitId);
   const available = new Set<string>();
@@ -186,6 +206,8 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
       validation: built.validation,
       svg: renderSceneSvg(built.layout, {
         artUrl: artUrlFor(root, kit.id, built.layout.buildings.map((building) => building.prefab)),
+        artSize: artSizeFor(root, kit.id),
+        artStyle: 'billboard',
       }),
       traceId: built.trace.id,
       attempts: 1,
@@ -220,6 +242,8 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     validation: agent.validation,
     svg: renderSceneSvg(agent.layout, {
       artUrl: artUrlFor(root, kit.id, agent.layout.buildings.map((building) => building.prefab)),
+      artSize: artSizeFor(root, kit.id),
+      artStyle: 'billboard',
     }),
     traceId: agent.traces[agent.traces.length - 1]?.id ?? 'unknown',
     attempts: agent.attempts.length,

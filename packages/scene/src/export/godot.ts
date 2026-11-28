@@ -13,6 +13,11 @@ export interface GodotExportResult {
 export interface GodotExportOptions {
   /** 美术素材目录，约定为 <artDir>/<kitId>/<prefabId>.png；给了就用贴图代替色块 */
   artDir?: string;
+  /**
+   * tile：贴图铺满 footprint（正俯视屋顶图）
+   * billboard：贴图等宽、底边对齐 footprint 底边、向上溢出（带立面的 3/4 视图，RPG 常见）
+   */
+  artStyle?: 'tile' | 'billboard';
 }
 
 /** 读 PNG 的 IHDR 得到尺寸，避免再引一个解码库。 */
@@ -254,7 +259,9 @@ export function exportGodotScene(
     lines.push('');
   });
 
-  layout.buildings.forEach((building, index) => {
+  const drawOrder = [...layout.buildings].sort((a, b) => (a.rect.y + a.rect.h) - (b.rect.y + b.rect.h));
+  drawOrder.forEach((building) => {
+    const index = layout.buildings.indexOf(building);
     const px = building.rect.x * size;
     const py = building.rect.y * size;
     const w = building.rect.w * size;
@@ -264,12 +271,24 @@ export function exportGodotScene(
     lines.push('');
     const art = artTextures.get(building.prefab);
     if (art) {
-      // 贴图按 footprint 缩放，锚点放在建筑中心
-      lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
-      lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
-      lines.push(`scale = Vector2(${(w / art.width).toFixed(4)}, ${(h / art.height).toFixed(4)})`);
-      lines.push(`texture = ExtResource("art_${building.prefab}")`);
-      lines.push('');
+      if (options.artStyle === 'billboard') {
+        // 等宽缩放，底边落在 footprint 底边，向上溢出表现"楼高"
+        const scale = w / art.width;
+        lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
+        lines.push('centered = false');
+        lines.push(`position = Vector2(${w / 2}, ${h})`);
+        lines.push(`offset = Vector2(${(-w / 2).toFixed(2)}, ${(-art.height * scale).toFixed(2)})`);
+        lines.push(`scale = Vector2(${scale.toFixed(4)}, ${scale.toFixed(4)})`);
+        lines.push(`texture = ExtResource("art_${building.prefab}")`);
+        lines.push('');
+      } else {
+        // 平铺缩放，锚点放在建筑中心
+        lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
+        lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
+        lines.push(`scale = Vector2(${(w / art.width).toFixed(4)}, ${(h / art.height).toFixed(4)})`);
+        lines.push(`texture = ExtResource("art_${building.prefab}")`);
+        lines.push('');
+      }
     } else {
       lines.push(`[node name="Roof" type="Polygon2D" parent="Buildings/${building.id}"]`);
       lines.push(`color = ${colorLiteral(building.color)}`);
