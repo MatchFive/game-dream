@@ -46,7 +46,7 @@
 
 ```
 pnpm typecheck / build              9 包通过
-pnpm test                           461 passed / 15 skipped / 0 failed
+pnpm test                           466 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
 CI scene-export job                 有引擎跑真机加载；无引擎仍导出六工程做结构核对并写明 skip
@@ -92,6 +92,9 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 - **场景属于项目**：场景库在 `<project>/game/scenes/<id>/`（`scene.json` + 预览 + 引擎文件），
   `index.json` 给游戏侧发现；导出走 `res://game/scenes/<id>/scene.tscn`，真实 `dream create`
   工程里 0 条 ERROR 加载、nav 22/22。证据 `docs/evidence/s16-scenes-in-project/`
+- **真 tileset 接入**：外部素材库（96×96 单元）→ `dream scene tiles import` 按选取表切成
+  32px 瓦片 → 导出器 `TileMapLayer` 直接用真美术，没有素材的地形继续程序生成。
+  新增中式套件 `village-cn`（几何同欧式，换画风配色）。证据 `docs/evidence/t1-art-tiles/`
 - **CLI 与 Studio 同一个出口**：`dream scene build --project <root>` 直接落进项目（目录名取
   `spec.id`，`--id` 指定、`--replace` 复用并清旧 prefab）；两条产品路径调的是同一组函数，
   不会各写一套。证据 `docs/evidence/s17-cli-project/`
@@ -119,9 +122,8 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
    只能写代码不能真机验收——按"不为看起来完成补 mock"的约定，先不硬做。
 2. **场景还没被游戏引用** —— `index.json` 只是接口，把场景接进 `main.tscn`（进关卡、切场景、
    传交互点）属于游戏实现，必须走 `dream request`，不能由我改 `templates/**` / `modules/**`。
-3. **T1 真实 tileset / T2 建筑套图** —— 现在所有地表与道具都是程序生成的瓦片，
-   楼层已经分层但引擎里看不出来（同一种 prefab 只有一张图）。这是"能用"和"好看"之间
-   最后一段，也是 S7 留下的唯一缺口。
+3. **T2 建筑套图映射表** —— 图纸有了（216 张主题图集），地表也接上了；
+   但"哪张图的第几号建筑配哪个 prefab"目前是我手工挑的，还没有正式映射表与导入命令。
 
 ## 4. 待做需求
 
@@ -132,7 +134,6 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | 一半用户进不来；同一份 layout 只能出 Godot | Unity EditorVerifier 打开导出工程；建筑数/Marker 数与 layout 一致；NavMesh 采样到每个门 < 0.5m | 地形/墙/台阶已在 layout 层就绪 | L |
-| T1 | 真实 tileset 替换程序瓦片 | 地面仍是配色块，接不了美术 | `scene/tiles.png` 换成带过渡/边角的 tileset 后工程可直接用；kit 声明 tile 映射；三示例截图对比 | 美术资源 | M |
 
 ### P1 · 明显提升价值
 
@@ -141,7 +142,9 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 | S10 | 场景片段/模块复用 | 逐栋生成不可控；真实关卡是"广场围合、码头区、市场街"这类模块拼的 | `segments/` 定义 + 拼装规则；trace 记录用了哪些片段 | S7 | L |
 | S8 | 世界地图与区域连接 | 只能造单点聚落；RPG 需要"多场景 + 连接" | `WorldSpec`（聚落 + 道路 + 地形带）→ 世界布局；每个聚落可单独展开；导出含区域跳转标记 | S3 或 S2 | L |
 | U1 | Studio 场景编辑（拖拽/微调） | agent 出的布局总要人修两笔；不能改就只能重生成 | 画布拖动建筑、改门朝向，保存回 layout 并写 `origin=human-edit` 的 trace | — | L |
-| T2 | 建筑贴图一致性生产化 | 7 张图靠提示词碰运气，一套 kit 像两三套素材 | 参考图 + i2i 或风格 LoRA；给出可量化的色调/笔触一致性对比 | ComfyUI edit 工作流 | M |
+| T2 | 建筑立绘映射表（用外部素材库） | 素材库里 216 张主题图集切出几千栋建筑，现在只手工挑了 7 个；手工挑不可复现 | `village-cn.prefabs.json` 映射（prefab → 图集/编号）+ `dream scene art import`，与 T1 同一套选取表机制 | T1 | M |
+| T3 | 道具做成 2×2 贴花 | 96px 自然尺寸的道具缩到 1 格只剩 13px 宽，远看是小点 | props 支持多格占位（导出改 Sprite2D 或 2×2 tile），引擎内道具数不变 | T1 | M |
+| T4 | 地形过渡（autotile） | 草地/水岸/路面都是硬边方块，拼起来像贴图集而不是地表 | 草↔土、路↔土、水岸三类过渡瓦片；引擎内查接缝 | T1 | M |
 | R5 | 导出工程版本迁移 | Godot 小版本升级后 `.tscn`/TileSet 格式可能漂移 | 固定 `format=3` 校验 + 目标版本声明；升级时有回归用例 | — | S |
 
 ### P2 · 长期 / 外部依赖
@@ -176,7 +179,7 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 | 项 | 影响 | 现状 | 解法 |
 | --- | --- | --- | --- |
 | Stable Audio checkpoint | AS3 无法落地 | 节点在、模型缺 | 下载 1–4GB checkpoint（可能需 HF 授权） |
-| 美术资源 | T1/T2 卡在"能用"和"好看"之间 | 现在是 AI 单张生成 | 真 tileset / 建筑套图，或参考图 + i2i 收敛风格 |
+| 美术资源 | T2 建筑套图仍靠手工挑图 | 外部素材库已有 216 张主题图集 | 一张 prefab→图集编号的映射表 + 导入命令（T1 已铺好路） |
 | Unity 许可 | S3 只能本机验证 | 本机可 batchmode | 若要 CI 化需 self-hosted runner |
 | 真实模型额度 | D1 的样本量 | MiniMax 已配 | 按 100 条 prompt 估一下 token 成本再跑 |
 

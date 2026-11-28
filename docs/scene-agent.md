@@ -125,6 +125,7 @@
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
 | S4a | Agent 循环 + CLI：`dream scene build`，模型出 spec、闸门失败回喂重试、每次尝试落 trace | **Done** |
 | S16/S17 | 场景属于项目：`game/scenes/<id>/` + `index.json`；CLI `--project` 与 Studio 同一出口 | **Done** |
+| T1 | 真 tileset：外部素材库切瓦片（`scene tiles import`）+ 内置 `village-cn` | **Done**（1 个主题） |
 | S4b | Studio 场景页：列表 / 预览 / 闸门详情 / 人工评审写回 trace | **Done** |
 | S5 | 数据管道：`dream scene dataset` 统计 + SFT / 偏好对导出 | **Done** |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
@@ -149,6 +150,22 @@ dream scene build --prompt "..." --out dist/scene/portside
 # 已经有 spec：跳过模型，直接构建
 dream scene build --spec my-spec.json --project ./my-game
 ```
+
+**素材**：地表与道具可以直接用外部素材库，不用程序画色块。
+
+```bash
+# 选取表 → 切瓦片 → 落进项目美术目录（导出器随后自动用）
+dream scene tiles import \
+  --source "F:/美术资产/整理输出" \
+  --picks packages/scene/kits/village-cn.tiles.json \
+  --out ./my-game/.gamedream/studio/art
+
+# 中式套件：几何与欧式一致，换画风配色；没有素材时会退回色块
+dream scene build --prompt "长安街市，酒馆、集市、庙宇" --kit village-cn --project ./my-game
+```
+
+选取表只写"哪张图的哪一格当哪种地形"（`cell: [行, 列]` + `at: [x, y]` 锚点）。
+A2 图块的单元上半是 autotile 四角、**下半才是本体纹理**，所以 `at` 一般给 `[24, 72]`。
 
 **为什么默认是 `--project` 而不是 `--out`**：场景是游戏的资产，不是旁边的一个演示工程。
 `--project` 与 Studio 的导出按钮调同一组函数（`studio/src/scenes.ts`），两条产品路径不会漂移；

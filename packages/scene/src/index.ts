@@ -6,7 +6,7 @@ import { hashKit, TraceRecorder, type SceneTrace } from './trace.js';
 import type { SceneLayout } from './schema.js';
 
 export * from './schema.js';
-export { builtinKits, findBuiltinKit, villageEuroKit } from './kits.js';
+export { builtinKits, findBuiltinKit, villageCnKit, villageEuroKit } from './kits.js';
 export { Grid } from './grid.js';
 export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';
@@ -46,6 +46,15 @@ export {
 } from './art.js';
 export { SCENE_SYSTEM_PROMPT, runSceneAgent, extractJsonObject, type SceneAgentOptions, type SceneAgentResult, type SceneAttempt } from './agent.js';
 export { exportGodotScene, type GodotExportOptions, type GodotExportResult } from './export/godot.js';
+export { loadTileSource, describeTileSource } from './export/tile-art.js';
+export {
+  importTiles,
+  bestWindow,
+  resample,
+  type TilePicks,
+  type TilePick,
+  type TileImportResult,
+} from './export/tiles-import.js';
 export {
   readTraces,
   summarize,

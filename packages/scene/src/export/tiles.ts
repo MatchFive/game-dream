@@ -22,6 +22,92 @@ const VARIANTS: Record<Terrain, number> = {
   wall: 1,
 };
 
+/** 一张已经解码的 RGBA 图（宽、高、逐像素数据）。 */
+export interface TileImage {
+  width: number;
+  height: number;
+  data: Uint8Array;
+}
+
+/**
+ * 外部瓦片：素材库里切好的真图，代替程序画的色块。
+ *
+ * 之前所有地表与道具都是代码逐像素画的——能看出"这是草地"但看不出"这是草地"，
+ * 是场景看着像色块图的主因。给到这里就整张替换，没给的地形继续程序生成，
+ * 所以可以一张一张接入，不必等素材齐。
+ */
+export interface TileSource {
+  /** 每种地形的候选瓦片（会被最近邻缩放到 tileSize，一张一个变体） */
+  terrain?: Partial<Record<Terrain, TileImage[]>>;
+  /** 每种道具一张图（透明底，等比缩进一格，底边对齐） */
+  props?: Partial<Record<PropKind, TileImage>>;
+}
+
+/** 最近邻缩放贴图到 atlas 的 (dx, dy, dw, dh)；stretch=false 时保持等比。 */
+function blitScaled(
+  target: Buffer,
+  targetWidth: number,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  image: TileImage,
+  stretch: boolean,
+): void {
+  const scale = stretch
+    ? [dw / image.width, dh / image.height]
+    : [Math.min(dw / image.width, dh / image.height), Math.min(dw / image.width, dh / image.height)];
+  const w = Math.round(image.width * scale[0]);
+  const h = Math.round(image.height * scale[1]);
+  const ox = dx + Math.floor((dw - w) / 2);
+  const oy = dy + Math.floor((dh - h) / 2);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const sx = Math.min(image.width - 1, Math.floor(x / scale[0]));
+      const sy = Math.min(image.height - 1, Math.floor(y / scale[1]));
+      const source = (sy * image.width + sx) * 4;
+      const alpha = image.data[source + 3] / 255;
+      if (alpha < 0.02) continue;
+      const offset = ((oy + y) * targetWidth + ox + x) * 4;
+      target[offset] = Math.round(image.data[source] * alpha + target[offset] * (1 - alpha));
+      target[offset + 1] = Math.round(image.data[source + 1] * alpha + target[offset + 1] * (1 - alpha));
+      target[offset + 2] = Math.round(image.data[source + 2] * alpha + target[offset + 2] * (1 - alpha));
+      target[offset + 3] = 255;
+    }
+  }
+}
+
+/** 等比缩进一格、底边对齐、水平居中——道具的"站在地上"感全靠底边对齐。 */
+function blitFit(
+  target: Buffer,
+  targetWidth: number,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  image: TileImage,
+): void {
+  const scale = Math.min(dw / image.width, dh / image.height);
+  const w = Math.max(1, Math.round(image.width * scale));
+  const h = Math.max(1, Math.round(image.height * scale));
+  const ox = dx + Math.floor((dw - w) / 2);
+  const oy = dy + (dh - h);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const sx = Math.min(image.width - 1, Math.floor(x / scale));
+      const sy = Math.min(image.height - 1, Math.floor(y / scale));
+      const source = (sy * image.width + sx) * 4;
+      const alpha = image.data[source + 3] / 255;
+      if (alpha < 0.02) continue;
+      const offset = ((oy + y) * targetWidth + ox + x) * 4;
+      target[offset] = Math.round(image.data[source] * alpha + target[offset] * (1 - alpha));
+      target[offset + 1] = Math.round(image.data[source + 1] * alpha + target[offset + 1] * (1 - alpha));
+      target[offset + 2] = Math.round(image.data[source + 2] * alpha + target[offset + 2] * (1 - alpha));
+      target[offset + 3] = 255;
+    }
+  }
+}
+
 export interface TileAtlas {
   png: Buffer;
   tileSize: number;
@@ -90,13 +176,19 @@ function hash(x: number, y: number, seed: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-export function renderTileAtlas(layout: SceneLayout): TileAtlas {
+export function renderTileAtlas(layout: SceneLayout, source: TileSource = {}): TileAtlas {
   const tileSize = layout.tileSize;
+  /** 有素材就用素材的变体数，没有才回落到程序生成的张数 */
+  const variants = {} as Record<Terrain, number>;
+  for (const terrain of TERRAINS) {
+    const supplied = source.terrain?.[terrain]?.length ?? 0;
+    variants[terrain] = supplied > 0 ? Math.min(supplied, 4) : VARIANTS[terrain];
+  }
   const start = {} as Record<Terrain, number>;
   let cursor = 0;
   for (const terrain of TERRAINS) {
     start[terrain] = cursor;
-    cursor += VARIANTS[terrain];
+    cursor += variants[terrain];
   }
   const propStart = {} as Record<PropKind, number>;
   for (const kind of PROP_KINDS) {
@@ -121,8 +213,14 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
 
   for (const terrain of TERRAINS) {
     const base = hexToRgb(palette[terrain]);
-    for (let variant = 0; variant < VARIANTS[terrain]; variant += 1) {
+    const supplied = source.terrain?.[terrain] ?? [];
+    for (let variant = 0; variant < variants[terrain]; variant += 1) {
       const originX = (start[terrain] + variant) * tileSize;
+      if (supplied[variant]) {
+        // 素材瓦片：最近邻缩放，不插值——像素风插值会糊成一团
+        blitScaled(rgba, width, originX, 0, tileSize, tileSize, supplied[variant], false);
+        continue;
+      }
       for (let y = 0; y < tileSize; y += 1) {
         for (let x = 0; x < tileSize; x += 1) {
           // 微噪声：±6 的明度抖动，远看是材质，近看不抢戏
@@ -195,8 +293,14 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
   // 道具瓦片：先画在 32×32 的逻辑画布上（图标不随 tileSize 变复杂），再整块放大
   const scale = tileSize / ICON;
   for (const kind of PROP_KINDS) {
-    const icon = drawPropIcon(kind, layout.palette);
     const originX = propStart[kind] * tileSize;
+    const supplied = source.props?.[kind];
+    if (supplied) {
+      // 道具：等比缩进一格、底边对齐（树不能悬在半空），水平居中
+      blitFit(rgba, width, originX, 0, tileSize, tileSize, supplied);
+      continue;
+    }
+    const icon = drawPropIcon(kind, layout.palette);
     for (let y = 0; y < tileSize; y += 1) {
       for (let x = 0; x < tileSize; x += 1) {
         const sx = Math.min(ICON - 1, Math.floor(x / scale));
@@ -211,7 +315,7 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
     }
   }
 
-  return { png: encodePng(width, height, rgba), tileSize, start, variants: VARIANTS, propStart, total };
+  return { png: encodePng(width, height, rgba), tileSize, start, variants, propStart, total };
 }
 
 /**

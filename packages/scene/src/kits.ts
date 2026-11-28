@@ -113,7 +113,32 @@ export const villageEuroKit: Kit = {
   ],
 };
 
-export const builtinKits: Kit[] = [villageEuroKit];
+/**
+ * 中式古镇套件。
+ *
+ * 几何（footprint / 权重 / 临街要求）与欧式完全一致：建筑还是酒馆、集市、教堂这些角色，
+ * 换的是画风与配色。素材来自外部素材库（`kits/village-cn.tiles.json` 是选取表），
+ * 所以这个套件在**没有导入素材时也能跑**——只是退回程序生成的色块。
+ */
+export const villageCnKit: Kit = {
+  ...villageEuroKit,
+  id: 'village-cn',
+  name: '中式古镇套件',
+  style: 'chinese-ancient',
+  palette: {
+    // 与导入的瓦片同色系：土黄底、青砖路、黛瓦
+    ground: '#8a5a3b',
+    road: '#d9cfa8',
+    plaza: '#e3d9bb',
+    water: '#5c8fa8',
+    green: '#6f9a4a',
+    sand: '#dccfae',
+    rock: '#6f675c',
+    wall: '#8d8578',
+  },
+};
+
+export const builtinKits: Kit[] = [villageEuroKit, villageCnKit];
 
 export function findBuiltinKit(id: string): Kit | undefined {
   return builtinKits.find((kit) => kit.id === id);

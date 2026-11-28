@@ -10,7 +10,7 @@ import {
   type TemplatePlatform,
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
-import { sceneBuildCommand, sceneDatasetCommand } from './commands/scene.js';
+import { sceneBuildCommand, sceneDatasetCommand, sceneTilesImportCommand } from './commands/scene.js';
 import { sceneArtCommand } from './commands/scene-art.js';
 import { sceneBatchCommand } from './commands/scene-batch.js';
 import {
@@ -1487,6 +1487,38 @@ export function createProgram(): Command {
 
 
 
+
+  sceneCommand
+    .command('tiles')
+    .description('Import terrain/prop tiles from a real art library into the project art dir')
+    .command('import')
+    .requiredOption('--source <dir>', 'art library root (e.g. an unpacked tileset collection)')
+    .requiredOption('--picks <file>', 'pick table: which sheet/cell becomes which terrain')
+    .requiredOption('--out <dir>', 'art dir, usually <project>/.gamedream/studio/art')
+    .option('--tile-size <n>', 'tile size in pixels', (value) => Number(value), 32)
+    .option('--json', 'print JSON')
+    .action((options: { source: string; picks: string; out: string; tileSize: number; json?: boolean }) => {
+      try {
+        const result = sceneTilesImportCommand({
+          source: options.source,
+          picksPath: options.picks,
+          artDir: options.out,
+          tileSize: options.tileSize,
+        });
+        if (options.json) {
+          printJson({ kitDir: result.kitDir, terrains: result.terrains, props: result.props, files: result.files });
+          return;
+        }
+        printLine(`Kit: ${result.kitDir}`);
+        printLine(`Terrains: ${result.terrains.join(', ') || '(none)'}`);
+        printLine(`Props: ${result.props.join(', ') || '(none)'}`);
+        for (const file of result.files) printLine(`  ${file}`);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
 
   sceneCommand
     .command('batch')

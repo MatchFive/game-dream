@@ -5,6 +5,8 @@ import { buildScene, exportScene, scenesDir } from '@gamedream/studio';
 import {
   buildSceneWithTrace,
   exportGodotScene,
+  findBuiltinKit,
+  importTiles,
   loadKit,
   parseSceneSpec,
   renderSceneSvg,
@@ -12,6 +14,8 @@ import {
   type Kit,
   type SceneLayout,
   type SceneValidation,
+  type TileImportResult,
+  type TilePicks,
 } from '@gamedream/scene';
 
 export interface SceneBuildOptions {
@@ -125,9 +129,42 @@ async function sceneBuildIntoProject(options: SceneBuildOptions): Promise<SceneB
 }
 
 function resolveKit(kitPath: string): Kit {
+  // 内置套件可以按 id 直接给：`--kit village-cn`，省得记路径
+  const builtin = findBuiltinKit(kitPath);
+  if (builtin) return builtin;
   const path = resolve(kitPath);
   if (!existsSync(path)) throw new Error(`kit not found: ${path}`);
   return loadKit(path);
+}
+
+export interface SceneTilesImportOptions {
+  /** 外部素材库根目录 */
+  source: string;
+  /** 选取表 JSON */
+  picksPath: string;
+  /** 素材落点，约定是 `<project>/.gamedream/studio/art` */
+  artDir: string;
+  tileSize?: number;
+}
+
+/**
+ * 把素材库里的瓦片整理进项目的美术目录。
+ *
+ * 这一步是"素材接入"的产品入口：项目 agent 跑它，导出器随后就能读到真瓦片。
+ * 选取表是数据（哪张图哪一格），产物是本地缓存（可重建），仓库里既不塞二进制，
+ * 也不需要谁手工贴图。
+ */
+export function sceneTilesImportCommand(options: SceneTilesImportOptions): TileImportResult & { picks: string } {
+  const picksPath = resolve(options.picksPath);
+  if (!existsSync(picksPath)) throw new Error(`picks not found: ${picksPath}`);
+  const picks = JSON.parse(readFileSync(picksPath, 'utf8')) as TilePicks;
+  const result = importTiles({
+    source: resolve(options.source),
+    artDir: resolve(options.artDir),
+    picks,
+    tileSize: options.tileSize,
+  });
+  return { ...result, picks: picksPath };
 }
 
 function writeArtifacts(

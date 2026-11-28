@@ -4,6 +4,7 @@ import type { Kit, SceneLayout } from '../schema.js';
 import { findBuiltinKit } from '../kits.js';
 import { instanceNodes, prefabScene, type PrefabArt, type PrefabSpec } from './prefabs.js';
 import { buildTileLayers, encodeTileMapData, renderLightTexture, renderTileAtlas, tileSetResource } from './tiles.js';
+import { describeTileSource, loadTileSource } from './tile-art.js';
 
 export interface GodotExportResult {
   dir: string;
@@ -253,7 +254,9 @@ export function exportGodotScene(
   writeFileSync(join(sceneDir, 'layout.json'), `${JSON.stringify(layout, null, 2)}\n`, 'utf8');
 
   // 1. 瓦片：atlas + TileSet 资源
-  const atlas = renderTileAtlas(layout);
+  // 素材瓦片：有就整张替换（地表立刻从色块变成真美术），没有的继续程序生成
+  const tileSource = loadTileSource(options.artDir, layout.kitId);
+  const atlas = renderTileAtlas(layout, tileSource);
   writeFileSync(join(sceneDir, 'tiles.png'), atlas.png);
   writeFileSync(join(sceneDir, 'tiles.tres'), tileSetResource(layout, atlas, res('tiles.png')), 'utf8');
   const layers = buildTileLayers(layout, atlas);
@@ -565,6 +568,7 @@ export function exportGodotScene(
         max: layout.buildings.reduce((max, b) => Math.max(max, b.floors), 0),
       },
       tiles: {
+        art: describeTileSource(tileSource),
         cells: layers.ground.length,
         roadCells: layers.roads.length,
         propCells: layers.props.length,

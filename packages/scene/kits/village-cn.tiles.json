@@ -1,0 +1,83 @@
+{
+  "kitId": "village-cn",
+  "note": "外部素材库的选取表：哪张图的哪一格当哪种地形。cell=[行,列]，按 96px 单元；rect=[x,y,w,h] 直接给像素。改这张表重跑 scripts/scene-tiles-import.mjs 即可换素材，不用改代码。 A2 单元上半是 autotile 四角、下半才是本体纹理，所以 at 一般取 y=72。",
+  "cellSize": 96,
+  "terrain": {
+    "ground": [
+      {
+        "file": "01_通用图块/Tile_A2-1 (2).png",
+        "cell": [
+          4,
+          1
+        ],
+        "at": [
+          24,
+          72
+        ],
+        "radius": 14
+      }
+    ],
+    "green": [
+      {
+        "file": "01_通用图块/Tile_A2-1 (2).png",
+        "cell": [
+          4,
+          0
+        ],
+        "at": [
+          24,
+          72
+        ],
+        "radius": 14
+      }
+    ],
+    "road": [
+      {
+        "file": "01_通用图块/Tile_A2-1 (2).png",
+        "cell": [
+          4,
+          3
+        ],
+        "at": [
+          24,
+          72
+        ],
+        "radius": 14
+      }
+    ],
+    "plaza": [
+      {
+        "file": "01_通用图块/Tile_A2-1 (2).png",
+        "cell": [
+          5,
+          3
+        ],
+        "at": [
+          48,
+          48
+        ],
+        "radius": 20
+      }
+    ]
+  },
+  "props": {
+    "tree": {
+      "file": "02_独立图块/jiangnan_water_town-2_01.png",
+      "rect": [
+        205,
+        289,
+        70,
+        95
+      ]
+    },
+    "crate": {
+      "file": "02_独立图块/Tang_Dynasty_Changan_Street_01.png",
+      "rect": [
+        12,
+        4,
+        72,
+        90
+      ]
+    }
+  }
+}
