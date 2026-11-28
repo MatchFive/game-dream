@@ -54,3 +54,14 @@ wall 4 · vehicle 3 · tree 2`。
   页面上只能看到"还没有索引"和那条命令，没有触发按钮（跑一次要几分钟，需要进度与取消）。
 - **没有"用这块替换某个 prefab"的直接动作**：改完 prefab 建议后，还得重新跑
   `dream scene assets apply` 才会落到美术目录。
+
+## 复现
+
+```bash
+pnpm -w build
+# 索引（idx 指向素材库；这一步要几分钟）
+dream scene assets index --source <素材库> --only <图集.png> \
+  --out <project>/.gamedream/studio/art-index.json --kit village-cn --workspace <project>
+# 起 Studio 看
+dream studio --path <project> --port 4785   # → http://127.0.0.1:4785/library
+```
