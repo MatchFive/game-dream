@@ -220,6 +220,29 @@ Preference pairs: 3 -> dpo.jsonl
 - 偏好对：`{prompt, chosen, rejected, reason, meta}`；两路来源——闸门（pass vs fail）
   与人工评审（good vs bad）
 
+## 7.8 美术素材（artwork）
+
+布局本身只有矩形和颜色，进引擎是色块。素材层把"哪个 prefab 长什么样"接进来：
+
+```
+<project>/.gamedream/studio/art/<kitId>/<prefabId>.png
+```
+
+约定这个目录后，三处自动生效：
+
+1. **Studio 预览**：`renderSceneSvg` 把 png 以 data-uri 内嵌，布局图里看到的就是贴图
+2. **Godot 导出**：有贴图的建筑生成 `Sprite2D`（按 footprint 缩放），没有的仍退回 `Polygon2D`
+3. **素材生成**：`POST /api/scenes/art` 或 `node scripts/scene-art.mjs` 按 kit 的
+   palette / roof / footprint 生成一套顶视占位图（屋檐、屋脊、门窗），并写 manifest
+
+换真实美术不需要改代码：把同名 png 覆盖进那个目录即可。
+
+素材尺寸约定：宽度 = `footprint.maxWidth × tileSize`，高度同理。导出时按实际
+footprint 等比拉伸，所以同一张图能用于该 prefab 的所有尺寸变体。
+
+占位素材是程序画的，风格统一但细节有限；它的作用是让"布局 + 素材 + 导出"这条链路
+先跑通，真实美术到位后直接替换文件。
+
 ## 8. Godot 导出（S2）
 
 `exportGodotScene(layout, dir)` 产出一个可直接用 Godot 4.4 打开的项目：

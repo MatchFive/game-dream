@@ -7,6 +7,7 @@ import {
   appendTrace,
   parseKit,
   villageEuroKit,
+  writeKitArtwork,
   buildSceneWithTrace,
   exportGodotScene,
   hashLayout,
@@ -229,5 +230,53 @@ describe('street grid on large maps', () => {
   it('keeps villages on the simple cross road', () => {
     const { layout } = buildSceneWithTrace(baseSpec, kit);
     expect(layout.roads.filter((road) => road.kind === 'street')).toHaveLength(0);
+  });
+});
+
+describe('artwork layer', () => {
+  it('generates one png per prefab with a manifest', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream scene art '));
+    const manifest = writeKitArtwork(kit, dir, { tileSize: 32 });
+    expect(manifest.entries).toHaveLength(kit.prefabs.length);
+    for (const entry of manifest.entries) {
+      expect(existsSync(join(dir, entry.file))).toBe(true);
+      expect(entry.width).toBeGreaterThan(0);
+    }
+    // 贴图尺寸必须贴合 footprint 上限，导出时才能按比例铺满
+    const chapel = manifest.entries.find((entry) => entry.prefab === 'chapel');
+    const prefab = kit.prefabs.find((item) => item.id === 'chapel');
+    expect(chapel?.width).toBe((prefab?.footprint.maxWidth ?? 0) * 32);
+  });
+
+  it('uses Sprite2D when artwork is available and Polygon2D when not', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream scene art export '));
+    writeKitArtwork(kit, join(dir, 'art'), { tileSize: 32 });
+
+    const withArt = exportGodotScene(layout, join(dir, 'with'), { artDir: join(dir, 'art') });
+    const sceneWith = readFileSync(join(dir, 'with', 'scene/scene.tscn'), 'utf8');
+    expect(withArt.summary.textures).toBeGreaterThan(0);
+    expect(sceneWith).toContain('type="Sprite2D"');
+    expect(sceneWith).toContain('scale = Vector2(');
+    expect(existsSync(join(dir, 'with', 'scene/art', 'house-small.png'))).toBe(true);
+
+    const without = exportGodotScene(layout, join(dir, 'without'));
+    const sceneWithout = readFileSync(join(dir, 'without', 'scene/scene.tscn'), 'utf8');
+    expect(without.summary.textures).toBe(0);
+    expect(sceneWithout).toContain('type="Polygon2D"');
+  });
+
+  it('embeds artwork into the svg preview', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream scene art svg '));
+    writeKitArtwork(kit, join(dir, 'art'), { tileSize: 32 });
+    const art = new Map<string, Buffer>();
+    const houseFile = join(dir, 'art', kit.id, 'house-small.png');
+    art.set('house-small', readFileSync(houseFile));
+    const svg = renderSceneSvg(layout, { art });
+    expect(svg).toContain('<image');
+    expect(svg).toContain('data:image/png;base64,');
+    // 没给素材的 prefab 仍然是色块
+    expect(svg).toContain('<rect');
   });
 });

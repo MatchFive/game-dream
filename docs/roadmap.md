@@ -175,6 +175,8 @@
 | S1 | 引擎无关 spec/kit/layout + 确定性求解器（大图带次级街网）+ 质量闸门 + trace 数据集 + 俯视渲染 | Done |
 | S2 | Godot 导出：`.tscn`（地面底图 + 建筑碰撞 + 入口/锚点 Marker），真实引擎加载并核对节点数 | Done |
 | S2.1 | 导航：从可行走栅格生成 `NavigationPolygon`（顶点去重保证连通），引擎内验证出生点到每个入口都可寻路 | Done |
+| S2.2 | 美术素材层：kit 目录约定、SVG 预览内嵌贴图、Godot 导出 Sprite2D、占位素材生成 | Done |
+| S2.3 | AI 生成建筑贴图（ComfyUI Qwen-Image 工作流内建） | Next |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4a | Agent 循环 + CLI `dream scene build`：模型出 spec、闸门失败回喂重试、每次尝试落 trace | Done |
 | S4b | Studio `/scenes` 页：列表 / 布局预览 / 闸门详情 / 人工评审写回 trace | Done |

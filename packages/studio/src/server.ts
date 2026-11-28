@@ -20,7 +20,7 @@ import { ComfyAudioRunner, ComfyWorkflowRunner } from './comfyui.js';
 import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
-import { buildScene, listScenes, loadScene, reviewScene } from './scenes.js';
+import { buildScene, ensureArtwork, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
 import {
   assertTrustedMutation,
   HttpSecurityError,
@@ -1350,6 +1350,17 @@ async function handleApi(
         typeof body.reason === 'string' ? body.reason : undefined,
       );
       json(response, 200, { approval });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/scenes/art') {
+    try {
+      const body = (await readJson(request)) as { kitId?: unknown };
+      const kit = resolveKit({ kitId: typeof body.kitId === 'string' ? body.kitId : undefined });
+      json(response, 200, { artwork: ensureArtwork(root, kit) });
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }

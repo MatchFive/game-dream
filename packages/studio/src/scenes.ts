@@ -9,6 +9,7 @@ import {
   parseSceneSpec,
   renderSceneSvg,
   runSceneAgent,
+  writeKitArtwork,
   villageEuroKit,
   type Kit,
   type SceneLayout,
@@ -59,6 +60,33 @@ export interface BuildSceneInput {
 }
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+
+/** 项目自带的美术素材目录：<project>/.gamedream/studio/art/<kitId>/<prefab>.png */
+export function artDir(root: string): string {
+  return join(root, '.gamedream', 'studio', 'art');
+}
+
+/** 读取已存在的贴图，供 SVG 预览内嵌；缺图就退回色块。 */
+function loadArt(root: string, kitId: string, prefabIds: Iterable<string>): Map<string, Buffer> {
+  const art = new Map<string, Buffer>();
+  const dir = join(artDir(root), kitId);
+  if (!existsSync(dir)) return art;
+  for (const prefab of prefabIds) {
+    const file = join(dir, `${prefab}.png`);
+    if (existsSync(file)) art.set(prefab, readFileSync(file));
+  }
+  return art;
+}
+
+/** 没有素材时生成一套占位美术，让预览与导出立刻有东西可用。 */
+export function ensureArtwork(root: string, kit: Kit): { dir: string; count: number; created: boolean } {
+  const dir = artDir(root);
+  const kitDir = join(dir, kit.id);
+  const existing = existsSync(kitDir) ? readdirSync(kitDir).filter((file) => file.endsWith('.png')).length : 0;
+  if (existing > 0) return { dir: kitDir, count: existing, created: false };
+  const manifest = writeKitArtwork(kit, dir, { tileSize: 32 });
+  return { dir: kitDir, count: manifest.entries.length, created: true };
+}
 
 export function scenesDir(root: string): string {
   return join(root, '.gamedream', 'studio', 'scenes');
@@ -152,7 +180,7 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
       spec,
       layout: built.layout,
       validation: built.validation,
-      svg: renderSceneSvg(built.layout),
+      svg: renderSceneSvg(built.layout, { art: loadArt(root, kit.id, built.layout.buildings.map((b) => b.prefab)) }),
       traceId: built.trace.id,
       attempts: 1,
     });
@@ -184,7 +212,9 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     spec: usable.spec,
     layout: agent.layout,
     validation: agent.validation,
-    svg: renderSceneSvg(agent.layout),
+    svg: renderSceneSvg(agent.layout, {
+      art: loadArt(root, kit.id, agent.layout.buildings.map((building) => building.prefab)),
+    }),
     traceId: agent.traces[agent.traces.length - 1]?.id ?? 'unknown',
     attempts: agent.attempts.length,
   });

@@ -13,7 +13,10 @@ const shade = (hex: string, amount: number): string => {
  * 俯视图 SVG：用于人眼评审"好不好看"，也方便把 badcase 直接贴进数据集。
  * 只表达结构与比例，不追求美术效果。
  */
-export function renderSceneSvg(layout: SceneLayout): string {
+export function renderSceneSvg(
+  layout: SceneLayout,
+  options: { art?: Map<string, Buffer> } = {},
+): string {
   const t = 12;
   const width = layout.bounds.width * t;
   const height = layout.bounds.height * t;
@@ -53,6 +56,18 @@ export function renderSceneSvg(layout: SceneLayout): string {
     const h = building.rect.h * t;
     const roofShade = shade(building.color, 0.22);
     const inner = Math.max(2, Math.min(w, h) * 0.12);
+    const art = options.art?.get(building.prefab);
+    if (art) {
+      // 有素材就直接铺贴图，预览与引擎看到的形态一致
+      const href = `data:image/png;base64,${art.toString('base64')}`;
+      parts.push(`<image x="${x}" y="${y}" width="${w}" height="${h}" href="${href}" preserveAspectRatio="none"/>`);
+      parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${roofShade}" stroke-width="0.6" opacity="0.5"/>`);
+      const [ex, ey] = building.entrance;
+      parts.push(
+        `<rect x="${ex * t + t * 0.28}" y="${ey * t + t * 0.28}" width="${t * 0.44}" height="${t * 0.44}" fill="${roofShade}" rx="1"/>`,
+      );
+      continue;
+    }
     parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${building.color}" stroke="${roofShade}" stroke-width="1.5"/>`);
     if (building.roof === 'gable') {
       parts.push(

@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { encodePng } from '@gamedream/core';
 import type { SceneLayout } from '../schema.js';
@@ -8,6 +8,22 @@ export interface GodotExportResult {
   files: string[];
   /** 导出摘要，写进 trace 的 export 步骤 */
   summary: Record<string, unknown>;
+}
+
+export interface GodotExportOptions {
+  /** 美术素材目录，约定为 <artDir>/<kitId>/<prefabId>.png；给了就用贴图代替色块 */
+  artDir?: string;
+}
+
+/** 读 PNG 的 IHDR 得到尺寸，避免再引一个解码库。 */
+function pngSize(file: string): { width: number; height: number } | null {
+  try {
+    const buffer = readFileSync(file);
+    if (buffer.length < 24 || buffer.toString('ascii', 1, 4) !== 'PNG') return null;
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  } catch {
+    return null;
+  }
 }
 
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -131,7 +147,11 @@ interface ShapeEntry {
  * 地面是一张底图，建筑是带碰撞的 StaticBody2D，锚点是 Marker2D。
  * 节点数量与布局一一对应，便于在引擎里逐项核对。
  */
-export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExportResult {
+export function exportGodotScene(
+  layout: SceneLayout,
+  outDir: string,
+  options: GodotExportOptions = {},
+): GodotExportResult {
   const sceneDir = join(outDir, 'scene');
   mkdirSync(sceneDir, { recursive: true });
 
@@ -169,9 +189,28 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
     ].join('\n')
     : null;
 
+  // 建筑贴图：约定 <artDir>/<kitId>/<prefab>.png
+  const artDir = options.artDir ? join(options.artDir, layout.kitId) : undefined;
+  const artTextures = new Map<string, { res: string; width: number; height: number }>();
+  if (artDir && existsSync(artDir)) {
+    const artOutDir = join(sceneDir, 'art');
+    mkdirSync(artOutDir, { recursive: true });
+    for (const prefab of new Set(layout.buildings.map((building) => building.prefab))) {
+      const source = join(artDir, `${prefab}.png`);
+      if (!existsSync(source)) continue;
+      const size = pngSize(source);
+      if (!size) continue;
+      copyFileSync(source, join(artOutDir, `${prefab}.png`));
+      artTextures.set(prefab, { res: `res://scene/art/${prefab}.png`, width: size.width, height: size.height });
+    }
+  }
+
   const extResources = [
     '[ext_resource type="Script" path="res://scene/scene_check.gd" id="1_script"]',
     '[ext_resource type="Texture2D" path="res://scene/ground.png" id="2_ground"]',
+    ...[...artTextures.entries()].map(
+      ([prefab, texture]) => `[ext_resource type="Texture2D" path="${texture.res}" id="art_${prefab}"]`,
+    ),
   ];
   const subResources = shapes.map(
     (shape) => `[sub_resource type="RectangleShape2D" id="${shape.id}"]\nsize = Vector2(${shape.w}, ${shape.h})`,
@@ -223,15 +262,25 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
     lines.push(`[node name="${building.id}" type="StaticBody2D" parent="Buildings"]`);
     lines.push(`position = Vector2(${px}, ${py})`);
     lines.push('');
-    lines.push(`[node name="Roof" type="Polygon2D" parent="Buildings/${building.id}"]`);
-    lines.push(`color = ${colorLiteral(building.color)}`);
-    lines.push(`polygon = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h})`);
-    lines.push('');
-    lines.push(`[node name="Outline" type="Line2D" parent="Buildings/${building.id}"]`);
-    lines.push(`points = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h}, 0, 0)`);
-    lines.push(`width = 2.0`);
-    lines.push(`default_color = ${colorLiteral('#4a3f33')}`);
-    lines.push('');
+    const art = artTextures.get(building.prefab);
+    if (art) {
+      // 贴图按 footprint 缩放，锚点放在建筑中心
+      lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
+      lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
+      lines.push(`scale = Vector2(${(w / art.width).toFixed(4)}, ${(h / art.height).toFixed(4)})`);
+      lines.push(`texture = ExtResource("art_${building.prefab}")`);
+      lines.push('');
+    } else {
+      lines.push(`[node name="Roof" type="Polygon2D" parent="Buildings/${building.id}"]`);
+      lines.push(`color = ${colorLiteral(building.color)}`);
+      lines.push(`polygon = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h})`);
+      lines.push('');
+      lines.push(`[node name="Outline" type="Line2D" parent="Buildings/${building.id}"]`);
+      lines.push(`points = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h}, 0, 0)`);
+      lines.push(`width = 2.0`);
+      lines.push(`default_color = ${colorLiteral('#4a3f33')}`);
+      lines.push('');
+    }
     lines.push(`[node name="Body" type="CollisionShape2D" parent="Buildings/${building.id}"]`);
     lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
     lines.push(`shape = SubResource("${buildingShapeIds[index]}")`);
@@ -339,6 +388,7 @@ export function exportGodotScene(layout: SceneLayout, outDir: string): GodotExpo
       collisions: shapes.length,
       anchors: layout.anchors.length,
       ground: `${layout.bounds.width * size}x${layout.bounds.height * size}`,
+      textures: artTextures.size,
       navPolygons: navMesh.polygons.length,
       navVertices: navMesh.vertices.length,
     },

@@ -1,0 +1,49 @@
+{
+  "kitId": "village-euro",
+  "tileSize": 32,
+  "generatedAt": "2026-11-28T02:51:00.716Z",
+  "entries": [
+    {
+      "prefab": "house-small",
+      "file": "village-euro/house-small.png",
+      "width": 224,
+      "height": 192
+    },
+    {
+      "prefab": "house-long",
+      "file": "village-euro/house-long.png",
+      "width": 352,
+      "height": 192
+    },
+    {
+      "prefab": "smithy",
+      "file": "village-euro/smithy.png",
+      "width": 256,
+      "height": 224
+    },
+    {
+      "prefab": "tavern",
+      "file": "village-euro/tavern.png",
+      "width": 320,
+      "height": 256
+    },
+    {
+      "prefab": "chapel",
+      "file": "village-euro/chapel.png",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "prefab": "market-hall",
+      "file": "village-euro/market-hall.png",
+      "width": 416,
+      "height": 288
+    },
+    {
+      "prefab": "dock-house",
+      "file": "village-euro/dock-house.png",
+      "width": 256,
+      "height": 192
+    }
+  ]
+}
