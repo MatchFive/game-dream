@@ -102,11 +102,15 @@ for (const scene of cases) {
     if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
     if (tilesRoads <= 0) problems.push('road tiles missing (engine)');
     if (tilesProps !== layout.props.length) problems.push(`prop tiles ${tilesProps} != ${layout.props.length}`);
+    // 楼层以节点元数据进场景：引擎侧能读到，说明"高度"不是只存在于 layout.json
+    const floors = read('GAMEDREAM_SCENE_FLOORS');
+    const floorsExpected = layout.buildings.reduce((sum, b) => sum + b.floors, 0);
+    if (floors !== floorsExpected) problems.push(`floors ${floors} != ${floorsExpected}`);
     if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
 
     engineLine = `buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal}`
       + ` anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps}`
-      + ` walls=${townWalls} cliffs=${cliffs}`
+      + ` walls=${townWalls} cliffs=${cliffs} floors=${read('GAMEDREAM_SCENE_FLOORS')}`
       + ` spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`;
   }
 

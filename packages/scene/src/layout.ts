@@ -32,6 +32,27 @@ const MARGIN = 3;
 const BLOCK_GAP = 1;
 const MIN_LOT = 8;
 
+/**
+ * 建筑面对的是什么：决定楼层数。
+ *
+ * 真实的城镇高度不是随机的：主街两侧做买卖，地价高，楼就高；背巷与院子里的
+ * 房子只住人，一两层。这条规则同时是"天际线"和"街谷"的来源——全是随机楼层
+ * 的城看起来像撒了一把方块。
+ */
+export type FrontageBand = 'main' | 'street' | 'back' | 'yard' | 'outskirt';
+
+/**
+ * 每个聚落规模一套高度：营地全是棚屋，村子两三层，城才到四层。
+ * 为什么不只给"临街性质"一张表再按规模封顶——那样营地会被封到全城一个高度，
+ * 村子会被封成"整村都是三层"，又回到"一把方块"。
+ */
+const FLOORS_BY_KIND: Record<string, Record<FrontageBand, [number, number]>> = {
+  camp: { main: [2, 2], street: [1, 2], back: [1, 1], yard: [1, 1], outskirt: [1, 1] },
+  village: { main: [2, 3], street: [1, 2], back: [1, 1], yard: [1, 2], outskirt: [1, 1] },
+  town: { main: [3, 4], street: [2, 3], back: [1, 2], yard: [1, 2], outskirt: [1, 1] },
+  city: { main: [3, 4], street: [2, 3], back: [1, 2], yard: [1, 2], outskirt: [1, 2] },
+};
+
 /** BSP 递归切分：切到不能再切，得到若干"地块"。 */
 function splitLots(rect: Rect, rng: Rng, out: Rect[] = []): Rect[] {
   const canSplitX = rect.w >= MIN_LOT * 2 + BLOCK_GAP;
@@ -520,13 +541,20 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
   /** 院落/后院：留给树与杂物，避免整块地全被建筑占满 */
   const yards: Rect[] = [];
 
+  const floorTable = FLOORS_BY_KIND[spec.kind] ?? FLOORS_BY_KIND.town;
+  /** 楼层：聚落规模 × 临街性质。主街高、背街低，这是天际线的唯一来源。 */
+  const floorsFor = (prefab: Prefab, band: FrontageBand): number => {
+    const [lo, hi] = floorTable[band];
+    return rng.int(Math.max(1, lo), Math.max(1, hi));
+  };
+
   /** 落一栋建筑：校验空位 → 填格 → 记录 → 从正门挖巷道到路。 */
   const commit = (
     prefab: Prefab,
     rect: Rect,
     facing: number,
     typology: Building['typology'],
-    floors: number,
+    band: FrontageBand,
   ): boolean => {
     if (!rectFree(grid, rect)) return false;
     // 正门那一格必须能站人。台阶地形里房子常紧贴崖壁，门开在崖上就走不出去了——
@@ -553,8 +581,9 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       entrance,
       color: prefab.color,
       roof: prefab.roof,
-      floors,
+      floors: floorsFor(prefab, band),
       typology,
+      band,
       elevation: elevationLevel(rect, spec.elevation, spec.bounds),
     });
     const alley = carveAlley(grid, entrance, side);
@@ -569,7 +598,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
    */
   const placeRow = (
     frame: FrontFrame,
-    options: { anchor: 'front' | 'back'; depthCap: number; first: Prefab | null; floorsMax: number },
+    options: { anchor: 'front' | 'back'; depthCap: number; first: Prefab | null; mainRoad: boolean },
   ): { count: number; depth: number } => {
     let along = frame.start;
     let placed = 0;
@@ -595,7 +624,8 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
         : rng.int(minW, Math.max(minW, Math.min(maxW, remaining - minW)));
       const rect = place(along, width, depth);
       if (!rectFree(grid, rect)) break;
-      if (!commit(candidate, rect, frame.side, 'street-wall', rng.int(1, options.floorsMax))) break;
+      const band: FrontageBand = options.anchor === 'back' ? 'back' : options.mainRoad ? 'main' : 'street';
+      if (!commit(candidate, rect, frame.side, 'street-wall', band)) break;
       along += width;
       placed += 1;
       rowDepth = depth;
@@ -656,11 +686,11 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       points: horizontal ? [[lo, mid], [hi, mid]] : [[mid, lo], [mid, hi]],
     });
 
-    return placeRow(frame, { anchor: 'back', depthCap: backDepth, first: null, floorsMax: 2 }).count;
+    return placeRow(frame, { anchor: 'back', depthCap: backDepth, first: null, mainRoad: false }).count;
   };
 
   /** 院落：临街主屋 + 侧巷 + 院子 + 后排小屋。侧巷保证后排的门走得出去。 */
-  const placeCourtyard = (frame: FrontFrame): boolean => {
+  const placeCourtyard = (frame: FrontFrame, mainRoad: boolean): boolean => {
     if (frame.length < 9 || frame.depth < 8) return false;
     const passage = 2;
     const mainSpan = frame.length - passage - 1;
@@ -681,7 +711,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
 
     const mainRect = frame.rect(frame.start, mainW, mainD);
     if (!rectFree(grid, mainRect)) return giveBack();
-    if (!commit(mainPrefab, mainRect, frame.side, 'courtyard', rng.int(1, 2))) return giveBack();
+    if (!commit(mainPrefab, mainRect, frame.side, 'courtyard', mainRoad ? 'main' : 'street')) return giveBack();
 
     // 后排小屋：贴后墙，门朝院子，与主屋错开留出一条侧巷
     const backPool = houses.length > 0 ? houses : rowPool;
@@ -690,7 +720,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     const backD = Math.min(backPrefab.footprint.maxHeight, frame.depth - mainD - 2);
     if (backD >= backPrefab.footprint.minHeight && backW >= backPrefab.footprint.minWidth) {
       const backRect = frame.back(frame.start, backW, backD);
-      if (rectFree(grid, backRect)) commit(backPrefab, backRect, frame.side, 'courtyard', 1);
+      if (rectFree(grid, backRect)) commit(backPrefab, backRect, frame.side, 'courtyard', 'yard');
     }
 
     // 院子本身：主屋背后那一整条
@@ -717,7 +747,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       if (along < frame.start || along + span > frame.start + frame.length) continue;
       const rect = frame.rect(along, span, depth);
       if (!rectFree(grid, rect)) continue;
-      return commit(prefab, rect, frame.side, 'street-wall', rng.int(2, 3));
+      return commit(prefab, rect, frame.side, 'street-wall', 'main');
     }
     queue.unshift(prefab);
     return false;
@@ -734,7 +764,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
 
     const buildingRect = pickBuildingRect(rect, rng.int(minW, maxW), rng.int(minH, maxH), rng, grid);
     if (!buildingRect) return false;
-    return commit(candidate, buildingRect, facingRoad(buildingRect, grid), 'standalone', rng.int(1, 3));
+    return commit(candidate, buildingRect, facingRoad(buildingRect, grid), 'standalone', 'outskirt');
   };
 
   const plazaRect = lots.find((lot) => lot.kind === 'plaza')?.rect;
@@ -744,8 +774,18 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     front: FrontFrame | null;
     plazaFront: boolean;
     nearPlaza: boolean;
+    /** 临街面是不是主干道——决定这一排楼有多高 */
+    mainRoad: boolean;
     distance: number;
   }
+
+  /** 临街的那条边是不是主路：看边上的格子落在不落在十字主路的带里。 */
+  const frontsMainRoad = (rect: Rect, side: Side): boolean => {
+    const inMainBand = ([x, y]: [number, number]): boolean =>
+      (x >= verticalX && x < verticalX + mainW)
+      || (y >= horizontalY && y < horizontalY + mainW);
+    return edgeCells(rect, side).some(inMainBand);
+  };
 
   const plans: LotPlan[] = [];
   for (const original of rawLots) {
@@ -757,6 +797,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       front: frontage ? frontFrame(clipped, frontage) : null,
       plazaFront: frontage?.plaza ?? false,
       nearPlaza: plazaRect ? rectDistance(clipped, plazaRect) <= 6 : false,
+      mainRoad: frontage ? frontsMainRoad(clipped, frontage.side) : false,
       distance: roadDistance(clipped, grid),
     });
   }
@@ -785,7 +826,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
           anchor: 'front',
           depthCap: Math.max(4, plan.front.depth - 2),
           first: prefab,
-          floorsMax: 2,
+          mainRoad: plan.mainRoad,
         });
         if (row.count === 0) queue.unshift(prefab);
         if (row.count > 0) placeBackRow(plan.front, row.depth);
@@ -793,14 +834,14 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       }
     }
     if (!placed && plan.front && plan.front.depth >= 8 && rng.chance(0.5)) {
-      placed = placeCourtyard(plan.front);
+      placed = placeCourtyard(plan.front, plan.mainRoad);
     }
     if (!placed && plan.front) {
       const row = placeRow(plan.front, {
         anchor: 'front',
         depthCap: Math.max(4, plan.front.depth - 2),
         first: null,
-        floorsMax: 2,
+        mainRoad: plan.mainRoad,
       });
       if (row.count > 0) placeBackRow(plan.front, row.depth);
       placed = row.count > 0;

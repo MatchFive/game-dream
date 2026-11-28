@@ -94,7 +94,9 @@ const CHECK_SCRIPT = [
   '\tvar buildings := get_node("Buildings").get_child_count()',
   '\tvar shapes := 0',
   '\tvar entrances := 0',
+  '\tvar floors := 0',
   '\tfor child in get_node("Buildings").get_children():',
+  '\t\tfloors += int(child.get_meta("floors", 0))',
   '\t\tfor sub in child.get_children():',
   '\t\t\tif sub is CollisionShape2D:',
   '\t\t\t\tshapes += 1',
@@ -105,6 +107,7 @@ const CHECK_SCRIPT = [
   '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
   '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
   '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
+  '\tprint("GAMEDREAM_SCENE_FLOORS=%d" % floors)',
   '',
   '\tvar town_walls := get_node_or_null("TownWalls")',
   '\tvar cliffs := get_node_or_null("Cliffs")',
@@ -380,8 +383,10 @@ export function exportGodotScene(
         ],
         shapeId: buildingShapeIds[index],
         billboard: options.artStyle === 'billboard',
-        // 高台上的房子要压住低处的房子，否则叠放顺序只看底边，会盖错
+        // 高台上的房子要压住低处的房子，否则叠放顺序只看底边，会盖错。
+        // 楼层不进 z_index：那会让"下面的高楼"盖住"上面的矮楼"，billboard 会穿帮
         zIndex: building.elevation * 10,
+        floors: building.floors,
       },
       spec,
     ));
@@ -441,6 +446,12 @@ export function exportGodotScene(
       ramps: layout.ramps.length,
       terraces: layout.terraces.length,
       coastSide: layout.coastSide,
+      floors: {
+        mean: layout.buildings.length === 0
+          ? 0
+          : Number((layout.buildings.reduce((sum, b) => sum + b.floors, 0) / layout.buildings.length).toFixed(2)),
+        max: layout.buildings.reduce((max, b) => Math.max(max, b.floors), 0),
+      },
       tiles: {
         cells: layers.ground.length,
         roadCells: layers.roads.length,

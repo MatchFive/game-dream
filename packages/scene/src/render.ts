@@ -94,11 +94,13 @@ export function renderSceneSvg(
     const h = building.rect.h * t;
     const roofShade = shade(building.color, 0.22);
     const inner = Math.max(2, Math.min(w, h) * 0.12);
-    // 高台上的房子往右下投一道影：平面图里唯一的"高度感"来源
-    if (building.elevation > 0) {
-      const drop = Math.min(6, building.elevation * 2);
+    // 高度只可能在平面图里靠"影子"表达：楼层越高、台阶越高，影子越长。
+    // 这是俯视预览里唯一的立体线索，缺了它整张图就是一张色块表。
+    const height = building.elevation * 2 + (building.floors - 1) * 1.6;
+    if (height > 0) {
+      const drop = Math.min(7, height);
       parts.push(
-        `<rect x="${x + drop}" y="${y + drop}" width="${w}" height="${h}" fill="#000000" opacity="${(0.06 * building.elevation).toFixed(2)}"/>`,
+        `<rect x="${(x + drop).toFixed(2)}" y="${(y + drop).toFixed(2)}" width="${w}" height="${h}" fill="#000000" opacity="${Math.min(0.16, 0.035 * height).toFixed(3)}"/>`,
       );
     }
     const art = options.art?.get(building.prefab);

@@ -183,6 +183,7 @@
 | S2.7 | 需求覆盖：`spec.unmet[]` + 提示词禁止静默替换 + 统计聚类 + Studio/CLI 展示；重跑同批 19/25 声明了做不到的需求 | Done |
 | S13 | 地形与边界表达力：`water: coast`（起伏岸线 + 沙岸）、`walls`（贴建成区成环、路口自动开门、`TownWalls` 碰撞体）、`elevation`（按 `step` 切台阶、错开 ±1 格走等高线、路穿崖处变坡道、`Cliffs` 碰撞体）；瓦片新增 `sand/rock/wall`；新闸门 `sealed-walls`。真引擎六场景 nav 全通（墙/崖碰撞体数与 layout 一致）；五条相关需求真模型重跑 5/5 过闸门，其中三条 unmet 归零 | Done |
 | Q1 | 场景导出进 CI：新增 `scene-export` job，`scripts/scene-godot-smoke.mjs` 支持"无引擎"分支（仍导出六工程 + 结构核对 + 显式 skip 与 job summary），确定有引擎时用 `--require` 跑真机加载 | Done |
+| S7 | 高度与天际线：楼层 = 聚落规模 × 临街性质（camp/village/town/city 各自一套区间表），`plan.mainRoad` 判定临街面是否主路，`building.band` 记录依据；预览按 `elevation×2 + (floors−1)×1.6` 投长影，导出写 `metadata/floors` 并引擎自检累加。石十字镇：主街 3.46 / 次级街 2.53 / 背巷 1.35 | Done |
 | S15 | 道具进引擎：7 类道具做成透明底瓦片（32×32 逻辑画布按 tileSize 放大），导出 `Props` TileMapLayer 并排在地形/道路之后；一格只放一个道具；海岸码头改贴最大水面陆侧 | Done |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4a | Agent 循环 + CLI `dream scene build`：模型出 spec、闸门失败回喂重试、每次尝试落 trace | Done |

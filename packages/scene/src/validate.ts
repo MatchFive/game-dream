@@ -175,6 +175,14 @@ export function validateScene(
     ramps: layout.ramps.length,
     terraces: layout.terraces.length,
     coast: layout.coastSide === null ? 0 : 1,
+    // 天际线：楼层均值与最高层。全是同一个数字就说明高度没分层，还是撒方块
+    floorMean: layout.buildings.length === 0
+      ? 0
+      : Number((layout.buildings.reduce((sum, b) => sum + b.floors, 0) / layout.buildings.length).toFixed(2)),
+    floorMax: layout.buildings.reduce((max, b) => Math.max(max, b.floors), 0),
+    tallShare: layout.buildings.length === 0
+      ? 0
+      : Number((layout.buildings.filter((b) => b.floors >= 3).length / layout.buildings.length).toFixed(3)),
     elevationMax: layout.buildings.reduce((max, building) => Math.max(max, building.elevation), 0),
     attachedShare: layout.buildings.length === 0 ? 0 : Number((attached / layout.buildings.length).toFixed(3)),
     density: Number(density.toFixed(3)),

@@ -418,6 +418,79 @@ describe('settlement structure', () => {
   });
 });
 
+describe('skyline', () => {
+  const townSpec = {
+    ...baseSpec,
+    id: 'skyline',
+    kind: 'town' as const,
+    bounds: { width: 120, height: 96 },
+    required: ['market-hall', 'chapel', 'tavern'],
+  };
+
+  const mean = (values: number[]) => (values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length);
+  const floorsOfBand = (layout: SceneLayout, band: string) =>
+    layout.buildings.filter((building) => building.band === band).map((building) => building.floors);
+
+  it('stacks height by frontage: main street tall, back lanes low', () => {
+    const { layout } = buildScene(parseSceneSpec(townSpec), kit);
+    const main = floorsOfBand(layout, 'main');
+    const street = floorsOfBand(layout, 'street');
+    const back = floorsOfBand(layout, 'back');
+
+    expect(main.length).toBeGreaterThan(3);
+    expect(street.length).toBeGreaterThan(10);
+    expect(back.length).toBeGreaterThan(5);
+    // 主街 > 次级街 > 背巷。这条链断了，"天际线"就退回成一把随机方块
+    expect(mean(main)).toBeGreaterThan(mean(street) + 0.4);
+    expect(mean(street)).toBeGreaterThan(mean(back) + 0.4);
+    // 主街临街至少三层：一层商铺不像主街
+    expect(Math.min(...main)).toBeGreaterThanOrEqual(3);
+    // 背巷最多两层
+    expect(Math.max(...back)).toBeLessThanOrEqual(2);
+  });
+
+  it('caps floors by settlement size instead of by luck', () => {
+    const camp = buildScene(parseSceneSpec({
+      ...baseSpec,
+      kind: 'camp' as const,
+      bounds: { width: 56, height: 48 },
+      required: ['smithy'],
+    }), kit).layout;
+    expect(camp.buildings.length).toBeGreaterThan(5);
+    // 营地全是棚屋：一条主街也救不出四层楼
+    expect(Math.max(...camp.buildings.map((b) => b.floors))).toBeLessThanOrEqual(2);
+
+    const town = buildScene(parseSceneSpec(townSpec), kit).layout;
+    expect(Math.max(...town.buildings.map((b) => b.floors))).toBeLessThanOrEqual(4);
+    expect(Math.min(...town.buildings.map((b) => b.floors))).toBeGreaterThanOrEqual(1);
+  });
+
+  it('casts a longer shadow for taller buildings in the preview', () => {
+    const { layout } = buildScene(parseSceneSpec(townSpec), kit);
+    const svg = renderSceneSvg(layout);
+    const shadows = svg.match(/fill="#000000"/g) ?? [];
+    // 平房（1 层、无高差）不投影；其余每栋一道，高度只靠这道影子表达
+    const expected = layout.buildings.filter((building) => building.floors > 1 || building.elevation > 0).length;
+    expect(shadows.length).toBe(expected);
+    expect(expected).toBeGreaterThan(layout.buildings.length / 2);
+  });
+
+  it('writes the floor count into the exported scene as node metadata', () => {
+    const { layout } = buildScene(parseSceneSpec(townSpec), kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream floors '));
+    const result = exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+
+    // 引擎侧要读得到高度：不然"楼多高"只存在于 layout.json，游戏里还是平的
+    const metas = tscn.match(/^metadata\/floors = (\d+)$/gm) ?? [];
+    expect(metas.length).toBe(layout.buildings.length);
+    const sum = metas.reduce((total, line) => total + Number(line.split('= ')[1]), 0);
+    expect(sum).toBe(layout.buildings.reduce((total, building) => total + building.floors, 0));
+    const floors = result.summary.floors as { mean: number; max: number };
+    expect(floors.max).toBe(Math.max(...layout.buildings.map((b) => b.floors)));
+  });
+});
+
 describe('unmet requests', () => {
   it('defaults to an empty list so old specs keep parsing', () => {
     const spec = parseSceneSpec({ ...baseSpec });

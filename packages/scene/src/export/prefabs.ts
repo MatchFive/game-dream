@@ -94,6 +94,8 @@ export interface InstancePlacement {
   billboard: boolean;
   /** 叠放顺序：高台上的房子压住低处的房子 */
   zIndex?: number;
+  /** 楼层数，作为节点元数据写进场景：游戏侧要拿它算室内、屋顶高度 */
+  floors?: number;
 }
 
 /** 生成"实例 + 覆盖属性"的 tscn 片段。 */
@@ -103,6 +105,7 @@ export function instanceNodes(placement: InstancePlacement, spec: PrefabSpec): s
   lines.push(`[node name="${placement.name}" parent="Buildings" instance=ExtResource("prefab_${placement.prefabId}")]`);
   lines.push(`position = Vector2(${placement.x}, ${placement.y})`);
   if (placement.zIndex) lines.push(`z_index = ${placement.zIndex}`);
+  if (placement.floors) lines.push(`metadata/floors = ${placement.floors}`);
   lines.push('');
 
   if (spec.art) {

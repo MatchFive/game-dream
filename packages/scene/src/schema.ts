@@ -145,6 +145,11 @@ export const buildingSchema = z.object({
   floors: z.number().int().min(1).max(4),
   /** 所在台阶：0 = 最低一级，用于渲染阴影与导出叠放顺序 */
   elevation: z.number().int().min(0).max(4).default(0),
+  /**
+   * 临街性质，楼层数的依据（主街高、背街低）。
+   * 记下来是为了可追溯：看一行数据就知道这栋楼为什么是四层。
+   */
+  band: z.enum(['main', 'street', 'back', 'yard', 'outskirt']).default('street'),
 });
 
 export const propSchema = z.object({
