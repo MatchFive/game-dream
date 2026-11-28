@@ -22,6 +22,20 @@ export interface GodotExportOptions {
    * billboard：贴图等宽、底边对齐 footprint 底边、向上溢出（带立面的 3/4 视图，RPG 常见）
    */
   artStyle?: 'tile' | 'billboard';
+  /**
+   * 场景在工程里的 res:// 子目录。给空串表示工程根（老行为：scene/ 与 prefabs/ 直接在根下）。
+   *
+   * 这是"场景属于游戏项目"的关键：同一个 tscn 既可以当成独立工程打开，
+   * 也可以放进 `game/scenes/<id>/` 由游戏本体 preload —— 区别只是资源前缀。
+   */
+  resRoot?: string;
+  /** 是否顺手写一份 project.godot（独立工程要，嵌进已有项目时不要） */
+  writeProject?: boolean;
+  /**
+   * 平铺：文件直接放在 outDir 下（scene.tscn / tiles.png / prefabs/），而不是塞进 scene/。
+   * 嵌进项目时用平铺——`res://game/scenes/<id>/scene.tscn` 比 `.../scene/scene.tscn` 干净。
+   */
+  flat?: boolean;
 }
 
 /** kit 里某个 prefab 挂了几种节点——摘要与自检都用它当期望值。 */
@@ -177,11 +191,14 @@ const CHECK_SCRIPT = [
   '\t\tfor _i in range(3):',
   '\t\t\tawait get_tree().physics_frame',
   '\t\tNavigationServer2D.map_force_update(map)',
+  '\t\t# 等地图完成第一次同步（map_get_iteration_id > 0）再查询，',
+  '\t\t# 否则日志里会留下一条"query before first map synchronization"的假报错',
   '\t\tfor _i in range(40):',
   '\t\t\tawait get_tree().physics_frame',
   '\t\t\tNavigationServer2D.map_force_update(map)',
-  '\t\t\tif NavigationServer2D.map_get_closest_point(map, spawn_node.global_position) != Vector2.ZERO:',
-  '\t\t\t\tbreak',
+  '\t\t\tif NavigationServer2D.map_get_iteration_id(map) > 0:',
+  '\t\t\t\tif NavigationServer2D.map_get_closest_point(map, spawn_node.global_position) != Vector2.ZERO:',
+  '\t\t\t\t\tbreak',
   '\t\tvar total := 0',
   '\t\tvar reached := 0',
   '\t\tvar failed: Array[String] = []',
@@ -216,20 +233,29 @@ export function exportGodotScene(
   outDir: string,
   options: GodotExportOptions = {},
 ): GodotExportResult {
-  const sceneDir = join(outDir, 'scene');
+  const flat = options.flat ?? false;
+  const sceneDir = flat ? outDir : join(outDir, 'scene');
   const prefabDir = join(outDir, 'prefabs');
   mkdirSync(sceneDir, { recursive: true });
   mkdirSync(prefabDir, { recursive: true });
 
   const size = layout.tileSize;
   const bounds = layout.bounds;
+  // res:// 前缀：独立工程是 res://scene/...，嵌进项目是 res://game/scenes/<id>/...
+  const resRoot = (options.resRoot ?? 'scene').replace(/^\/+|\/+$/g, '');
+  // 独立工程：scene/ 与 prefabs/ 并排；嵌进项目：全部收在 resRoot 下（平铺）。
+  // 两个前缀必须分开算，否则 prefab 会被指到 res://scene/prefabs 去——它不在那儿。
+  const scenePrefix = flat ? `res://${resRoot}/` : 'res://scene/';
+  const prefabPrefix = flat ? `res://${resRoot}/prefabs/` : 'res://prefabs/';
+  const res = (file: string) => `${scenePrefix}${file}`;
+  const writeProject = options.writeProject ?? true;
 
   writeFileSync(join(sceneDir, 'layout.json'), `${JSON.stringify(layout, null, 2)}\n`, 'utf8');
 
   // 1. 瓦片：atlas + TileSet 资源
   const atlas = renderTileAtlas(layout);
   writeFileSync(join(sceneDir, 'tiles.png'), atlas.png);
-  writeFileSync(join(sceneDir, 'tiles.tres'), tileSetResource(layout, atlas), 'utf8');
+  writeFileSync(join(sceneDir, 'tiles.tres'), tileSetResource(layout, atlas, res('tiles.png')), 'utf8');
   const layers = buildTileLayers(layout, atlas);
 
   // 2. 建筑贴图：约定 <artDir>/<kitId>/<prefab>.png
@@ -244,7 +270,7 @@ export function exportGodotScene(
       const png = pngSize(source);
       if (!png) continue;
       copyFileSync(source, join(artOutDir, `${prefab}.png`));
-      artTextures.set(prefab, { res: `res://scene/art/${prefab}.png`, width: png.width, height: png.height });
+      artTextures.set(prefab, { res: res(`art/${prefab}.png`), width: png.width, height: png.height });
     }
   }
 
@@ -259,7 +285,7 @@ export function exportGodotScene(
   let lightTexture: string | undefined;
   if (usesLights) {
     writeFileSync(join(sceneDir, 'light.png'), renderLightTexture());
-    lightTexture = 'res://scene/light.png';
+    lightTexture = res('light.png');
   }
 
   const prefabSpecs = new Map<string, PrefabSpec>();
@@ -321,10 +347,10 @@ export function exportGodotScene(
 
   // 5. 场景文件
   const extResources = [
-    '[ext_resource type="Script" path="res://scene/scene_check.gd" id="1_script"]',
-    '[ext_resource type="TileSet" path="res://scene/tiles.tres" id="2_tileset"]',
+    `[ext_resource type="Script" path="${res('scene_check.gd')}" id="1_script"]`,
+    `[ext_resource type="TileSet" path="${res('tiles.tres')}" id="2_tileset"]`,
     ...[...prefabSpecs.keys()].map(
-      (id) => `[ext_resource type="PackedScene" path="res://prefabs/${id}.tscn" id="prefab_${id}"]`,
+      (id) => `[ext_resource type="PackedScene" path="${prefabPrefix}${id}.tscn" id="prefab_${id}"]`,
     ),
   ];
   const subResources = shapes.map(
@@ -477,7 +503,7 @@ export function exportGodotScene(
 
   writeFileSync(join(sceneDir, 'scene.tscn'), lines.join('\n'), 'utf8');
 
-  writeFileSync(
+  if (writeProject) writeFileSync(
     join(outDir, 'project.godot'),
     [
       'config_version=5',
@@ -500,15 +526,15 @@ export function exportGodotScene(
   return {
     dir: outDir,
     files: [
-      'project.godot',
-      'scene/scene.tscn',
-      'scene/tiles.png',
-      'scene/tiles.tres',
-      'scene/scene_check.gd',
-      'scene/layout.json',
+      ...(writeProject ? ['project.godot'] : []),
+      `${flat ? '' : 'scene/'}scene.tscn`,
+      `${flat ? '' : 'scene/'}tiles.png`,
+      `${flat ? '' : 'scene/'}tiles.tres`,
+      `${flat ? '' : 'scene/'}scene_check.gd`,
+      `${flat ? '' : 'scene/'}layout.json`,
       ...prefabFiles,
-      ...[...artTextures.keys()].map((id) => `scene/art/${id}.png`),
-      ...(lightTexture ? ['scene/light.png'] : []),
+      ...[...artTextures.keys()].map((id) => `${flat ? '' : 'scene/'}art/${id}.png`),
+      ...(lightTexture ? [`${flat ? '' : 'scene/'}light.png`] : []),
     ],
     summary: {
       buildings: layout.buildings.length,

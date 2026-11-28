@@ -1,0 +1,28 @@
+{
+  "scenes": [
+    {
+      "id": "riverside-fishing-village-20261128113523",
+      "name": "河畔小渔村",
+      "createdAt": "2026-11-28T11:35:23.597Z",
+      "pass": true,
+      "resPath": "res://game/scenes/riverside-fishing-village-20261128113523/scene.tscn",
+      "dataPath": "res://game/scenes/riverside-fishing-village-20261128113523/scene.json"
+    },
+    {
+      "id": "riverside-fishing-village-20261128113455",
+      "name": "河畔小渔村",
+      "createdAt": "2026-11-28T11:34:55.178Z",
+      "pass": true,
+      "resPath": "res://game/scenes/riverside-fishing-village-20261128113455/scene.tscn",
+      "dataPath": "res://game/scenes/riverside-fishing-village-20261128113455/scene.json"
+    },
+    {
+      "id": "riverside-fishing-village-20261128113427",
+      "name": "河畔小渔村",
+      "createdAt": "2026-11-28T11:34:27.067Z",
+      "pass": true,
+      "resPath": "res://game/scenes/riverside-fishing-village-20261128113427/scene.tscn",
+      "dataPath": "res://game/scenes/riverside-fishing-village-20261128113427/scene.json"
+    }
+  ]
+}

@@ -1,0 +1,1757 @@
+{
+  "id": "riverside-fishing-village-20261128113523",
+  "name": "河畔小渔村",
+  "createdAt": "2026-11-28T11:35:23.597Z",
+  "spec": {
+    "id": "riverside-fishing-village",
+    "name": "河畔小渔村",
+    "kind": "village",
+    "kitId": "village-euro",
+    "seed": 1847362510,
+    "tileSize": 16,
+    "bounds": {
+      "width": 72,
+      "height": 56
+    },
+    "required": [
+      "tavern",
+      "chapel",
+      "dock-house"
+    ],
+    "decor": 0.55,
+    "water": "river",
+    "roads": {
+      "mainWidth": 4,
+      "streetWidth": 2,
+      "spacing": 18
+    },
+    "walls": {
+      "enabled": false,
+      "thickness": 1,
+      "setback": 3
+    },
+    "elevation": {
+      "levels": 0,
+      "step": 12,
+      "from": "north"
+    },
+    "unmet": [],
+    "notes": "河流穿过村庄，码头沿岸设置；酒馆临主路，教堂朝向主路。"
+  },
+  "layout": {
+    "id": "riverside-fishing-village",
+    "name": "河畔小渔村",
+    "kind": "village",
+    "kitId": "village-euro",
+    "style": "medieval-european",
+    "seed": 1847362510,
+    "tileSize": 16,
+    "bounds": {
+      "width": 72,
+      "height": 56
+    },
+    "palette": {
+      "ground": "#d9d2bf",
+      "road": "#b3a68d",
+      "plaza": "#cdc3a8",
+      "water": "#8fb8cc",
+      "green": "#a8c08a",
+      "sand": "#e6d9b4",
+      "rock": "#726a5c",
+      "wall": "#8b7f68"
+    },
+    "roads": [
+      {
+        "id": "road-main-v",
+        "kind": "main",
+        "width": 4,
+        "points": [
+          [
+            30,
+            3
+          ],
+          [
+            30,
+            53
+          ]
+        ]
+      },
+      {
+        "id": "road-main-h",
+        "kind": "main",
+        "width": 4,
+        "points": [
+          [
+            3,
+            26
+          ],
+          [
+            69,
+            26
+          ]
+        ]
+      },
+      {
+        "id": "alley-0",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            40,
+            21
+          ],
+          [
+            39,
+            21
+          ]
+        ]
+      },
+      {
+        "id": "alley-1",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            28,
+            8
+          ],
+          [
+            29,
+            8
+          ]
+        ]
+      },
+      {
+        "id": "alley-2",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            18,
+            24
+          ],
+          [
+            18,
+            25
+          ]
+        ]
+      },
+      {
+        "id": "alley-3",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            24,
+            24
+          ],
+          [
+            24,
+            25
+          ]
+        ]
+      },
+      {
+        "id": "alley-4",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            18,
+            29
+          ],
+          [
+            18,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-5",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            25,
+            29
+          ],
+          [
+            25,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-6",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            33,
+            9
+          ],
+          [
+            32,
+            9
+          ]
+        ]
+      },
+      {
+        "id": "lane-7",
+        "kind": "alley",
+        "width": 2,
+        "points": [
+          [
+            40,
+            3
+          ],
+          [
+            40,
+            18
+          ]
+        ]
+      },
+      {
+        "id": "alley-7",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            41,
+            6
+          ],
+          [
+            40,
+            6
+          ]
+        ]
+      },
+      {
+        "id": "alley-8",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            41,
+            12
+          ],
+          [
+            40,
+            12
+          ]
+        ]
+      },
+      {
+        "id": "alley-9",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            38,
+            29
+          ],
+          [
+            38,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-10",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            44,
+            29
+          ],
+          [
+            44,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-11",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            6,
+            24
+          ],
+          [
+            6,
+            25
+          ]
+        ]
+      },
+      {
+        "id": "alley-12",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            7,
+            29
+          ],
+          [
+            7,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-13",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            28,
+            44
+          ],
+          [
+            29,
+            44
+          ]
+        ]
+      },
+      {
+        "id": "alley-14",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            28,
+            49
+          ],
+          [
+            29,
+            49
+          ]
+        ]
+      },
+      {
+        "id": "alley-15",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            53,
+            24
+          ],
+          [
+            53,
+            25
+          ]
+        ]
+      },
+      {
+        "id": "alley-16",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            62,
+            24
+          ],
+          [
+            62,
+            25
+          ]
+        ]
+      },
+      {
+        "id": "alley-17",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            52,
+            29
+          ],
+          [
+            52,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-18",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            57,
+            29
+          ],
+          [
+            57,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-19",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            65,
+            29
+          ],
+          [
+            65,
+            28
+          ]
+        ]
+      },
+      {
+        "id": "alley-20",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            33,
+            44
+          ],
+          [
+            32,
+            44
+          ]
+        ]
+      },
+      {
+        "id": "alley-21",
+        "kind": "alley",
+        "width": 1,
+        "points": [
+          [
+            33,
+            49
+          ],
+          [
+            32,
+            49
+          ]
+        ]
+      }
+    ],
+    "lots": [
+      {
+        "id": "water-river-3",
+        "kind": "water",
+        "rect": {
+          "x": 3,
+          "y": 38,
+          "w": 26,
+          "h": 3
+        }
+      },
+      {
+        "id": "water-river-33",
+        "kind": "water",
+        "rect": {
+          "x": 33,
+          "y": 38,
+          "w": 36,
+          "h": 3
+        }
+      },
+      {
+        "id": "plaza-center",
+        "kind": "plaza",
+        "rect": {
+          "x": 33,
+          "y": 17,
+          "w": 7,
+          "h": 7
+        }
+      },
+      {
+        "id": "lot-1",
+        "kind": "buildable",
+        "rect": {
+          "x": 40,
+          "y": 17,
+          "w": 8,
+          "h": 8
+        }
+      },
+      {
+        "id": "lot-2",
+        "kind": "buildable",
+        "rect": {
+          "x": 14,
+          "y": 3,
+          "w": 15,
+          "h": 11
+        }
+      },
+      {
+        "id": "lot-2-garden",
+        "kind": "green",
+        "rect": {
+          "x": 14,
+          "y": 4,
+          "w": 6,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-4",
+        "kind": "buildable",
+        "rect": {
+          "x": 14,
+          "y": 15,
+          "w": 15,
+          "h": 10
+        }
+      },
+      {
+        "id": "lot-6",
+        "kind": "buildable",
+        "rect": {
+          "x": 13,
+          "y": 29,
+          "w": 16,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-6-garden",
+        "kind": "green",
+        "rect": {
+          "x": 13,
+          "y": 35,
+          "w": 16,
+          "h": 3
+        }
+      },
+      {
+        "id": "lot-9",
+        "kind": "buildable",
+        "rect": {
+          "x": 33,
+          "y": 3,
+          "w": 15,
+          "h": 13
+        }
+      },
+      {
+        "id": "lot-11",
+        "kind": "buildable",
+        "rect": {
+          "x": 33,
+          "y": 29,
+          "w": 15,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-12",
+        "kind": "buildable",
+        "rect": {
+          "x": 3,
+          "y": 15,
+          "w": 10,
+          "h": 10
+        }
+      },
+      {
+        "id": "lot-13",
+        "kind": "buildable",
+        "rect": {
+          "x": 3,
+          "y": 29,
+          "w": 9,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-15",
+        "kind": "buildable",
+        "rect": {
+          "x": 20,
+          "y": 41,
+          "w": 9,
+          "h": 12
+        }
+      },
+      {
+        "id": "lot-16",
+        "kind": "buildable",
+        "rect": {
+          "x": 49,
+          "y": 17,
+          "w": 8,
+          "h": 8
+        }
+      },
+      {
+        "id": "lot-17",
+        "kind": "buildable",
+        "rect": {
+          "x": 58,
+          "y": 13,
+          "w": 11,
+          "h": 12
+        }
+      },
+      {
+        "id": "lot-17-garden",
+        "kind": "green",
+        "rect": {
+          "x": 58,
+          "y": 13,
+          "w": 11,
+          "h": 5
+        }
+      },
+      {
+        "id": "lot-19",
+        "kind": "buildable",
+        "rect": {
+          "x": 49,
+          "y": 29,
+          "w": 11,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-20",
+        "kind": "buildable",
+        "rect": {
+          "x": 61,
+          "y": 29,
+          "w": 8,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-22",
+        "kind": "buildable",
+        "rect": {
+          "x": 33,
+          "y": 41,
+          "w": 12,
+          "h": 12
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 3,
+          "y": 3,
+          "w": 10,
+          "h": 11
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 3,
+          "y": 41,
+          "w": 16,
+          "h": 12
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 49,
+          "y": 3,
+          "w": 8,
+          "h": 13
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 58,
+          "y": 3,
+          "w": 11,
+          "h": 9
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 46,
+          "y": 41,
+          "w": 10,
+          "h": 12
+        }
+      },
+      {
+        "id": "lot-22-green",
+        "kind": "green",
+        "rect": {
+          "x": 57,
+          "y": 41,
+          "w": 12,
+          "h": 12
+        }
+      }
+    ],
+    "buildings": [
+      {
+        "id": "building-0",
+        "prefab": "chapel",
+        "role": "civic",
+        "rect": {
+          "x": 41,
+          "y": 18,
+          "w": 4,
+          "h": 6
+        },
+        "facing": 3,
+        "entrance": [
+          40,
+          21
+        ],
+        "color": "#cbbfae",
+        "roof": "gable",
+        "floors": 1,
+        "typology": "street-wall",
+        "band": "street",
+        "elevation": 0
+      },
+      {
+        "id": "building-1",
+        "prefab": "tavern",
+        "role": "shop",
+        "rect": {
+          "x": 20,
+          "y": 4,
+          "w": 8,
+          "h": 9
+        },
+        "facing": 1,
+        "entrance": [
+          28,
+          8
+        ],
+        "color": "#b5793f",
+        "roof": "hip",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-2",
+        "prefab": "dock-house",
+        "role": "dock",
+        "rect": {
+          "x": 15,
+          "y": 18,
+          "w": 6,
+          "h": 6
+        },
+        "facing": 2,
+        "entrance": [
+          18,
+          24
+        ],
+        "color": "#8b7355",
+        "roof": "flat",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-3",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 21,
+          "y": 18,
+          "w": 7,
+          "h": 6
+        },
+        "facing": 2,
+        "entrance": [
+          24,
+          24
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-4",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 14,
+          "y": 30,
+          "w": 8,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          18,
+          29
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-5",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 22,
+          "y": 30,
+          "w": 6,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          25,
+          29
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-6",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 34,
+          "y": 4,
+          "w": 6,
+          "h": 11
+        },
+        "facing": 3,
+        "entrance": [
+          33,
+          9
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-7",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 42,
+          "y": 4,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 3,
+        "entrance": [
+          41,
+          6
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 1,
+        "typology": "street-wall",
+        "band": "back",
+        "elevation": 0
+      },
+      {
+        "id": "building-8",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 42,
+          "y": 9,
+          "w": 5,
+          "h": 6
+        },
+        "facing": 3,
+        "entrance": [
+          41,
+          12
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 1,
+        "typology": "street-wall",
+        "band": "back",
+        "elevation": 0
+      },
+      {
+        "id": "building-9",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 34,
+          "y": 30,
+          "w": 8,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          38,
+          29
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-10",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 42,
+          "y": 30,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          44,
+          29
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-11",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 4,
+          "y": 19,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 2,
+        "entrance": [
+          6,
+          24
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-12",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 4,
+          "y": 30,
+          "w": 7,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          7,
+          29
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-13",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 23,
+          "y": 42,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 1,
+        "entrance": [
+          28,
+          44
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-14",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 23,
+          "y": 47,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 1,
+        "entrance": [
+          28,
+          49
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-15",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 50,
+          "y": 20,
+          "w": 6,
+          "h": 4
+        },
+        "facing": 2,
+        "entrance": [
+          53,
+          24
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-16",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 59,
+          "y": 18,
+          "w": 6,
+          "h": 6
+        },
+        "facing": 2,
+        "entrance": [
+          62,
+          24
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "courtyard",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-17",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 50,
+          "y": 30,
+          "w": 5,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          52,
+          29
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-18",
+        "prefab": "house-long",
+        "role": "house",
+        "rect": {
+          "x": 55,
+          "y": 30,
+          "w": 4,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          57,
+          29
+        ],
+        "color": "#c98f4f",
+        "roof": "hip",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-19",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 62,
+          "y": 30,
+          "w": 6,
+          "h": 5
+        },
+        "facing": 0,
+        "entrance": [
+          65,
+          29
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-20",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 34,
+          "y": 42,
+          "w": 6,
+          "h": 5
+        },
+        "facing": 3,
+        "entrance": [
+          33,
+          44
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 3,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      },
+      {
+        "id": "building-21",
+        "prefab": "house-small",
+        "role": "house",
+        "rect": {
+          "x": 34,
+          "y": 47,
+          "w": 6,
+          "h": 5
+        },
+        "facing": 3,
+        "entrance": [
+          33,
+          49
+        ],
+        "color": "#d9a15b",
+        "roof": "gable",
+        "floors": 2,
+        "typology": "street-wall",
+        "band": "main",
+        "elevation": 0
+      }
+    ],
+    "props": [
+      {
+        "id": "prop-0",
+        "type": "lamp",
+        "at": [
+          28,
+          5
+        ]
+      },
+      {
+        "id": "prop-1",
+        "type": "lamp",
+        "at": [
+          33,
+          5
+        ]
+      },
+      {
+        "id": "prop-2",
+        "type": "lamp",
+        "at": [
+          28,
+          11
+        ]
+      },
+      {
+        "id": "prop-3",
+        "type": "lamp",
+        "at": [
+          33,
+          11
+        ]
+      },
+      {
+        "id": "prop-4",
+        "type": "lamp",
+        "at": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "prop-5",
+        "type": "lamp",
+        "at": [
+          33,
+          17
+        ]
+      },
+      {
+        "id": "prop-6",
+        "type": "lamp",
+        "at": [
+          28,
+          23
+        ]
+      },
+      {
+        "id": "prop-7",
+        "type": "lamp",
+        "at": [
+          33,
+          23
+        ]
+      },
+      {
+        "id": "prop-8",
+        "type": "lamp",
+        "at": [
+          28,
+          29
+        ]
+      },
+      {
+        "id": "prop-9",
+        "type": "lamp",
+        "at": [
+          33,
+          29
+        ]
+      },
+      {
+        "id": "prop-10",
+        "type": "lamp",
+        "at": [
+          28,
+          35
+        ]
+      },
+      {
+        "id": "prop-11",
+        "type": "lamp",
+        "at": [
+          33,
+          35
+        ]
+      },
+      {
+        "id": "prop-12",
+        "type": "lamp",
+        "at": [
+          28,
+          41
+        ]
+      },
+      {
+        "id": "prop-13",
+        "type": "lamp",
+        "at": [
+          33,
+          41
+        ]
+      },
+      {
+        "id": "prop-14",
+        "type": "lamp",
+        "at": [
+          28,
+          47
+        ]
+      },
+      {
+        "id": "prop-15",
+        "type": "lamp",
+        "at": [
+          33,
+          47
+        ]
+      },
+      {
+        "id": "prop-16",
+        "type": "lamp",
+        "at": [
+          5,
+          24
+        ]
+      },
+      {
+        "id": "prop-17",
+        "type": "lamp",
+        "at": [
+          5,
+          29
+        ]
+      },
+      {
+        "id": "prop-18",
+        "type": "lamp",
+        "at": [
+          11,
+          24
+        ]
+      },
+      {
+        "id": "prop-19",
+        "type": "lamp",
+        "at": [
+          11,
+          29
+        ]
+      },
+      {
+        "id": "prop-20",
+        "type": "lamp",
+        "at": [
+          17,
+          24
+        ]
+      },
+      {
+        "id": "prop-21",
+        "type": "lamp",
+        "at": [
+          17,
+          29
+        ]
+      },
+      {
+        "id": "prop-22",
+        "type": "lamp",
+        "at": [
+          23,
+          24
+        ]
+      },
+      {
+        "id": "prop-23",
+        "type": "lamp",
+        "at": [
+          23,
+          29
+        ]
+      },
+      {
+        "id": "prop-24",
+        "type": "lamp",
+        "at": [
+          29,
+          24
+        ]
+      },
+      {
+        "id": "prop-25",
+        "type": "lamp",
+        "at": [
+          29,
+          29
+        ]
+      },
+      {
+        "id": "prop-26",
+        "type": "lamp",
+        "at": [
+          35,
+          24
+        ]
+      },
+      {
+        "id": "prop-27",
+        "type": "lamp",
+        "at": [
+          35,
+          29
+        ]
+      },
+      {
+        "id": "prop-28",
+        "type": "lamp",
+        "at": [
+          41,
+          24
+        ]
+      },
+      {
+        "id": "prop-29",
+        "type": "lamp",
+        "at": [
+          41,
+          29
+        ]
+      },
+      {
+        "id": "prop-30",
+        "type": "lamp",
+        "at": [
+          47,
+          24
+        ]
+      },
+      {
+        "id": "prop-31",
+        "type": "lamp",
+        "at": [
+          47,
+          29
+        ]
+      },
+      {
+        "id": "prop-32",
+        "type": "lamp",
+        "at": [
+          53,
+          24
+        ]
+      },
+      {
+        "id": "prop-33",
+        "type": "lamp",
+        "at": [
+          53,
+          29
+        ]
+      },
+      {
+        "id": "prop-34",
+        "type": "lamp",
+        "at": [
+          59,
+          24
+        ]
+      },
+      {
+        "id": "prop-35",
+        "type": "lamp",
+        "at": [
+          59,
+          29
+        ]
+      },
+      {
+        "id": "prop-36",
+        "type": "lamp",
+        "at": [
+          65,
+          24
+        ]
+      },
+      {
+        "id": "prop-37",
+        "type": "lamp",
+        "at": [
+          65,
+          29
+        ]
+      },
+      {
+        "id": "prop-38",
+        "type": "tree",
+        "at": [
+          14,
+          7
+        ]
+      },
+      {
+        "id": "prop-39",
+        "type": "tree",
+        "at": [
+          23,
+          37
+        ]
+      },
+      {
+        "id": "prop-40",
+        "type": "tree",
+        "at": [
+          68,
+          13
+        ]
+      },
+      {
+        "id": "prop-41",
+        "type": "tree",
+        "at": [
+          4,
+          5
+        ]
+      },
+      {
+        "id": "prop-42",
+        "type": "tree",
+        "at": [
+          3,
+          50
+        ]
+      },
+      {
+        "id": "prop-43",
+        "type": "tree",
+        "at": [
+          8,
+          47
+        ]
+      },
+      {
+        "id": "prop-44",
+        "type": "tree",
+        "at": [
+          50,
+          3
+        ]
+      },
+      {
+        "id": "prop-45",
+        "type": "tree",
+        "at": [
+          62,
+          3
+        ]
+      },
+      {
+        "id": "prop-46",
+        "type": "tree",
+        "at": [
+          47,
+          41
+        ]
+      },
+      {
+        "id": "prop-47",
+        "type": "tree",
+        "at": [
+          68,
+          51
+        ]
+      },
+      {
+        "id": "prop-48",
+        "type": "tree",
+        "at": [
+          59,
+          15
+        ]
+      },
+      {
+        "id": "prop-49",
+        "type": "flower",
+        "at": [
+          62,
+          17
+        ]
+      },
+      {
+        "id": "prop-50",
+        "type": "well",
+        "at": [
+          36,
+          20
+        ]
+      },
+      {
+        "id": "prop-51",
+        "type": "flower",
+        "at": [
+          36,
+          18
+        ]
+      },
+      {
+        "id": "prop-52",
+        "type": "flower",
+        "at": [
+          36,
+          22
+        ]
+      },
+      {
+        "id": "prop-53",
+        "type": "flower",
+        "at": [
+          34,
+          20
+        ]
+      },
+      {
+        "id": "prop-54",
+        "type": "flower",
+        "at": [
+          38,
+          20
+        ]
+      },
+      {
+        "id": "prop-55",
+        "type": "dock",
+        "at": [
+          16,
+          37
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "id": "anchor-spawn",
+        "kind": "spawn",
+        "at": [
+          31,
+          52
+        ],
+        "label": "player spawn"
+      },
+      {
+        "id": "anchor-exit",
+        "kind": "exit",
+        "at": [
+          68,
+          27
+        ],
+        "label": "world exit"
+      },
+      {
+        "id": "anchor-plaza",
+        "kind": "poi",
+        "at": [
+          36,
+          20
+        ],
+        "label": "town square"
+      }
+    ],
+    "interactions": [
+      {
+        "id": "interaction-0",
+        "kind": "worship",
+        "building": "building-0",
+        "at": [
+          40,
+          21
+        ],
+        "radius": 1,
+        "label": "chapel:worship"
+      },
+      {
+        "id": "interaction-1",
+        "kind": "rest",
+        "building": "building-1",
+        "at": [
+          28,
+          8
+        ],
+        "radius": 1,
+        "label": "tavern:rest"
+      },
+      {
+        "id": "interaction-2",
+        "kind": "shop",
+        "building": "building-1",
+        "at": [
+          28,
+          8
+        ],
+        "radius": 1.5,
+        "label": "tavern:shop"
+      },
+      {
+        "id": "interaction-3",
+        "kind": "fish",
+        "building": "building-2",
+        "at": [
+          18,
+          24
+        ],
+        "radius": 1,
+        "label": "dock-house:fish"
+      }
+    ],
+    "walls": [],
+    "gates": [],
+    "cliffs": [],
+    "ramps": [],
+    "terraces": [],
+    "coastSide": null
+  },
+  "validation": {
+    "pass": true,
+    "metrics": {
+      "buildings": 22,
+      "props": 56,
+      "roads": 25,
+      "streetWall": 21,
+      "courtyards": 1,
+      "standalone": 0,
+      "frontageShare": 1,
+      "attached": 14,
+      "unmet": 0,
+      "walls": 0,
+      "gates": 0,
+      "cliffs": 0,
+      "ramps": 0,
+      "terraces": 0,
+      "coast": 0,
+      "interactions": 4,
+      "interactionKinds": 4,
+      "floorMean": 2.32,
+      "floorMax": 3,
+      "tallShare": 0.455,
+      "elevationMax": 0,
+      "attachedShare": 0.636,
+      "density": 0.182,
+      "roadRatio": 0.124,
+      "greenRatio": 0.23,
+      "waterRatio": 0.046,
+      "reachableCells": 3111,
+      "entranceCoverage": 1
+    },
+    "issues": []
+  },
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 864 672\" width=\"864\" height=\"672\">\n<rect width=\"864\" height=\"672\" fill=\"#d9d2bf\"/>\n<rect x=\"36\" y=\"456\" width=\"312\" height=\"36\" fill=\"#8fb8cc\"/>\n<rect x=\"396\" y=\"456\" width=\"432\" height=\"36\" fill=\"#8fb8cc\"/>\n<rect x=\"396\" y=\"204\" width=\"84\" height=\"84\" fill=\"#cdc3a8\"/>\n<rect x=\"168\" y=\"48\" width=\"72\" height=\"108\" fill=\"#a8c08a\"/>\n<rect x=\"156\" y=\"420\" width=\"192\" height=\"36\" fill=\"#a8c08a\"/>\n<rect x=\"696\" y=\"156\" width=\"132\" height=\"60\" fill=\"#a8c08a\"/>\n<rect x=\"36\" y=\"36\" width=\"120\" height=\"132\" fill=\"#a8c08a\"/>\n<rect x=\"36\" y=\"492\" width=\"192\" height=\"144\" fill=\"#a8c08a\"/>\n<rect x=\"588\" y=\"36\" width=\"96\" height=\"156\" fill=\"#a8c08a\"/>\n<rect x=\"696\" y=\"36\" width=\"132\" height=\"108\" fill=\"#a8c08a\"/>\n<rect x=\"552\" y=\"492\" width=\"120\" height=\"144\" fill=\"#a8c08a\"/>\n<rect x=\"684\" y=\"492\" width=\"144\" height=\"144\" fill=\"#a8c08a\"/>\n<polyline points=\"372,36 372,636\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"48\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n<polyline points=\"372,36 372,636\" fill=\"none\" stroke=\"#867d6a\" stroke-width=\"3\" stroke-dasharray=\"12 16.799999999999997\" opacity=\"0.5\"/>\n<polyline points=\"36,324 828,324\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"48\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n<polyline points=\"36,324 828,324\" fill=\"none\" stroke=\"#867d6a\" stroke-width=\"3\" stroke-dasharray=\"12 16.799999999999997\" opacity=\"0.5\"/>\n<polyline points=\"480,258 468,258\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"336,102 348,102\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"222,288 222,300\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"294,288 294,300\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"222,348 222,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"306,348 306,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"396,114 384,114\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"492,36 492,216\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"24\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"492,78 480,78\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"492,150 480,150\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"462,348 462,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"534,348 534,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"78,288 78,300\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"90,348 90,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"336,534 348,534\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"336,594 348,594\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"642,288 642,300\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"750,288 750,300\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"630,348 630,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"690,348 690,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"786,348 786,336\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"396,534 384,534\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<polyline points=\"396,594 384,594\" fill=\"none\" stroke=\"#b3a68d\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/>\n<rect x=\"492\" y=\"216\" width=\"48\" height=\"72\" fill=\"#cbbfae\" stroke=\"#9e9588\" stroke-width=\"1.5\"/>\n<line x1=\"516\" y1=\"221.76\" x2=\"516\" y2=\"282.24\" stroke=\"#9e9588\" stroke-width=\"1.2\"/>\n<rect x=\"483.36\" y=\"255.36\" width=\"5.28\" height=\"5.28\" fill=\"#9e9588\" rx=\"1\"/>\n<rect x=\"241.60\" y=\"49.60\" width=\"96\" height=\"108\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"240\" y=\"48\" width=\"96\" height=\"108\" fill=\"#b5793f\" stroke=\"#8d5e31\" stroke-width=\"1.5\"/>\n<line x1=\"251.52\" y1=\"102\" x2=\"324.48\" y2=\"102\" stroke=\"#8d5e31\" stroke-width=\"1.2\"/>\n<line x1=\"288\" y1=\"59.519999999999996\" x2=\"288\" y2=\"144.48\" stroke=\"#8d5e31\" stroke-width=\"1.2\"/>\n<rect x=\"339.36\" y=\"99.36\" width=\"5.28\" height=\"5.28\" fill=\"#8d5e31\" rx=\"1\"/>\n<rect x=\"181.60\" y=\"217.60\" width=\"72\" height=\"72\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"180\" y=\"216\" width=\"72\" height=\"72\" fill=\"#8b7355\" stroke=\"#6c5a42\" stroke-width=\"1.5\"/>\n<rect x=\"219.36\" y=\"291.36\" width=\"5.28\" height=\"5.28\" fill=\"#6c5a42\" rx=\"1\"/>\n<rect x=\"255.20\" y=\"219.20\" width=\"84\" height=\"72\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"252\" y=\"216\" width=\"84\" height=\"72\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"260.64\" y1=\"252\" x2=\"327.36\" y2=\"252\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"294\" y1=\"224.64\" x2=\"294\" y2=\"279.36\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"291.36\" y=\"291.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"169.60\" y=\"361.60\" width=\"96\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"168\" y=\"360\" width=\"96\" height=\"60\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"175.2\" y1=\"390\" x2=\"256.8\" y2=\"390\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"216\" y1=\"367.2\" x2=\"216\" y2=\"412.8\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"219.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"265.60\" y=\"361.60\" width=\"72\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"264\" y=\"360\" width=\"72\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"300\" y1=\"367.2\" x2=\"300\" y2=\"412.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"303.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"411.20\" y=\"51.20\" width=\"72\" height=\"132\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"408\" y=\"48\" width=\"72\" height=\"132\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"416.64\" y1=\"114\" x2=\"471.36\" y2=\"114\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"444\" y1=\"56.64\" x2=\"444\" y2=\"171.36\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"399.36\" y=\"111.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"504\" y=\"48\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"534\" y1=\"55.2\" x2=\"534\" y2=\"100.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"495.36\" y=\"75.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"504\" y=\"108\" width=\"60\" height=\"72\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"511.2\" y1=\"144\" x2=\"556.8\" y2=\"144\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"534\" y1=\"115.2\" x2=\"534\" y2=\"172.8\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"495.36\" y=\"147.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"409.60\" y=\"361.60\" width=\"96\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"408\" y=\"360\" width=\"96\" height=\"60\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"415.2\" y1=\"390\" x2=\"496.8\" y2=\"390\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"456\" y1=\"367.2\" x2=\"456\" y2=\"412.8\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"459.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"507.20\" y=\"363.20\" width=\"60\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"504\" y=\"360\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"534\" y1=\"367.2\" x2=\"534\" y2=\"412.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"531.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"49.60\" y=\"229.60\" width=\"60\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"48\" y=\"228\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"78\" y1=\"235.2\" x2=\"78\" y2=\"280.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"75.36\" y=\"291.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"51.20\" y=\"363.20\" width=\"84\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"48\" y=\"360\" width=\"84\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"90\" y1=\"367.2\" x2=\"90\" y2=\"412.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"87.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"277.60\" y=\"505.60\" width=\"60\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"276\" y=\"504\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"306\" y1=\"511.2\" x2=\"306\" y2=\"556.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"339.36\" y=\"531.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"279.20\" y=\"567.20\" width=\"60\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"276\" y=\"564\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"306\" y1=\"571.2\" x2=\"306\" y2=\"616.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"339.36\" y=\"591.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"603.20\" y=\"243.20\" width=\"72\" height=\"48\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"600\" y=\"240\" width=\"72\" height=\"48\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"636\" y1=\"245.76\" x2=\"636\" y2=\"282.24\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"639.36\" y=\"291.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"711.20\" y=\"219.20\" width=\"72\" height=\"72\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"708\" y=\"216\" width=\"72\" height=\"72\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"744\" y1=\"224.64\" x2=\"744\" y2=\"279.36\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"747.36\" y=\"291.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"601.60\" y=\"361.60\" width=\"60\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"600\" y=\"360\" width=\"60\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"630\" y1=\"367.2\" x2=\"630\" y2=\"412.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"627.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"663.20\" y=\"363.20\" width=\"48\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"660\" y=\"360\" width=\"48\" height=\"60\" fill=\"#c98f4f\" stroke=\"#9d703e\" stroke-width=\"1.5\"/>\n<line x1=\"665.76\" y1=\"390\" x2=\"702.24\" y2=\"390\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<line x1=\"684\" y1=\"365.76\" x2=\"684\" y2=\"414.24\" stroke=\"#9d703e\" stroke-width=\"1.2\"/>\n<rect x=\"687.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#9d703e\" rx=\"1\"/>\n<rect x=\"747.20\" y=\"363.20\" width=\"72\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"744\" y=\"360\" width=\"72\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"780\" y1=\"367.2\" x2=\"780\" y2=\"412.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"783.36\" y=\"351.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"411.20\" y=\"507.20\" width=\"72\" height=\"60\" fill=\"#000000\" opacity=\"0.112\"/>\n<rect x=\"408\" y=\"504\" width=\"72\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"444\" y1=\"511.2\" x2=\"444\" y2=\"556.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"399.36\" y=\"531.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<rect x=\"409.60\" y=\"565.60\" width=\"72\" height=\"60\" fill=\"#000000\" opacity=\"0.056\"/>\n<rect x=\"408\" y=\"564\" width=\"72\" height=\"60\" fill=\"#d9a15b\" stroke=\"#a97e47\" stroke-width=\"1.5\"/>\n<line x1=\"444\" y1=\"571.2\" x2=\"444\" y2=\"616.8\" stroke=\"#a97e47\" stroke-width=\"1.2\"/>\n<rect x=\"399.36\" y=\"591.36\" width=\"5.28\" height=\"5.28\" fill=\"#a97e47\" rx=\"1\"/>\n<circle cx=\"342\" cy=\"66\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"66\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"138\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"138\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"210\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"210\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"282\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"282\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"426\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"426\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"498\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"498\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"342\" cy=\"570\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"402\" cy=\"570\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"66\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"66\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"138\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"138\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"210\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"210\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"282\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"282\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"354\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"354\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"426\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"426\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"498\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"498\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"570\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"570\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"642\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"642\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"714\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"714\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"786\" cy=\"294\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"786\" cy=\"354\" r=\"1.92\" fill=\"#f2c14e\"/>\n<circle cx=\"174\" cy=\"90\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"174\" cy=\"90\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"282\" cy=\"450\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"282\" cy=\"450\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"822\" cy=\"162\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"822\" cy=\"162\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"54\" cy=\"66\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"54\" cy=\"66\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"42\" cy=\"606\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"42\" cy=\"606\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"102\" cy=\"570\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"102\" cy=\"570\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"606\" cy=\"42\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"606\" cy=\"42\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"750\" cy=\"42\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"750\" cy=\"42\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"570\" cy=\"498\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"570\" cy=\"498\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"822\" cy=\"618\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"822\" cy=\"618\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"714\" cy=\"186\" r=\"7.4399999999999995\" fill=\"#4c563e\" opacity=\"0.35\"/>\n<circle cx=\"714\" cy=\"186\" r=\"5.4\" fill=\"#404934\"/>\n<circle cx=\"750\" cy=\"210\" r=\"1.44\" fill=\"#e07aa8\"/>\n<circle cx=\"438\" cy=\"246\" r=\"6\" fill=\"#8a8f98\" stroke=\"#5f646d\" stroke-width=\"1.4\"/>\n<circle cx=\"438\" cy=\"246\" r=\"2.64\" fill=\"#3f6f8f\"/>\n<circle cx=\"438\" cy=\"222\" r=\"1.44\" fill=\"#e07aa8\"/>\n<circle cx=\"438\" cy=\"270\" r=\"1.44\" fill=\"#e07aa8\"/>\n<circle cx=\"414\" cy=\"246\" r=\"1.44\" fill=\"#e07aa8\"/>\n<circle cx=\"462\" cy=\"246\" r=\"1.44\" fill=\"#e07aa8\"/>\n<rect x=\"192\" y=\"446.4\" width=\"12\" height=\"7.199999999999999\" fill=\"#8b5e3c\"/>\n<circle cx=\"486\" cy=\"258\" r=\"7.2\" fill=\"#e0c14a\" opacity=\"0.28\"/>\n<circle cx=\"486\" cy=\"258\" r=\"7.2\" fill=\"none\" stroke=\"#e0c14a\" stroke-width=\"1.2\"/>\n<circle cx=\"342\" cy=\"102\" r=\"7.2\" fill=\"#8f7bd8\" opacity=\"0.28\"/>\n<circle cx=\"342\" cy=\"102\" r=\"7.2\" fill=\"none\" stroke=\"#8f7bd8\" stroke-width=\"1.2\"/>\n<circle cx=\"342\" cy=\"102\" r=\"10.8\" fill=\"#3b9dd8\" opacity=\"0.28\"/>\n<circle cx=\"342\" cy=\"102\" r=\"10.8\" fill=\"none\" stroke=\"#3b9dd8\" stroke-width=\"1.2\"/>\n<circle cx=\"222\" cy=\"294\" r=\"7.2\" fill=\"#4aa9c9\" opacity=\"0.28\"/>\n<circle cx=\"222\" cy=\"294\" r=\"7.2\" fill=\"none\" stroke=\"#4aa9c9\" stroke-width=\"1.2\"/>\n<circle cx=\"378\" cy=\"630\" r=\"6.6000000000000005\" fill=\"none\" stroke=\"#2f9e5f\" stroke-width=\"2\"/>\n<circle cx=\"378\" cy=\"630\" r=\"1.92\" fill=\"#2f9e5f\"/>\n<circle cx=\"822\" cy=\"330\" r=\"6.6000000000000005\" fill=\"none\" stroke=\"#c94f4f\" stroke-width=\"2\"/>\n<circle cx=\"822\" cy=\"330\" r=\"1.92\" fill=\"#c94f4f\"/>\n<circle cx=\"438\" cy=\"246\" r=\"6.6000000000000005\" fill=\"none\" stroke=\"#3b7dd8\" stroke-width=\"2\"/>\n<circle cx=\"438\" cy=\"246\" r=\"1.92\" fill=\"#3b7dd8\"/>\n</svg>",
+  "traceId": "scene-2026-11-28T11-35-23-584Z-1m4crx",
+  "attempts": 1
+}

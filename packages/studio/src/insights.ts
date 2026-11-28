@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { scenesDir, type StoredScene } from './scenes.js';
+import { readStoredScenes, type StoredScene } from './scenes.js';
 
 /**
  * badcase 看板的数据层。
@@ -66,20 +66,8 @@ export function normalizeUnmet(text: string): string {
     .toLowerCase();
 }
 
-function readStored(root: string): StoredScene[] {
-  const dir = scenesDir(root);
-  if (!existsSync(dir)) return [];
-  const scenes: StoredScene[] = [];
-  for (const file of readdirSync(dir)) {
-    if (!file.endsWith('.json') || file === 'traces.jsonl') continue;
-    try {
-      scenes.push(JSON.parse(readFileSync(join(dir, file), 'utf8')) as StoredScene);
-    } catch {
-      // 坏文件跳过：一个手改坏了的 json 不该让整个看板空掉
-    }
-  }
-  return scenes.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-}
+/** 场景库现在在 game/scenes/<id>/scene.json，读取逻辑统一放在 scenes.ts。 */
+const readStored = readStoredScenes;
 
 function sampleOf(scene: StoredScene, raw: string[]): InsightSample {
   return {

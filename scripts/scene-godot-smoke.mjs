@@ -147,6 +147,67 @@ for (const scene of cases) {
   }
 }
 
+// 场景必须属于项目：再走一遍"嵌进已有工程"的路径。
+// 独立工程能跑不等于项目里能跑——资源前缀、res:// 解析、工程里的 autoload 都是另一套。
+{
+  const projectRoot = join(outRoot, 'in-project');
+  const id = 'embedded-scene';
+  mkdirSync(projectRoot, { recursive: true });
+  writeFileSync(
+    join(projectRoot, 'project.godot'),
+    ['config_version=5', '', '[application]', 'config/name="embedded-project"', ''].join('\n'),
+    'utf8',
+  );
+  const spec = { ...cases[0], name: id, kitId: kit.id, tileSize: 32, decor: 0.5 };
+  const { layout, validation } = buildSceneWithTrace(spec, kit);
+  const sceneRoot = join(projectRoot, 'game', 'scenes', id);
+  exportGodotScene(layout, sceneRoot, {
+    kit,
+    resRoot: `game/scenes/${id}`,
+    flat: true,
+    writeProject: false,
+  });
+
+  const problems = [];
+  if (!validation.pass) problems.push('layout gates failed');
+  if (!existsSync(join(sceneRoot, 'scene.tscn'))) problems.push('scene.tscn missing');
+  // 平铺 + 自己的 res:// 前缀，别再把资源指到 res://scene/ 去
+  const tscn = readFileSync(join(sceneRoot, 'scene.tscn'), 'utf8');
+  if (!tscn.includes(`res://game/scenes/${id}/tiles.tres`)) problems.push('tiles path not embedded');
+
+  let engineLine = 'engine=skipped';
+  if (hasEngine) {
+    spawnSync(bin, ['--headless', '--path', projectRoot, '--import'], { cwd: projectRoot, encoding: 'utf8' });
+    const run = spawnSync(bin, ['--headless', '--path', projectRoot, `res://game/scenes/${id}/scene.tscn`], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+    });
+    const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
+    writeFileSync(join(projectRoot, 'godot-run.log'), output, 'utf8');
+
+    const read = (name) => {
+      const match = output.match(new RegExp(`${name}=(\\d+)`));
+      return match ? Number(match[1]) : -1;
+    };
+    if (!output.includes('GAMEDREAM_SCENE_OK=1')) problems.push('scene did not run inside the project');
+    if (read('GAMEDREAM_SCENE_BUILDINGS') !== layout.buildings.length) problems.push('buildings mismatch in project');
+    if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing in project');
+    if (read('GAMEDREAM_NAV_REACHED') !== layout.buildings.length) problems.push('nav unreachable in project');
+    // 日志里不该有 ERROR：导航首帧的假报错会让人以为场景有问题
+    if (/^ERROR:/m.test(output)) problems.push('engine reported errors');
+    engineLine = `buildings=${read('GAMEDREAM_SCENE_BUILDINGS')} nav=${read('GAMEDREAM_NAV_REACHED')}`
+      + `/${read('GAMEDREAM_NAV_TOTAL')} tiles=${read('GAMEDREAM_TILES_GROUND')}`
+      + ` interactions=${read('GAMEDREAM_SCENE_INTERACTIONS')}`;
+  }
+
+  if (problems.length > 0) {
+    failures += 1;
+    console.log(`SCENE_GODOT_FAIL=in-project: ${problems.join('; ')}`);
+  } else {
+    console.log(`SCENE_GODOT_OK=in-project ${engineLine} res=res://game/scenes/${id}/scene.tscn`);
+  }
+}
+
 if (!hasEngine) {
   console.log('GODOT_SCENE_SKIP=1');
   console.log(`reason=GODOT_BIN not set; ${cases.length} projects exported and structurally checked in ${outRoot}`);

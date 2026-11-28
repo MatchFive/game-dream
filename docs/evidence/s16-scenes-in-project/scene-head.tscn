@@ -1,0 +1,20 @@
+[gd_scene load_steps=25 format=3]
+
+[ext_resource type="Script" path="res://game/scenes/riverside-fishing-village-20261128113523/scene_check.gd" id="1_script"]
+[ext_resource type="TileSet" path="res://game/scenes/riverside-fishing-village-20261128113523/tiles.tres" id="2_tileset"]
+[ext_resource type="PackedScene" path="res://game/scenes/riverside-fishing-village-20261128113523/prefabs/chapel.tscn" id="prefab_chapel"]
+[ext_resource type="PackedScene" path="res://game/scenes/riverside-fishing-village-20261128113523/prefabs/tavern.tscn" id="prefab_tavern"]
+[ext_resource type="PackedScene" path="res://game/scenes/riverside-fishing-village-20261128113523/prefabs/dock-house.tscn" id="prefab_dock-house"]
+[ext_resource type="PackedScene" path="res://game/scenes/riverside-fishing-village-20261128113523/prefabs/house-long.tscn" id="prefab_house-long"]
+[ext_resource type="PackedScene" path="res://game/scenes/riverside-fishing-village-20261128113523/prefabs/house-small.tscn" id="prefab_house-small"]
+
+[sub_resource type="RectangleShape2D" id="shape_0"]
+size = Vector2(64, 96)
+[sub_resource type="RectangleShape2D" id="shape_1"]
+size = Vector2(128, 144)
+[sub_resource type="RectangleShape2D" id="shape_2"]
+size = Vector2(96, 96)
+[sub_resource type="RectangleShape2D" id="shape_3"]
+size = Vector2(112, 96)
+[sub_resource type="RectangleShape2D" id="shape_4"]
+size = Vector2(128, 80)

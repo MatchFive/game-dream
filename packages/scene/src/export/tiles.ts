@@ -338,10 +338,14 @@ function drawPropIcon(kind: PropKind, palette: SceneLayout['palette']): Buffer {
 }
 
 /** TileSet 资源：一张 atlas + 每种地形一个瓦片。 */
-export function tileSetResource(layout: SceneLayout, atlas: TileAtlas): string {
+export function tileSetResource(
+  layout: SceneLayout,
+  atlas: TileAtlas,
+  textureRes = 'res://scene/tiles.png',
+): string {
   const lines: string[] = [];
   lines.push('[gd_resource type="TileSet" load_steps=3 format=3]', '');
-  lines.push('[ext_resource type="Texture2D" path="res://scene/tiles.png" id="1_tiles"]', '');
+  lines.push(`[ext_resource type="Texture2D" path="${textureRes}" id="1_tiles"]`, '');
   lines.push('[sub_resource type="TileSetAtlasSource" id="tileset_source"]');
   lines.push('texture = ExtResource("1_tiles")');
   lines.push(`texture_region_size = Vector2i(${atlas.tileSize}, ${atlas.tileSize})`);
