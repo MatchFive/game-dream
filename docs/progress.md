@@ -42,6 +42,7 @@ pnpm typecheck / build              9 包通过
 pnpm test                           436 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
+CI scene-export job                 有引擎跑真机加载；无引擎仍导出六工程做结构核对并写明 skip
   海岸 / 城墙 / 三级台阶            walls=22、cliffs=28 碰撞体与 layout 逐项相等
   地形 / 道路 / 道具三层             道具 84/99/37/97/113/91 格，与 layout.props 相等
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
@@ -77,10 +78,10 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 
 1. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
    地形/墙/台阶已经在引擎无关层（`SceneLayout`）里表达完整，第二个出口可以直接吃同一份 layout。
-2. **Q1 导出回归进 CI** —— 这次地形改动把 `scene-godot-smoke` 从 3 个场景扩到 6 个
-   （墙/崖碰撞体数、nav 可达率都在里面），该进 CI 了。
-3. **S7 高度与天际线** —— 台阶已经存在（`elevation`），但楼层高度还是随机；
-   `elevation` 只解决"地面上下的差"，不解决"楼多高"。
+   **阻塞**：本机没有 Unity 安装（`/c/Program Files` 下无 `Unity`，settings 里 `unityBin` 为空），
+   只能写代码不能真机验收——按"不为看起来完成补 mock"的约定，先不硬做。
+2. **S7 高度与天际线** —— 台阶已经存在（`elevation`），但楼层数还是按种子随机；
+   `elevation` 只解决"地面高差"，不解决"楼多高、街谷多深"。
 
 ## 4. 待做需求
 
@@ -91,7 +92,6 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | 一半用户进不来；同一份 layout 只能出 Godot | Unity EditorVerifier 打开导出工程；建筑数/Marker 数与 layout 一致；NavMesh 采样到每个门 < 0.5m | 地形/墙/台阶已在 layout 层就绪 | L |
-| Q1 | 场景导出进 CI（`test-scene` job） | prefab/tilemap/`.tscn` 语法一变，线上才炸 | CI 有 Godot 时跑 `scene-godot-smoke`，无引擎时显式 skip + 报告 | `GODOT_BIN` 或 CI 下载 | S |
 | T1 | 真实 tileset 替换程序瓦片 | 地面仍是配色块，接不了美术 | `scene/tiles.png` 换成带过渡/边角的 tileset 后工程可直接用；kit 声明 tile 映射；三示例截图对比 | 美术资源 | M |
 
 ### P1 · 明显提升价值

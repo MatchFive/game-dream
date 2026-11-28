@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// 场景 → Godot 导出冒烟：导出三个示例场景，用真实引擎加载，核对节点数量。
-// 需要 GODOT_BIN；缺引擎时打印 SKIP 并退出 0（加 --require 则退出 3）。
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+// 场景 → Godot 导出回归：导出六个示例场景，能用真引擎就用真引擎加载并核对节点、
+// 瓦片、墙体、道具、导航可达性。
+//
+// 没有引擎时**不是什么都不做**：仍然把六个工程导出来，并核对布局闸门、文件结构、
+// 碰撞体数量（这些不需要引擎）。然后显式打印 SKIP + 原因，退出 0。
+// 加 --require 则把"没有引擎"当失败（退出 3），供确定要跑引擎的 CI job 使用。
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,10 +16,11 @@ const outRoot = resolve(root, 'dist/scene-godot-smoke');
 const requireEngine = process.argv.includes('--require');
 
 const bin = process.env.GODOT_BIN;
-if (!bin || !existsSync(bin)) {
+const hasEngine = Boolean(bin && existsSync(bin));
+if (!hasEngine && requireEngine) {
   console.log('GODOT_SCENE_SKIP=1');
-  console.log('reason=GODOT_BIN not set');
-  process.exit(requireEngine ? 3 : 0);
+  console.log('reason=GODOT_BIN not set or missing (--require: skipped engine is a failure)');
+  process.exit(3);
 }
 
 const kit = loadKit(join(root, 'packages/scene/kits/village-euro.json'));
@@ -38,61 +43,87 @@ for (const scene of cases) {
   const spec = { ...scene, name: scene.id, kitId: kit.id, tileSize: 32, decor: 0.5 };
   const { layout, validation } = buildSceneWithTrace(spec, kit);
   const dir = join(outRoot, scene.id);
-  exportGodotScene(layout, dir);
+  const exported = exportGodotScene(layout, dir);
+  const tscn = readFileSync(join(dir, 'scene', 'scene.tscn'), 'utf8');
+  const tiles = exported.summary.tiles;
 
-  // Godot 需要先导入资源（生成 .import），否则 Texture2D 加载失败
-  spawnSync(bin, ['--headless', '--path', dir, '--import'], { cwd: dir, encoding: 'utf8' });
-  const run = spawnSync(bin, ['--headless', '--path', dir], { cwd: dir, encoding: 'utf8' });
-  const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
-  writeFileSync(join(dir, 'godot-run.log'), output, 'utf8');
-
-  const read = (name) => {
-    const match = output.match(new RegExp(`${name}=(\\d+)`));
-    return match ? Number(match[1]) : -1;
-  };
-  const buildings = read('GAMEDREAM_SCENE_BUILDINGS');
-  const entrances = read('GAMEDREAM_SCENE_ENTRANCES');
-  const anchors = read('GAMEDREAM_SCENE_ANCHORS');
-  const tilesGround = read('GAMEDREAM_TILES_GROUND');
-  const tilesRoads = read('GAMEDREAM_TILES_ROADS');
-  const tilesProps = read('GAMEDREAM_TILES_PROPS');
-  const navTotal = read('GAMEDREAM_NAV_TOTAL');
-  const navReached = read('GAMEDREAM_NAV_REACHED');
-  const townWalls = read('GAMEDREAM_SCENE_WALLS');
-  const cliffs = read('GAMEDREAM_SCENE_CLIFFS');
-  const ok = output.includes('GAMEDREAM_SCENE_OK=1');
-
-  const expected = layout.buildings.length;
   const problems = [];
-  if (!ok) problems.push('scene script did not report OK');
-  if (buildings !== expected) problems.push(`buildings ${buildings} != ${expected}`);
-  if (entrances !== expected) problems.push(`entrances ${entrances} != ${expected}`);
-  if (anchors !== layout.anchors.length) problems.push(`anchors ${anchors} != ${layout.anchors.length}`);
-  if (!validation.pass) problems.push('layout gates failed');
-  if (navTotal !== expected) problems.push(`nav targets ${navTotal} != ${expected}`);
-  if (navReached !== expected) problems.push(`nav unreachable ${expected - navReached}`);
-  // 墙与崖必须真的进了场景：数量对不上说明导出丢了静态碰撞体，
-  // 玩家会在城里"隔空卡住"——这种错只会被引擎发现，布局校验看不见
-  if (townWalls !== layout.walls.length) problems.push(`wall bodies ${townWalls} != ${layout.walls.length}`);
-  if (cliffs !== layout.cliffs.length) problems.push(`cliff bodies ${cliffs} != ${layout.cliffs.length}`);
-  // 瓦片层：地形层必须铺满整张图，道路层必须有格子，atlas 必须挂上
-  const cells = layout.bounds.width * layout.bounds.height;
-  if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
-  if (tilesRoads <= 0) problems.push('road tiles missing');
-  // 道具必须真的落进引擎：之前它们只存在于预览 SVG 里，导出的城是空的
-  if (tilesProps !== layout.props.length) problems.push(`prop tiles ${tilesProps} != ${layout.props.length}`);
-  if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
+  if (!validation.pass) problems.push(`layout gates failed: ${validation.issues.map((i) => i.code).join(',')}`);
+  // 结构断言不需要引擎：文件在不在、图层数、碰撞体数、格子数与 layout 对不对得上
+  for (const file of ['project.godot', 'scene/scene.tscn', 'scene/tiles.png', 'scene/tiles.tres', 'scene/layout.json']) {
+    if (!existsSync(join(dir, file))) problems.push(`missing ${file}`);
+  }
+  const layers = (tscn.match(/type="TileMapLayer"/g) ?? []).length;
+  const expectedLayers = tiles.propCells > 0 ? 3 : 2;
+  if (layers !== expectedLayers) problems.push(`tile layers ${layers} != ${expectedLayers}`);
+  if (tiles.cells !== layout.bounds.width * layout.bounds.height) problems.push('ground cells != bounds');
+  if (tiles.roadCells <= 0) problems.push('road tiles missing');
+  if (tiles.propCells !== layout.props.length) problems.push(`prop cells ${tiles.propCells} != ${layout.props.length}`);
+  if ((tscn.match(/parent="TownWalls"/g) ?? []).length !== layout.walls.length) problems.push('wall bodies != layout.walls');
+  if ((tscn.match(/parent="Cliffs"/g) ?? []).length !== layout.cliffs.length) problems.push('cliff bodies != layout.cliffs');
+  if ((tscn.match(/instance=ExtResource\("prefab_/g) ?? []).length !== layout.buildings.length) {
+    problems.push('prefab instances != layout.buildings');
+  }
+
+  let engineLine = 'engine=skipped';
+  if (hasEngine) {
+    // Godot 需要先导入资源（生成 .import），否则 Texture2D 加载失败
+    spawnSync(bin, ['--headless', '--path', dir, '--import'], { cwd: dir, encoding: 'utf8' });
+    const run = spawnSync(bin, ['--headless', '--path', dir], { cwd: dir, encoding: 'utf8' });
+    const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
+    writeFileSync(join(dir, 'godot-run.log'), output, 'utf8');
+
+    const read = (name) => {
+      const match = output.match(new RegExp(`${name}=(\\d+)`));
+      return match ? Number(match[1]) : -1;
+    };
+    const buildings = read('GAMEDREAM_SCENE_BUILDINGS');
+    const entrances = read('GAMEDREAM_SCENE_ENTRANCES');
+    const anchors = read('GAMEDREAM_SCENE_ANCHORS');
+    const tilesGround = read('GAMEDREAM_TILES_GROUND');
+    const tilesRoads = read('GAMEDREAM_TILES_ROADS');
+    const tilesProps = read('GAMEDREAM_TILES_PROPS');
+    const navTotal = read('GAMEDREAM_NAV_TOTAL');
+    const navReached = read('GAMEDREAM_NAV_REACHED');
+    const townWalls = read('GAMEDREAM_SCENE_WALLS');
+    const cliffs = read('GAMEDREAM_SCENE_CLIFFS');
+    const ok = output.includes('GAMEDREAM_SCENE_OK=1');
+
+    const expected = layout.buildings.length;
+    if (!ok) problems.push('scene script did not report OK');
+    if (buildings !== expected) problems.push(`buildings ${buildings} != ${expected}`);
+    if (entrances !== expected) problems.push(`entrances ${entrances} != ${expected}`);
+    if (anchors !== layout.anchors.length) problems.push(`anchors ${anchors} != ${layout.anchors.length}`);
+    if (navTotal !== expected) problems.push(`nav targets ${navTotal} != ${expected}`);
+    if (navReached !== expected) problems.push(`nav unreachable ${expected - navReached}`);
+    if (townWalls !== layout.walls.length) problems.push(`wall bodies ${townWalls} != ${layout.walls.length}`);
+    if (cliffs !== layout.cliffs.length) problems.push(`cliff bodies ${cliffs} != ${layout.cliffs.length}`);
+    const cells = layout.bounds.width * layout.bounds.height;
+    if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
+    if (tilesRoads <= 0) problems.push('road tiles missing (engine)');
+    if (tilesProps !== layout.props.length) problems.push(`prop tiles ${tilesProps} != ${layout.props.length}`);
+    if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
+
+    engineLine = `buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal}`
+      + ` anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps}`
+      + ` walls=${townWalls} cliffs=${cliffs}`
+      + ` spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`;
+  }
 
   if (problems.length > 0) {
     failures += 1;
     console.log(`SCENE_GODOT_FAIL=${scene.id}: ${problems.join('; ')}`);
   } else {
-    console.log(
-      `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal} `
-      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps} walls=${townWalls} cliffs=${cliffs} `
-      + `spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
-    );
+    const structural = `layout=${layout.buildings.length}b/${layout.walls.length}w/${layout.cliffs.length}c`
+      + `/${layout.props.length}p tiles=${tiles.cells}/${tiles.roadCells}/${tiles.propCells}`;
+    console.log(`SCENE_GODOT_OK=${scene.id} ${engineLine} ${hasEngine ? '' : structural}`.trim());
   }
+}
+
+if (!hasEngine) {
+  console.log('GODOT_SCENE_SKIP=1');
+  console.log(`reason=GODOT_BIN not set; ${cases.length} projects exported and structurally checked in ${outRoot}`);
+  console.log('hint=set GODOT_BIN=<godot> to also load them in a real engine');
 }
 
 console.log(failures === 0 ? 'GODOT_SCENE_OK=1' : 'GODOT_SCENE_OK=0');

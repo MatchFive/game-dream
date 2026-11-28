@@ -132,6 +132,59 @@ jobs:
           path: dist/godot-export/build
           if-no-files-found: error
 
+  # 场景导出的回归：prefab / tilemap / 城墙 / 崖 / 道具的结构一变，线上才炸就太晚了。
+  # 引擎可用时真机加载六个工程并核对节点数与导航可达；引擎装不上时**不静默通过**——
+  # 仍然导出六个工程、做结构核对（图层数 / 碰撞体数 / 格子数 / 布局闸门），
+  # 并在 job summary 里写明"真机加载已跳过"。--require 只在确定有引擎的分支里用。
+  scene-export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install Godot 4.4.1 (optional)
+        id: godot
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p .tools/godot
+          curl -L --fail --retry 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -o /tmp/godot.zip -d .tools/godot
+          chmod +x .tools/godot/Godot_v4.4.1-stable_linux.x86_64
+          echo "bin=${GITHUB_WORKSPACE}/.tools/godot/Godot_v4.4.1-stable_linux.x86_64" >> "$GITHUB_OUTPUT"
+      - name: Scene export regression (real engine)
+        if: steps.godot.outputs.bin != ''
+        env:
+          GODOT_BIN: ${{ steps.godot.outputs.bin }}
+        run: |
+          echo "### 场景导出回归：真机加载" >> "$GITHUB_STEP_SUMMARY"
+          pnpm smoke:scene-godot -- --require
+      - name: Scene export regression (engine skipped, structure only)
+        if: steps.godot.outputs.bin == ''
+        run: |
+          {
+            echo "### 场景导出回归：引擎不可用，真机加载已跳过"
+            echo ""
+            echo "六个工程仍然被导出并做了结构核对（图层数 / 碰撞体数 / 格子数 / 布局闸门），"
+            echo "但没有在真实 Godot 里加载——**这不是通过，是跳过**。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          pnpm smoke:scene-godot
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gamedream-scene-export
+          path: dist/scene-godot-smoke
+          if-no-files-found: warn
+
   godot-mcp:
     runs-on: ubuntu-24.04
     steps:
