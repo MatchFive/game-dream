@@ -1,7 +1,27 @@
 # 项目进度表
 
-> 基线：`master@ebe467c`（2026-11-28）· 本表是「现在该做什么」的一页视图
+> 基线：`master`（2026-11-28）· 本表是「现在该做什么」的一页视图
 > 完整历史、验收细节与证据在 [`roadmap.md`](roadmap.md)；ID 与 roadmap 共用，不重复定义。
+
+## 0. 硬约束（不可协商）
+
+**所有涉及游戏本身的实现——玩法、关卡、场景、模板脚本、美术、游戏侧测试——只能由项目
+内置 agent 执行。** 外部编码 agent（WorkBuddy、Claude Code、Copilot 等）只能走三条通道：
+
+| 通道 | 做法 | 产物 |
+| --- | --- | --- |
+| 改项目代码 | 直接改 `packages/**`、`scripts/**`、`docs/**` | 工具能力 |
+| 发需求 | `dream request new --title ... --prompt ... --accept ...` | `requests/<id>.json` |
+| 调项目 agent | `dream request run <id> --out <dir>` / `dream develop ...` | 游戏实现 + 运行记录 |
+
+禁止：直接写 `templates/**`、`modules/**`、`skills/**`、`fixtures/contracts/**`；
+往 `.gamedream/**`、`game/build-assets/**` 放美术/音频/场景；手写 `.tscn` / `.unity` /
+`.gd` / `.cs` 到仓库。
+
+判定：`pnpm check:boundaries`（CI 必跑）。规则全文见 [`boundaries.md`](boundaries.md)，
+给编码 agent 的速查版见 [`../AGENTS.md`](../AGENTS.md)。
+
+> 写**生成器**（导出器里拼 `.tscn` 的代码）合法；写**产物**（手搓一个 `.tscn`）不合法。
 
 ## 1. 一页进度
 
@@ -39,9 +59,11 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 
 ## 3. 当前焦点
 
-1. **D1 用真模型跑量** —— 管道齐了但没有真实样本，S6 无从谈起，也看不见模型的真实失败分布。
-2. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
-3. **Q1 导出回归进 CI** —— prefab/tilemap 结构刚改完，没有 CI 兜底，下次改动会悄悄坏。
+1. **T0 美术生产收进项目入口** —— 第 0 节的规则刚生效，`scripts/scene-art-ai.mjs` 还是
+   "编码 agent 手工产出美术"的老路径，必须命令化后由项目侧调用。
+2. **D1 用真模型跑量** —— 管道齐了但没有真实样本，S6 无从谈起，也看不见模型的真实失败分布。
+3. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
+4. **Q1 导出回归进 CI** —— prefab/tilemap 结构刚改完，没有 CI 兜底，下次改动会悄悄坏。
 
 ## 4. 待做需求
 
@@ -55,6 +77,7 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 | D1 | 真模型批量跑量（50–100 条 prompt） | 没有真实 trace，训练与提示词优化都是空谈 | `--provider auto` 产出 ≥100 条 trace；输出通过率、失败分布、`standalone/attachedShare` 分布 | MiniMax 已配 | S |
 | Q1 | 场景导出进 CI（`test-scene` job） | prefab/tilemap/`.tscn` 语法一变，线上才炸 | CI 有 Godot 时跑 `scene-godot-smoke`，无引擎时显式 skip + 报告 | `GODOT_BIN` 或 CI 下载 | S |
 | T1 | 真实 tileset 替换程序瓦片 | 地面仍是配色块，接不了美术 | `scene/tiles.png` 换成带过渡/边角的 tileset 后工程可直接用；kit 声明 tile 映射；三示例截图对比 | 美术资源 | M |
+| T0 | 美术生产收进项目入口（`dream scene art`） | 现在靠 `scripts/scene-art-ai.mjs` 手工跑，属于"编码 agent 直接产出美术"，违反第 0 节 | 命令化：读 kit → 逐 prefab 调 ComfyUI → 裁剪 → 落 art 目录 + manifest；只由项目 agent 或 CLI 调用；脚本标记为内部实现 | `packages/scene` | S |
 
 ### P1 · 明显提升价值
 

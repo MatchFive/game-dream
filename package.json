@@ -11,6 +11,7 @@
     "build": "corepack pnpm -r build",
     "start": "node scripts/start.mjs",
     "test": "vitest run",
+    "check:boundaries": "node scripts/check-boundaries.mjs --run",
     "test:agent": "vitest run packages/cli/test/develop.test.ts packages/studio/test/agent.test.ts packages/studio/test/asset-agent.test.ts",
     "smoke:agent": "node scripts/studio-agent-smoke.mjs",
     "smoke:godot": "node scripts/godot-runtime-smoke.mjs",

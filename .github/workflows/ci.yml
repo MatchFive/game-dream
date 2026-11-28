@@ -24,6 +24,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Boundary check (external agents must not write game content)
+        run: pnpm check:boundaries
       - name: MCP client smoke (fixture)
         run: |
           node scripts/mcp-scene-smoke.mjs \

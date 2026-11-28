@@ -11,6 +11,14 @@ import {
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { sceneBuildCommand, sceneDatasetCommand } from './commands/scene.js';
+import {
+  formatRequestList,
+  requestList,
+  requestNew,
+  requestRun,
+  requestSet,
+  requestShow,
+} from './commands/request.js';
 import { composeCommand } from './commands/compose.js';
 import {
   createCommand,
@@ -1213,6 +1221,163 @@ export function createProgram(): Command {
       },
     );
 
+
+
+  // 需求通道：外部 agent 不直接改游戏实现，只写需求 + 调用项目 agent
+  const requestCommand = program
+    .command('request')
+    .description('Ask the project agent to change game content (see docs/boundaries.md)');
+
+  requestCommand
+    .command('new')
+    .description('Write a request for the project agent')
+    .requiredOption('--title <text>', 'short title')
+    .requiredOption('--prompt <text>', 'what should change')
+    .option('--id <slug>', 'request id (default: slugified title)')
+    .option('--skill <name>', 'development skill to use')
+    .option('--accept <text...>', 'acceptance criteria (repeatable)')
+    .option('--constraint <text...>', 'hard constraints (repeatable)')
+    .option('--by <name>', 'who is asking', 'coding-agent')
+    .option('--dir <dir>', 'requests directory', 'requests')
+    .option('--json', 'print JSON')
+    .action((options: {
+      title: string;
+      prompt: string;
+      id?: string;
+      skill?: string;
+      accept?: string[];
+      constraint?: string[];
+      by: string;
+      dir: string;
+      json?: boolean;
+    }) => {
+      try {
+        const { file, request } = requestNew({
+          dir: options.dir,
+          id: options.id,
+          title: options.title,
+          prompt: options.prompt,
+          skill: options.skill,
+          acceptance: options.accept,
+          constraints: options.constraint,
+          createdBy: options.by,
+        });
+        if (options.json) printJson({ file, request });
+        else printLine(`created ${file}`);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  requestCommand
+    .command('list')
+    .description('List requests')
+    .option('--dir <dir>', 'requests directory', 'requests')
+    .option('--json', 'print JSON')
+    .action((options: { dir: string; json?: boolean }) => {
+      try {
+        if (options.json) printJson({ requests: requestList(options.dir) });
+        else for (const line of formatRequestList(requestList(options.dir))) printLine(line);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  requestCommand
+    .command('show <id>')
+    .description('Show one request and the prompt it produces')
+    .option('--dir <dir>', 'requests directory', 'requests')
+    .option('--json', 'print JSON')
+    .action((id: string, options: { dir: string; json?: boolean }) => {
+      try {
+        const request = requestShow(options.dir, id);
+        if (options.json) printJson({ request });
+        else {
+          printLine(`${request.id}  ${request.status}  ${request.title}`);
+          printLine(`by ${request.createdBy} at ${request.createdAt}`);
+          printLine('---');
+          printLine(request.prompt);
+          if (request.acceptance.length > 0) {
+            printLine('--- acceptance');
+            for (const item of request.acceptance) printLine(`- ${item}`);
+          }
+          if (request.constraints.length > 0) {
+            printLine('--- constraints');
+            for (const item of request.constraints) printLine(`- ${item}`);
+          }
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  requestCommand
+    .command('set <id>')
+    .description('Update request status (done requires a run id)')
+    .option('--status <status>', 'open | running | done | rejected')
+    .option('--run <id>', 'run id that fulfilled it')
+    .option('--notes <text>')
+    .option('--dir <dir>', 'requests directory', 'requests')
+    .option('--json', 'print JSON')
+    .action((id: string, options: { status?: string; run?: string; notes?: string; dir: string; json?: boolean }) => {
+      try {
+        const request = requestSet(options.dir, id, {
+          status: options.status as never,
+          runId: options.run,
+          notes: options.notes,
+        });
+        if (options.json) printJson({ request });
+        else printLine(`${request.id} -> ${request.status}${request.runId ? ` run=${request.runId}` : ''}`);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  requestCommand
+    .command('run <id>')
+    .description('Hand the request to the project agent')
+    .requiredOption('--out <dir>', 'output directory for the game')
+    .option('--dir <dir>', 'requests directory', 'requests')
+    .option('--skills <dirs>', 'skill roots, comma-separated', 'skills')
+    .option('--provider <kind>', 'auto | fake | openai', 'fake')
+    .option('--max-steps <count>', 'maximum tool steps', '12')
+    .option('--visual', 'run G6 screenshot gate')
+    .option('--allow-missing-engine', 'run tools even when no engine is installed')
+    .action(async (id: string, options: {
+      out: string;
+      dir: string;
+      skills: string;
+      provider: string;
+      maxSteps: string;
+      visual?: boolean;
+      allowMissingEngine?: boolean;
+    }) => {
+      try {
+        const { request, report } = await requestRun(id, {
+          dir: options.dir,
+          outDir: options.out,
+          skills: options.skills,
+          provider: options.provider,
+          maxSteps: parseIntegerOption(options.maxSteps, '--max-steps', 1),
+          visual: options.visual,
+          allowMissingEngine: options.allowMissingEngine,
+        });
+        printLine(`${request.id}: finished=${report.finished ?? 'n/a'}`);
+        printLine('verify the acceptance criteria, then: dream request set ' + request.id + ' --status done --run ' + request.id);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
 
   const sceneCommand = program
     .command('scene')

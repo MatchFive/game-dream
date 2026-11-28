@@ -329,6 +329,7 @@ corepack pnpm release:accept \
 ## Documentation
 
 - [Architecture and technical choices](docs/architecture.md)
+- [Boundaries: who may write game content](docs/boundaries.md) — coding agents touch tools, not games
 - [Project progress board](docs/progress.md) — what to build next, with value and acceptance
 - [Development roadmap and backlog](docs/roadmap.md) — full history and criteria
 - [Design spec](docs/superpowers/specs/2026-11-12-gamedream-design.md)
