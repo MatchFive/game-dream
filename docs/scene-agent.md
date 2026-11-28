@@ -268,16 +268,31 @@ footprint 等比拉伸，所以同一张图能用于该 prefab 的所有尺寸�
 
 ### AI 生成（ComfyUI）
 
-`node scripts/scene-art-ai.mjs` 用 Studio 设置里配置的 ComfyUI 工作流，为每个 prefab
-生成一张正俯视屋顶图，落到同一个 art 目录，并在 `ai-manifest.json` 里记录每张图的
-prompt、seed、模型与裁剪后尺寸 —— 素材本身也可追溯。
+```bash
+dream scene art \
+  --kit packages/scene/kits/village-euro.json \
+  --art <project>/.gamedream/studio/art \
+  --workflow <api-format-workflow.json> \
+  --comfy http://127.0.0.1:8000 \
+  [--only house-small,chapel] [--seed 7] [--no-transparent]
+```
 
-prompt 的要点：`strict orthographic top-down`、`only the roof is visible`、
-`transparent background`、`no walls, no ground shadow`。少了"top-down"会得到 3/4 视角
-的等距房子，塞进平面足迹会明显溢出。
+这是项目能力（`packages/scene/src/art-gen.ts`），不是一次性脚本：CLI、项目 agent、
+Studio 调的是同一份实现。按 [`boundaries.md`](boundaries.md)，美术属于游戏实现，
+只能由项目侧产出——编码 agent 不能手工跑脚本再把图当交付。
 
-生成后按 alpha 裁掉透明边距：模型习惯把主体画在画面中央，四周留大量空白，直接缩放
-会让建筑比格子小一圈。
+流程：读 kit → 逐 prefab 拼提示词 → 提交 ComfyUI → 等出图 → **注入透明分支** →
+按 alpha 裁边 → 落盘 + `art-manifest.json`（提示词、尺寸、字节数全记下来）。
+
+三处细节都踩过：
+
+1. **透明不是模型给的，是后处理给的。** 工作流本身出的是白底图；`applyTransparency`
+   按图结构接到 Save 节点的输入源上，加 `RemoveBackground → InvertMask →
+   JoinImageWithAlpha` 这条支路，不依赖固定节点 id。需要 ComfyUI 装了 `birefnet`。
+2. **提示词要写"高位 3/4 视角"**（`high three-quarter angle`、`roof dominant`、
+   `front wall visible`）。写死"top-down"会得到一块像贴纸的屋顶，写"tileset"
+   会得到一整座城镇平面。
+3. **必须裁掉透明边距**。模型把主体画在中央、四周留大量空白，不裁的话建筑比格子小一圈。
 
 ### 风格锚与两种贴图模式
 

@@ -11,7 +11,8 @@
   "dependencies": {
     "zod": "^3.23.8",
     "@gamedream/core": "workspace:*",
-    "@gamedream/agent": "workspace:*"
+    "@gamedream/agent": "workspace:*",
+    "pngjs": "^7.0.0"
   },
   "devDependencies": {
     "@gamedream/testing": "workspace:*"

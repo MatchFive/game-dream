@@ -101,7 +101,9 @@ dream request run boss-room --out dist/demo --provider auto
 2. 外部 agent 往产物目录（`.gamedream/**`、`game/build-assets/**`、导出工程）放文件
 3. 仓库里出现**手写的** `.tscn` / `.unity` / `.tres` / `.gd` / `.cs` / `project.godot`，
    且不在允许根目录内
-4. 需求被标 `done` 但没有对应的运行记录
+4. 把 `dream scene art` 之类的能力当"手工出图"的捷径（美术属于游戏实现，
+   要经需求通道交给项目 agent）
+5. 需求被标 `done` 但没有对应的运行记录
 5. 为了让检查通过而删除/放宽检查本身
 
 ## 5. 自动检查

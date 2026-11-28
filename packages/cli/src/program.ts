@@ -11,6 +11,7 @@ import {
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { sceneBuildCommand, sceneDatasetCommand } from './commands/scene.js';
+import { sceneArtCommand } from './commands/scene-art.js';
 import {
   formatRequestList,
   requestList,
@@ -1458,6 +1459,66 @@ export function createProgram(): Command {
       }
     });
 
+
+
+  sceneCommand
+    .command('art')
+    .description('Generate building artwork for a kit through ComfyUI')
+    .requiredOption('--kit <path>', 'kit JSON')
+    .requiredOption('--art <dir>', 'artwork root (writes <dir>/<kitId>/<prefab>.png)')
+    .requiredOption('--workflow <file>', 'ComfyUI API-format workflow JSON')
+    .option('--comfy <url>', 'ComfyUI base URL', 'http://127.0.0.1:8000')
+    .option('--only <ids>', 'comma-separated prefab ids')
+    .option('--seed <n>', 'fixed seed', (value) => Number(value))
+    .option('--prompt-node <bindings>', 'override prompt injection, <node>:<input>, comma-separated')
+    .option('--output-node <node>', 'override the Save* node id')
+    .option('--no-transparent', 'skip the background-removal branch (art keeps its background)')
+    .option('--json', 'print JSON')
+    .action(async (options: {
+      kit: string;
+      art: string;
+      workflow: string;
+      comfy: string;
+      only?: string;
+      seed?: number;
+      promptNode?: string;
+      outputNode?: string;
+      transparent?: boolean;
+      json?: boolean;
+    }) => {
+      try {
+        const manifest = await sceneArtCommand({
+          kitPath: options.kit,
+          artDir: options.art,
+          workflowPath: options.workflow,
+          comfyUrl: options.comfy,
+          only: options.only?.split(',').map((value) => value.trim()).filter(Boolean),
+          seed: options.seed,
+          promptNodes: options.promptNode?.split(',').map((value) => value.trim()).filter(Boolean),
+          outputNode: options.outputNode,
+          transparent: options.transparent !== false,
+          onProgress: (event) => {
+            if (options.json) return;
+            if (event.entry) {
+              const entry = event.entry as { prefab: string; bytes: number; trimmed?: { width: number; height: number } };
+              const size = entry.trimmed ? `${entry.trimmed.width}x${entry.trimmed.height}` : 'no-trim';
+              printLine(`  ${entry.prefab.padEnd(14)} ${String(entry.bytes).padStart(8)}B ${size}`);
+            } else {
+              printLine(`[${event.index + 1}/${event.total}] ${event.prefab}`);
+            }
+          },
+        });
+        if (options.json) printJson(manifest);
+        else {
+          printLine(`\n${manifest.entries.length} artwork files -> ${options.art}/${manifest.kitId}`);
+          printLine(`manifest: ${options.art}/${manifest.kitId}.art-manifest.json`);
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
 
   sceneCommand
     .command('dataset')

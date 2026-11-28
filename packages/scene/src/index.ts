@@ -13,6 +13,24 @@ export { buildScene, type SceneBuildResult } from './layout.js';
 export { validateScene, pointInKind, type SceneValidation, type SceneIssue } from './validate.js';
 export { renderSceneSvg } from './render.js';
 export {
+  artPromptFor,
+  applyTransparency,
+  applyWorkflow,
+  detectWorkflow,
+  downloadImage,
+  generateKitArtwork,
+  runComfy,
+  trimTransparent,
+  TRANSPARENT_SUFFIX,
+  type ArtManifest,
+  type ArtManifestEntry,
+  type ArtWorkflow,
+  type ComfyClient,
+  type GenerateKitArtworkOptions,
+  type WorkflowBinding,
+  type WorkflowGraph,
+} from './art-gen.js';
+export {
   prefabsInUse,
   renderPrefabArtwork,
   writeKitArtwork,

@@ -1,0 +1,10 @@
+{
+ "kitId": "village-euro",
+ "workflow": "image_qwen_image_2_1_t2i.json",
+ "prefab": "house-small",
+ "bytes": 826181,
+ "trimmed": {
+  "width": 827,
+  "height": 780
+ }
+}
