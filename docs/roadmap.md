@@ -183,6 +183,7 @@
 | S2.7 | 需求覆盖：`spec.unmet[]` + 提示词禁止静默替换 + 统计聚类 + Studio/CLI 展示；重跑同批 19/25 声明了做不到的需求 | Done |
 | S13 | 地形与边界表达力：`water: coast`（起伏岸线 + 沙岸）、`walls`（贴建成区成环、路口自动开门、`TownWalls` 碰撞体）、`elevation`（按 `step` 切台阶、错开 ±1 格走等高线、路穿崖处变坡道、`Cliffs` 碰撞体）；瓦片新增 `sand/rock/wall`；新闸门 `sealed-walls`。真引擎六场景 nav 全通（墙/崖碰撞体数与 layout 一致）；五条相关需求真模型重跑 5/5 过闸门，其中三条 unmet 归零 | Done |
 | Q1 | 场景导出进 CI：新增 `scene-export` job，`scripts/scene-godot-smoke.mjs` 支持"无引擎"分支（仍导出六工程 + 结构核对 + 显式 skip 与 job summary），确定有引擎时用 `--require` 跑真机加载 | Done |
+| T2c | Studio 素材库页（`/library`）：类型/语义/图集过滤 + 缩略图网格 + 详情，选中与筛选进 URL；`GET /api/library`、`/api/library/thumb/<sheet>/<n>.png`（现场裁图）、`POST /api/library/prefab` 人工改写建议并落盘；素材库路径失效显式提示 | Done |
 | T2 | 素材理解与索引：`dream scene assets index/find/apply`——连通域切片 + 带编号拼版 + 视觉模型逐块分类（kind/label/tags/prefab/tileable），产出 `art-index.json`；`apply` 按形态匹配（宽高比）给 prefab 配立绘，挑不到留空。顺手修掉 `spec.kitId` 被静默忽略（按欧式建中式场景） | Done（1 张图集 / 88 精灵） |
 | T1 | 真 tileset 接入：导出器支持外部瓦片（`tiles/<terrain>.png`、`props/<kind>.png`），`dream scene tiles import` 按选取表从素材库切瓦片（A2 单元内部找可平铺窗口、面积平均降采样），内置 `village-cn` 套件；外部素材库 216 张图集、96px 单元 | Done（部分：只接了 1 个主题） |
 | S17 | CLI 也有「建进项目」出口：`dream scene build --project <root>`（目录名取 `spec.id`，`--id` 指定，`--replace` 复用并清掉上一版生成的 prefabs/art/tiles），与 Studio 调同一组 `buildScene`/`exportScene`；修掉 `exportGodotScene` 在 flat 模式往场景目录写 `project.godot` 的 bug（改由 `ensureGodotProject` 补工程根）；冒烟第七用例改走产品路径 | Done |

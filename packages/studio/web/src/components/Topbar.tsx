@@ -27,6 +27,7 @@ export function Topbar({ crumb, actions }: TopbarProps) {
         </NavLink>
         <NavLink to="/assets">{t('studio.assets')}</NavLink>
         <NavLink to="/scenes">{t('studio.scenes')}</NavLink>
+        <NavLink to="/library">{t('studio.library')}</NavLink>
         <NavLink to="/settings">{t('studio.settings')}</NavLink>
       </nav>
       <div className="top-actions">

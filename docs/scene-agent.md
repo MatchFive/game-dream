@@ -181,6 +181,11 @@ dream scene assets find --index art-index.json --kind terrain --tileable
 dream scene assets apply --index art-index.json --source <素材库> --out .gamedream/studio/art --kit village-cn
 ```
 
+**浏览与纠错**：索引建好之后，Studio 顶栏「素材库」（`/library`）能看缩略图、
+按类型/语义/图集过滤、点开看原图坐标；右侧的 prefab 下拉可以改模型给错的建议
+（模型会把十几块都建议成 `market-hall`，人一眼能看出哪块该是客栈）。
+改完再跑一次 `scene assets apply` 就会落到美术目录。
+
 **为什么默认是 `--project` 而不是 `--out`**：场景是游戏的资产，不是旁边的一个演示工程。
 `--project` 与 Studio 的导出按钮调同一组函数（`studio/src/scenes.ts`），两条产品路径不会漂移；
 `--out` 留着只是方便单独打开检查。

@@ -55,6 +55,17 @@ export {
   studioEnv,
   type StudioSettings,
 } from './settings.js';
+export {
+  libraryIndexPath,
+  librarySprites,
+  libraryState,
+  libraryThumbnail,
+  loadLibrary,
+  setSpritePrefab,
+  type LibrarySpriteView,
+  type LibraryState,
+  type LibrarySummary,
+} from './library.js';
 export { ComfyRunner } from './comfyui.js';
 export { generateSfx, sfxTypeFromPrompt, type SfxOptions, type SfxResult, type SfxType } from './sfx.js';
 export {

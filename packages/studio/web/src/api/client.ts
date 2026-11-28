@@ -1,6 +1,8 @@
 import type {
   AgentBatch,
   BadcaseExport,
+  LibraryResponse,
+  LibrarySprite,
   SceneInsights,
   SceneSummary,
   StoredScene,
@@ -105,6 +107,17 @@ export const api = {
     ),
   scenes: () => request<{ scenes: SceneSummary[] }>('/api/scenes'),
   sceneInsights: () => request<{ insights: SceneInsights }>('/api/scenes/insights'),
+  library: (query: { kind?: string; text?: string; prefab?: string; sheet?: string; tileable?: boolean; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === '' || value === false) continue;
+      params.set(key, value === true ? '1' : String(value));
+    }
+    const suffix = params.toString();
+    return request<LibraryResponse>(`/api/library${suffix ? `?${suffix}` : ''}`);
+  },
+  setSpritePrefab: (body: { sheet: string; index: number; prefab: string | null }) =>
+    post<{ sprite: LibrarySprite }>('/api/library/prefab', body),
   exportBadcase: (body: { kind: 'issue' | 'unmet'; key: string }) =>
     post<{ export: BadcaseExport }>('/api/scenes/insights/export', body),
   scene: (id: string) => request<{ scene: StoredScene }>(`/api/scenes/${id}`),

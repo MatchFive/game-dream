@@ -3,6 +3,7 @@ import { Sprite } from './components/Sprite';
 import { AssetsPage } from './pages/AssetsPage';
 import { MissionPage } from './pages/MissionPage';
 import { InsightsPage } from './pages/InsightsPage';
+import { LibraryPage } from './pages/LibraryPage';
 import { ScenesPage } from './pages/ScenesPage';
 import { SettingsPage } from './pages/SettingsPage';
 
@@ -15,6 +16,7 @@ export function App() {
         <Route path="/assets" element={<AssetsPage />} />
         <Route path="/scenes" element={<ScenesPage />} />
         <Route path="/scenes/insights" element={<InsightsPage />} />
+        <Route path="/library" element={<LibraryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

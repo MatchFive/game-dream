@@ -223,3 +223,43 @@ export interface BadcaseExport {
   kind: 'issue' | 'unmet';
   key: string;
 }
+
+export interface LibrarySummary {
+  model: string;
+  createdAt: string;
+  source: string;
+  sheets: number;
+  sprites: number;
+  kinds: Record<string, number>;
+  prefabs: Record<string, number>;
+  tileable: number;
+}
+
+export interface LibraryState {
+  ready: boolean;
+  indexPath: string;
+  /** 索引指向的素材库还在不在（换机器/移盘会失效） */
+  sourceExists: boolean;
+  summary?: LibrarySummary;
+}
+
+export interface LibrarySprite {
+  id: string;
+  sheet: string;
+  index: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind: string;
+  label: string;
+  tags: string[];
+  prefab: string | null;
+  tileable: boolean;
+  thumb: string;
+}
+
+export interface LibraryResponse {
+  library: LibraryState;
+  sprites: LibrarySprite[];
+}

@@ -23,6 +23,12 @@ import { detectEngine } from './project.js';
 import { artDir, buildScene, ensureArtwork, exportScene, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
 import { exportBadcase, sceneInsights } from './insights.js';
 import {
+  librarySprites,
+  libraryState,
+  libraryThumbnail,
+  setSpritePrefab,
+} from './library.js';
+import {
   assertTrustedMutation,
   HttpSecurityError,
   isImageRelativePath,
@@ -489,7 +495,8 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         return;
       }
       const SPA_ROUTES = new Set([
-        '/', '/assets', '/assets/', '/scenes', '/scenes/', '/scenes/insights', '/scenes/insights/',
+        '/', '/assets', '/assets/', '/library', '/library/',
+        '/scenes', '/scenes/', '/scenes/insights', '/scenes/insights/',
         '/settings', '/settings/', '/studio',
       ]);
       const relativePath = SPA_ROUTES.has(pathname)
@@ -1378,6 +1385,61 @@ async function handleApi(
       const body = (await readJson(request)) as { kitId?: unknown };
       const kit = resolveKit({ kitId: typeof body.kitId === 'string' ? body.kitId : undefined });
       json(response, 200, { artwork: ensureArtwork(root, kit) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
+    return;
+  }
+
+  // 素材库：索引由 `dream scene assets index` 写进 .gamedream/studio/art-index.json
+  if (method === 'GET' && pathname === '/api/library') {
+    const params = new URL(request.url ?? '/', 'http://localhost').searchParams;
+    const state = libraryState(root);
+    if (!state.ready) {
+      json(response, 200, { library: state, sprites: [] });
+      return;
+    }
+    const limit = Number(params.get('limit') ?? '240');
+    json(response, 200, {
+      library: state,
+      sprites: librarySprites(root, {
+        kind: params.get('kind') ?? undefined,
+        text: params.get('text') ?? undefined,
+        prefab: params.get('prefab') ?? undefined,
+        sheet: params.get('sheet') ?? undefined,
+        tileable: params.get('tileable') === '1' ? true : undefined,
+        limit: Number.isFinite(limit) ? limit : 240,
+      }),
+    });
+    return;
+  }
+
+  const libraryThumbMatch = pathname.match(/^\/api\/library\/thumb\/([^/]+)\/(\d+)\.png$/);
+  if (method === 'GET' && libraryThumbMatch) {
+    const png = libraryThumbnail(root, decodeURIComponent(libraryThumbMatch[1]), Number(libraryThumbMatch[2]));
+    if (!png) {
+      json(response, 404, { error: 'sprite not found' });
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=3600' });
+    response.end(png);
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/library/prefab') {
+    try {
+      const body = (await readJson(request)) as { sheet?: unknown; index?: unknown; prefab?: unknown };
+      if (typeof body.sheet !== 'string' || typeof body.index !== 'number') {
+        json(response, 400, { error: 'sheet (string) and index (number) are required' });
+        return;
+      }
+      const prefab = typeof body.prefab === 'string' && body.prefab.trim() ? body.prefab.trim() : null;
+      const result = setSpritePrefab(root, { sheet: body.sheet, index: body.index, prefab });
+      if (!result.ok) {
+        json(response, 404, { error: 'sprite not found' });
+        return;
+      }
+      json(response, 200, { sprite: result.sprite });
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }
