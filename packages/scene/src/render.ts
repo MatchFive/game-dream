@@ -47,9 +47,12 @@ export function renderSceneSvg(
 
   for (const road of layout.roads) {
     const points = road.points.map(([x, y]) => `${x * t},${y * t}`).join(' ');
+    // 巷道用平头：圆头会朝两端多画半条路，看起来像戳进邻居家
+    const cap = road.kind === 'alley' ? 'butt' : 'round';
     parts.push(
-      `<polyline points="${points}" fill="none" stroke="${layout.palette.road}" stroke-width="${road.width * t}" stroke-linecap="round" stroke-linejoin="round"/>`,
+      `<polyline points="${points}" fill="none" stroke="${layout.palette.road}" stroke-width="${road.width * t}" stroke-linecap="${cap}" stroke-linejoin="round"/>`,
     );
+    if (road.kind === 'alley') continue;
     parts.push(
       `<polyline points="${points}" fill="none" stroke="${shade(layout.palette.road, 0.25)}" stroke-width="${Math.max(1, t / 4)}" stroke-dasharray="${t} ${t * 1.4}" opacity="0.5"/>`,
     );

@@ -300,3 +300,49 @@ describe('billboard artwork', () => {
     expect(scene).toMatch(/offset = Vector2\(-[\d.]+, -[\d.]+\)/);
   });
 });
+
+describe('settlement structure', () => {
+  const town = { ...baseSpec, id: 'stonecross', kind: 'town' as const, bounds: { width: 120, height: 96 } };
+  const distanceTo = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+    Math.max(Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w), 0), Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h), 0));
+
+  it('lines houses up along the street instead of scattering them', () => {
+    const { layout, validation } = buildSceneWithTrace(town, kit);
+    const walls = layout.buildings.filter((building) => building.typology === 'street-wall');
+
+    // 大多数建筑应该贴街，而不是独立撒在地块中央
+    expect(walls.length / layout.buildings.length).toBeGreaterThan(0.6);
+    // 且相当一部分是共墙联排（不是一排独栋各留 2 格缝）
+    expect(validation.metrics.attachedShare).toBeGreaterThan(0.3);
+    expect(validation.metrics.standalone).toBe(0);
+    expect(validation.pass).toBe(true);
+  });
+
+  it('carves a back lane behind a deep row, and every door stays reachable', () => {
+    const { layout, validation } = buildSceneWithTrace(town, kit);
+    const lanes = layout.roads.filter((road) => road.id.startsWith('lane-'));
+    expect(lanes.length).toBeGreaterThan(2);
+    // 巷道切出来以后，后排的门必须仍然能从出生点走到
+    expect(validation.metrics.entranceCoverage).toBe(1);
+    expect(validation.issues).toEqual([]);
+  });
+
+  it('gives courtyard lots a yard behind the house', () => {
+    const { layout } = buildSceneWithTrace(town, kit);
+    const courtyards = layout.buildings.filter((building) => building.typology === 'courtyard');
+    expect(courtyards.length).toBeGreaterThan(0);
+    // 带院落的宅子不会把地块占满：同一块地里要有绿地
+    const yards = layout.lots.filter((lot) => lot.kind === 'green');
+    expect(yards.length).toBeGreaterThan(0);
+  });
+
+  it('places a required civic building within sight of the square', () => {
+    const { layout } = buildSceneWithTrace({ ...baseSpec, required: ['chapel', 'market-hall'] }, kit);
+    const plaza = layout.lots.find((lot) => lot.kind === 'plaza')?.rect;
+    expect(plaza).toBeDefined();
+    const civic = layout.buildings.filter(
+      (building) => building.role === 'civic' && distanceTo(building.rect, plaza as never) <= 5,
+    );
+    expect(civic.length).toBeGreaterThan(0);
+  });
+});

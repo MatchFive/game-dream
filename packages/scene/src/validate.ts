@@ -123,10 +123,43 @@ export function validateScene(
       .filter((lot) => lot.kind === kind)
       .reduce((sum, lot) => sum + lot.rect.w * lot.rect.h, 0);
 
+  // 形态：多少建筑是"贴街连排 / 带院落"，多少是"独立落地"。
+  // 这条指标用来判断聚落感——独立落地的比例高，说明求解器在撒房子而不是在排街。
+  const typologyCount = (kind: string) => layout.buildings.filter((building) => building.typology === kind).length;
+  const streetWall = typologyCount('street-wall');
+  const courtyards = typologyCount('courtyard');
+  const standalone = typologyCount('standalone');
+  const frontageShare = layout.buildings.length === 0
+    ? 0
+    : Number(((streetWall + courtyards) / layout.buildings.length).toFixed(3));
+
+  // 共墙（联排）：两栋建筑共享一段 ≥2 格的山墙。数值越高越像"沿街连排"，
+  // 全是 0 就说明还是独栋撒点。
+  let attached = 0;
+  for (let i = 0; i < layout.buildings.length; i += 1) {
+    const a = layout.buildings[i].rect;
+    const shares = layout.buildings.some((other, j) => {
+      if (i === j) return false;
+      const b = other.rect;
+      const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const touchingX = a.x + a.w === b.x || b.x + b.w === a.x;
+      const touchingY = a.y + a.h === b.y || b.y + b.h === a.y;
+      return (touchingX && overlapY >= 2) || (touchingY && overlapX >= 2);
+    });
+    if (shares) attached += 1;
+  }
+
   const metrics: Record<string, number> = {
     buildings: layout.buildings.length,
     props: layout.props.length,
     roads: layout.roads.length,
+    streetWall,
+    courtyards,
+    standalone,
+    frontageShare,
+    attached,
+    attachedShare: layout.buildings.length === 0 ? 0 : Number((attached / layout.buildings.length).toFixed(3)),
     density: Number(density.toFixed(3)),
     roadRatio: Number((countCells('road') / total).toFixed(3)),
     greenRatio: Number((countCells('green') / total).toFixed(3)),

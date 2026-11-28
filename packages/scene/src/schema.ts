@@ -93,6 +93,11 @@ export const buildingSchema = z.object({
   rect,
   /** 0=北 1=东 2=南 3=西，正门朝向 */
   facing: z.number().int().min(0).max(3),
+  /**
+   * 摆放方式，用于数据集的形态统计：
+   * street-wall 贴街连排 / courtyard 带院落 / standalone 独立落地
+   */
+  typology: z.enum(['street-wall', 'courtyard', 'standalone']).optional(),
   entrance: point,
   color: z.string(),
   roof: z.string(),
