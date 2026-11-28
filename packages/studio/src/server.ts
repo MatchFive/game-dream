@@ -21,6 +21,7 @@ import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
 import { artDir, buildScene, ensureArtwork, exportScene, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
+import { exportBadcase, sceneInsights } from './insights.js';
 import {
   assertTrustedMutation,
   HttpSecurityError,
@@ -487,7 +488,10 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
         response.end();
         return;
       }
-      const SPA_ROUTES = new Set(['/', '/assets', '/assets/', '/scenes', '/scenes/', '/settings', '/settings/', '/studio']);
+      const SPA_ROUTES = new Set([
+        '/', '/assets', '/assets/', '/scenes', '/scenes/', '/scenes/insights', '/scenes/insights/',
+        '/settings', '/settings/', '/studio',
+      ]);
       const relativePath = SPA_ROUTES.has(pathname)
         ? 'app/index.html'
         : pathname.replace(/^\/+/, '');
@@ -1382,6 +1386,28 @@ async function handleApi(
 
   if (method === 'GET' && pathname === '/api/scenes') {
     json(response, 200, { scenes: listScenes(root) });
+    return;
+  }
+
+  // badcase 看板：必须排在 /api/scenes/:id 与 /api/scenes/:id/export 之前，
+  // 否则 "insights" 会被当成一个场景 id
+  if (method === 'GET' && pathname === '/api/scenes/insights') {
+    json(response, 200, { insights: sceneInsights(root) });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/scenes/insights/export') {
+    try {
+      const body = (await readJson(request)) as { kind?: unknown; key?: unknown };
+      const kind = body.kind === 'unmet' ? 'unmet' : body.kind === 'issue' ? 'issue' : null;
+      if (!kind || typeof body.key !== 'string' || !body.key.trim()) {
+        json(response, 400, { error: 'kind (issue|unmet) and key are required' });
+        return;
+      }
+      json(response, 200, { export: exportBadcase(root, { kind, key: body.key.trim() }) });
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
     return;
   }
 

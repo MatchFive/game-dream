@@ -190,3 +190,36 @@ export interface StoredScene {
   attempts: number;
   review?: SceneReview;
 }
+
+export interface InsightSample {
+  id: string;
+  name: string;
+  createdAt: string;
+  buildings: number;
+  pass: boolean;
+  verdict?: 'good' | 'acceptable' | 'bad';
+  /** 命中该簇的原始措辞 */
+  raw: string[];
+}
+
+export interface InsightCluster {
+  kind: 'issue' | 'unmet';
+  key: string;
+  count: number;
+  bad: number;
+  variants: string[];
+  samples: InsightSample[];
+}
+
+export interface SceneInsights {
+  totals: { scenes: number; pass: number; fail: number; withUnmet: number; reviewed: number };
+  issues: InsightCluster[];
+  unmet: InsightCluster[];
+}
+
+export interface BadcaseExport {
+  file: string;
+  count: number;
+  kind: 'issue' | 'unmet';
+  key: string;
+}

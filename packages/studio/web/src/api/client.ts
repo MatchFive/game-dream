@@ -1,5 +1,7 @@
 import type {
   AgentBatch,
+  BadcaseExport,
+  SceneInsights,
   SceneSummary,
   StoredScene,
   AgentSnapshots,
@@ -102,6 +104,9 @@ export const api = {
       '/api/workflows',
     ),
   scenes: () => request<{ scenes: SceneSummary[] }>('/api/scenes'),
+  sceneInsights: () => request<{ insights: SceneInsights }>('/api/scenes/insights'),
+  exportBadcase: (body: { kind: 'issue' | 'unmet'; key: string }) =>
+    post<{ export: BadcaseExport }>('/api/scenes/insights/export', body),
   scene: (id: string) => request<{ scene: StoredScene }>(`/api/scenes/${id}`),
   buildScene: (body: { prompt?: string; spec?: unknown; kitId?: string; seed?: number; attempts?: number }) =>
     post<{ scene: StoredScene; finished: boolean; failure?: string }>('/api/scenes', body),
