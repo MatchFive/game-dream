@@ -1,0 +1,34 @@
+# 索引摘要（真模型 MiniMax-M3.1-Flash，一张图集 88 个精灵）
+
+kinds: building 31 · prop 22 · decoration 10 · gate 8 · terrain 8 · wall 4 · vehicle 3 · tree 2
+prefabs: market-hall 15 · tavern 7 · house-small 6 · house-long 3 · smithy 1
+
+## find --kind building --limit 10（按面积降序）
+Tang_Dynasty_Changan_Street_01.png#7       building        96x93   临街茶肆
+Tang_Dynasty_Changan_Street_01.png#27      building        93x94   两层商铺侧棚
+Tang_Dynasty_Changan_Street_01.png#31      building        93x94   两层灰瓦商铺
+Tang_Dynasty_Changan_Street_01.png#12      building        96x91   食铺摊位
+Tang_Dynasty_Changan_Street_01.png#25      building        92x94   两层橙瓦酒楼
+Tang_Dynasty_Changan_Street_01.png#26      building        92x94   两层圆窗宅院
+Tang_Dynasty_Changan_Street_01.png#29      building        92x94   两层灯笼酒肆
+Tang_Dynasty_Changan_Street_01.png#30      building        92x92   绿瓦两层茶馆
+Tang_Dynasty_Changan_Street_01.png#28      building        93x91   绿瓦两层民居
+Tang_Dynasty_Changan_Street_01.png#23      building        95x89   红灯笼酒肆
+
+## find --text 酒（语义检索）
+Tang_Dynasty_Changan_Street_01.png#25      building        92x94   两层橙瓦酒楼
+Tang_Dynasty_Changan_Street_01.png#29      building        92x94   两层灯笼酒肆
+Tang_Dynasty_Changan_Street_01.png#23      building        95x89   红灯笼酒肆
+Tang_Dynasty_Changan_Street_01.png#13      building        94x85   灯笼酒肆
+Tang_Dynasty_Changan_Street_01.png#53      prop            45x45   四只酒桶垛
+Tang_Dynasty_Changan_Street_01.png#60      prop            44x46   双酒桶
+
+## apply --kit village-cn（自动配立绘）
+house-small   ← Tang_Dynasty_Changan_Street_01.png#20 — 带木桶的民居
+house-long    ← Tang_Dynasty_Changan_Street_01.png#26 — 两层圆窗宅院
+smithy        ← Tang_Dynasty_Changan_Street_01.png#6 — 铁匠铺
+tavern        ← Tang_Dynasty_Changan_Street_01.png#7 — 临街茶肆
+market-hall   ← Tang_Dynasty_Changan_Street_01.png#27 — 两层商铺侧棚
+no artwork for: chapel, dock-house
+  F:\game-dream\dist\art-index\art\village-cn\house-small.png
+  F:\game-dream\dist\art-index\art\village-cn\house-long.png

@@ -48,6 +48,40 @@ export { SCENE_SYSTEM_PROMPT, runSceneAgent, extractJsonObject, type SceneAgentO
 export { exportGodotScene, type GodotExportOptions, type GodotExportResult } from './export/godot.js';
 export { loadTileSource, describeTileSource } from './export/tile-art.js';
 export {
+  sliceSheet,
+  cropSprite,
+  contactSheet,
+  decodePngImage,
+  encodePngImage,
+  type Png,
+  type Sprite,
+  type SliceOptions,
+} from './art/slice-sheet.js';
+export {
+  buildArtIndex,
+  findSprites,
+  indexStats,
+  pickPrefabArt,
+  writePrefabArt,
+  writeIndex,
+  readIndex,
+  type ArtIndex,
+  type ArtQuery,
+  type IndexedSprite,
+  type SheetIndex,
+  type PrefabArtPick,
+} from './art/index-db.js';
+export {
+  createOpenAIDescriber,
+  LABEL_SYSTEM_PROMPT,
+  labelPrompt,
+  parseLabelResponse,
+  spriteLabelSchema,
+  DEFAULT_BATCH,
+  type ImageDescriber,
+  type SpriteLabel,
+} from './art/describe.js';
+export {
   importTiles,
   bestWindow,
   resample,

@@ -167,6 +167,20 @@ dream scene build --prompt "长安街市，酒馆、集市、庙宇" --kit villa
 选取表只写"哪张图的哪一格当哪种地形"（`cell: [行, 列]` + `at: [x, y]` 锚点）。
 A2 图块的单元上半是 autotile 四角、**下半才是本体纹理**，所以 `at` 一般给 `[24, 72]`。
 
+**素材理解**：素材库是"一堆图集"，不是"一堆建筑"。所以要先把语义从图里读出来。
+
+```bash
+# 切片 + 让视觉模型认每一块（编好号的拼版 → 模型只回编号）
+dream scene assets index --source <素材库> --only <图集.png> --out art-index.json --kit village-cn
+
+# 按语义查："要一个酒馆" / "要能平铺的青砖地"
+dream scene assets find --index art-index.json --text 酒
+dream scene assets find --index art-index.json --kind terrain --tileable
+
+# 直接落成 kit 的立绘（模型没归类的 prefab 会留空，不会拿"最像的"凑）
+dream scene assets apply --index art-index.json --source <素材库> --out .gamedream/studio/art --kit village-cn
+```
+
 **为什么默认是 `--project` 而不是 `--out`**：场景是游戏的资产，不是旁边的一个演示工程。
 `--project` 与 Studio 的导出按钮调同一组函数（`studio/src/scenes.ts`），两条产品路径不会漂移；
 `--out` 留着只是方便单独打开检查。

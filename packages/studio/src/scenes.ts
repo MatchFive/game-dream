@@ -183,11 +183,24 @@ export function writeSceneIndex(root: string): string {
   return file;
 }
 
+/**
+ * 用哪个套件：显式 kitPath > 显式 kitId > **spec 里写的 kitId** > 默认欧式。
+ *
+ * spec.kitId 必须参与判断。以前只看 input.kitId/kitPath，于是
+ * `buildScene(root, { spec: 一个 kitId=village-cn 的 spec })` 会静默用欧式套件建场景——
+ * 求解器照跑、闸门照过，只是画风、尺寸、素材全错，而且没有任何报错。
+ */
 export function resolveKit(input: BuildSceneInput): Kit {
   if (input.kitPath) return loadKit(input.kitPath);
   if (input.kitId) {
     const builtin = findBuiltinKit(input.kitId);
     if (!builtin) throw new Error(`unknown kit: ${input.kitId}`);
+    return builtin;
+  }
+  const fromSpec = (input.spec as { kitId?: unknown } | undefined)?.kitId;
+  if (typeof fromSpec === 'string' && fromSpec.trim()) {
+    const builtin = findBuiltinKit(fromSpec);
+    if (!builtin) throw new Error(`unknown kit: ${fromSpec}`);
     return builtin;
   }
   return villageEuroKit;

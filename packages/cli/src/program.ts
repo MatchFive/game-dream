@@ -11,6 +11,12 @@ import {
 } from '@gamedream/godot';
 import { doctorCommand } from './commands/doctor.js';
 import { sceneBuildCommand, sceneDatasetCommand, sceneTilesImportCommand } from './commands/scene.js';
+import {
+  sceneAssetsApplyCommand,
+  sceneAssetsFindCommand,
+  sceneAssetsIndexCommand,
+  summarizeIndex,
+} from './commands/scene-assets.js';
 import { sceneArtCommand } from './commands/scene-art.js';
 import { sceneBatchCommand } from './commands/scene-batch.js';
 import {
@@ -1389,7 +1395,7 @@ export function createProgram(): Command {
     .command('build')
     .option('--prompt <text>', 'describe the settlement; the model writes the spec')
     .option('--spec <file>', 'build from a SceneSpec JSON instead of the model')
-    .option('--kit <path>', 'building kit JSON', 'packages/scene/kits/village-euro.json')
+    .option('--kit <path>', 'kit JSON or builtin kit id (default: the spec kitId, else village-euro)')
     .option('--out <dir>', 'standalone output directory (a self-contained engine project)')
     .option('--project <dir>', 'build into a game project: lands in <project>/game/scenes/<id>/')
     .option('--id <name>', 'scene folder name (default: the spec id, with a suffix if taken)')
@@ -1405,7 +1411,7 @@ export function createProgram(): Command {
     .action(async (options: {
       prompt?: string;
       spec?: string;
-      kit: string;
+      kit?: string;
       out?: string;
       project?: string;
       id?: string;
@@ -1512,6 +1518,148 @@ export function createProgram(): Command {
         printLine(`Kit: ${result.kitDir}`);
         printLine(`Terrains: ${result.terrains.join(', ') || '(none)'}`);
         printLine(`Props: ${result.props.join(', ') || '(none)'}`);
+        for (const file of result.files) printLine(`  ${file}`);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  const assetsCommand = sceneCommand
+    .command('assets')
+    .description('Let a vision model catalogue an art library so scenes can pick sprites by meaning');
+
+  assetsCommand
+    .command('index')
+    .description('Slice every sheet and ask a vision model what each sprite is')
+    .requiredOption('--source <dir>', 'art library root (one folder of sheets)')
+    .requiredOption('--out <file>', 'where to write the index JSON')
+    .option('--only <name...>', 'only these sheet file names')
+    .option('--limit <n>', 'only the first N sheets', (value) => Number(value))
+    .option('--batch <n>', 'sprites per model call', (value) => Number(value), 16)
+    .option('--kit <id>', 'restrict suggested prefabs to this kit')
+    .option('--workspace <dir>', 'read model settings from this project')
+    .option('--model <name>', 'override the vision model')
+    .option('--json', 'print JSON')
+    .action(async (options: {
+      source: string;
+      out: string;
+      only?: string[];
+      limit?: number;
+      batch: number;
+      kit?: string;
+      workspace?: string;
+      model?: string;
+      json?: boolean;
+    }) => {
+      try {
+        const result = await sceneAssetsIndexCommand({
+          source: options.source,
+          outPath: options.out,
+          only: options.only,
+          limit: options.limit,
+          batch: options.batch,
+          kitId: options.kit,
+          workspace: options.workspace,
+          model: options.model,
+          onProgress: (event) => {
+            if (options.json) return;
+            printLine(`${event.sheet} batch ${event.batch}/${event.batches} (${event.done}/${event.total} sprites)`);
+          },
+        });
+        if (options.json) {
+          printJson({ file: result.file, stats: result.stats, model: result.index.model });
+          return;
+        }
+        printLine(summarizeIndex(result.index));
+        printLine(`Index: ${result.file}`);
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  assetsCommand
+    .command('find')
+    .description('Query the index by kind, tag or prefab')
+    .requiredOption('--index <file>', 'index JSON written by `scene assets index`')
+    .option('--kind <kind>', 'building | building-part | wall | gate | terrain | prop | tree | vehicle | decoration')
+    .option('--text <text>', 'match label or tags')
+    .option('--prefab <id>', 'sprites the model assigned to this prefab')
+    .option('--tileable', 'only seamless terrain')
+    .option('--limit <n>', 'max results', (value) => Number(value), 20)
+    .option('--json', 'print JSON')
+    .action((options: {
+      index: string;
+      kind?: string;
+      text?: string;
+      prefab?: string;
+      tileable?: boolean;
+      limit: number;
+      json?: boolean;
+    }) => {
+      try {
+        const { sprites } = sceneAssetsFindCommand({
+          indexPath: options.index,
+          query: {
+            kind: options.kind,
+            text: options.text,
+            prefab: options.prefab,
+            tileable: options.tileable === true ? true : undefined,
+            limit: options.limit,
+          },
+        });
+        if (options.json) {
+          printJson({ sprites });
+          return;
+        }
+        if (sprites.length === 0) {
+          printLine('no sprites matched');
+          return;
+        }
+        for (const sprite of sprites) {
+          printLine(`${sprite.id.padEnd(42)} ${sprite.kind.padEnd(13)} ${String(sprite.w).padStart(4)}x${String(sprite.h).padEnd(4)} ${sprite.label}`);
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
+
+  assetsCommand
+    .command('apply')
+    .description('Write each prefab artwork from the index into the kit art dir')
+    .requiredOption('--index <file>', 'index JSON written by `scene assets index`')
+    .requiredOption('--source <dir>', 'art library root (to re-read the original sheets)')
+    .requiredOption('--out <dir>', 'art dir, usually <project>/.gamedream/studio/art')
+    .requiredOption('--kit <id>', 'kit whose prefabs should get artwork')
+    .option('--json', 'print JSON')
+    .action((options: { index: string; source: string; out: string; kit: string; json?: boolean }) => {
+      try {
+        const result = sceneAssetsApplyCommand({
+          indexPath: options.index,
+          source: options.source,
+          artDir: options.out,
+          kitId: options.kit,
+        });
+        if (options.json) {
+          printJson({
+            missing: result.missing,
+            picks: result.picks.map((pick) => ({ prefab: pick.prefab, sprite: pick.sprite.id, label: pick.sprite.label })),
+            files: result.files,
+          });
+          return;
+        }
+        for (const pick of result.picks) {
+          printLine(`${pick.prefab.padEnd(13)} ← ${pick.sprite.id} — ${pick.sprite.label}`);
+        }
+        if (result.missing.length > 0) {
+          // 宁可空着也不拿"最像的"凑：缺美术一眼能看出来，配错要浪费一整轮
+          printLine(`no artwork for: ${result.missing.join(', ')}`);
+        }
         for (const file of result.files) printLine(`  ${file}`);
       } catch (error) {
         const formatted = formatCliError(error);

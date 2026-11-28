@@ -21,7 +21,8 @@ import {
 export interface SceneBuildOptions {
   prompt?: string;
   specPath?: string;
-  kitPath: string;
+  /** 套件：内置 id 或 JSON 路径；不给就按 spec.kitId，再不行用欧式 */
+  kitPath?: string;
   /** 独立工程出口（`--out`）；给了 projectPath 时不需要 */
   outDir?: string;
   seed?: number;
@@ -128,13 +129,27 @@ async function sceneBuildIntoProject(options: SceneBuildOptions): Promise<SceneB
   };
 }
 
-function resolveKit(kitPath: string): Kit {
-  // 内置套件可以按 id 直接给：`--kit village-cn`，省得记路径
-  const builtin = findBuiltinKit(kitPath);
-  if (builtin) return builtin;
-  const path = resolve(kitPath);
-  if (!existsSync(path)) throw new Error(`kit not found: ${path}`);
-  return loadKit(path);
+/**
+ * 套件解析：显式 --kit（路径或内置 id）> spec 里写的 kitId > 默认欧式。
+ *
+ * spec.kitId 必须参与判断：`--spec 一个 kitId=village-cn 的 spec` 却按欧式建场景，
+ * 不会报错，只会画风、尺寸、素材全错。
+ */
+function resolveKit(kitPath: string | undefined, specKitId?: string): Kit {
+  if (kitPath) {
+    // 内置套件也可以按 id 直接给：`--kit village-cn`
+    const builtin = findBuiltinKit(kitPath);
+    if (builtin) return builtin;
+    const path = resolve(kitPath);
+    if (!existsSync(path)) throw new Error(`kit not found: ${path}`);
+    return loadKit(path);
+  }
+  if (specKitId) {
+    const builtin = findBuiltinKit(specKitId);
+    if (!builtin) throw new Error(`unknown kit: ${specKitId}`);
+    return builtin;
+  }
+  return resolveKit('packages/scene/kits/village-euro.json');
 }
 
 export interface SceneTilesImportOptions {
@@ -199,7 +214,6 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
   if (options.projectPath) return sceneBuildIntoProject(options);
   const outDir = options.outDir;
   if (!outDir) throw new Error('either --out (standalone engine project) or --project (into a game project) is required');
-  const kit = resolveKit(options.kitPath);
   let result: {
     layout: SceneLayout;
     validation: SceneValidation;
@@ -212,7 +226,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
 
   if (options.specPath) {
     const spec = parseSceneSpec(JSON.parse(readFileSync(options.specPath, 'utf8')));
-    const built = buildSceneWithTrace(spec, kit, { origin: 'manual' });
+    const built = buildSceneWithTrace(spec, resolveKit(options.kitPath, spec.kitId), { origin: 'manual' });
     if (options.traceFile) {
       const { appendTrace } = await import('@gamedream/scene');
       appendTrace(options.traceFile, built.trace);
@@ -227,6 +241,8 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
     };
   } else {
     if (!options.prompt?.trim()) throw new Error('either --prompt or --spec is required');
+    // 走模型时套件必须现在定下来：提示词里要告诉模型 kit 的 prefab 列表
+    const kit = resolveKit(options.kitPath);
     const env = options.env ?? process.env;
     const provider = options.providerImpl ?? createProvider({
       kind: options.provider ?? 'auto',
@@ -261,7 +277,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
     ? writeArtifacts(result.layout, outDir, {
       artDir: options.artDir,
       artStyle: options.artStyle,
-      kit: resolveKit(options.kitPath),
+      kit: resolveKit(options.kitPath, result.layout.kitId),
     })
     : [];
   return { ...result, files };
