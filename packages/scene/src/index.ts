@@ -10,6 +10,14 @@ export { builtinKits, findBuiltinKit, villageEuroKit } from './kits.js';
 export { Grid } from './grid.js';
 export { createRng, weightedPick } from './rng.js';
 export { buildScene, type SceneBuildResult } from './layout.js';
+export {
+  cliffLines,
+  elevationLevel,
+  type CliffPlan,
+  type CoastPlan,
+  type Side,
+  type WallPlan,
+} from './terrain.js';
 export { validateScene, pointInKind, type SceneValidation, type SceneIssue } from './validate.js';
 export { renderSceneSvg } from './render.js';
 export {

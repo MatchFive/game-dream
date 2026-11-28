@@ -14,6 +14,9 @@ export const villageEuroKit: Kit = {
     plaza: '#cdc3a8',
     water: '#8fb8cc',
     green: '#a8c08a',
+    sand: '#e6d9b4',
+    rock: '#726a5c',
+    wall: '#8b7f68',
   },
   prefabs: [
     {

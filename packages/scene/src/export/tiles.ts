@@ -2,13 +2,14 @@ import { encodePng } from '@gamedream/core';
 import type { SceneLayout } from '../schema.js';
 
 /**
- * 地形图层打散成瓦片：地面、草地、道路、广场、水面。
+ * 地形图层打散成瓦片：地面、草地、道路、广场、水面，以及 S13 新增的
+ * 沙滩（海岸线）、岩石（崖壁）、墙（城墙）。
  * 每种地形一到两个变体，按格子坐标确定性挑一个——同一张图不会出现"补丁感"，
  * 又不会因为纯色而显得像色块图。
  */
-export type Terrain = 'ground' | 'green' | 'road' | 'plaza' | 'water';
+export type Terrain = 'ground' | 'green' | 'road' | 'plaza' | 'water' | 'sand' | 'rock' | 'wall';
 
-export const TERRAINS: Terrain[] = ['ground', 'green', 'road', 'plaza', 'water'];
+export const TERRAINS: Terrain[] = ['ground', 'green', 'road', 'plaza', 'water', 'sand', 'rock', 'wall'];
 
 const VARIANTS: Record<Terrain, number> = {
   ground: 3,
@@ -16,6 +17,9 @@ const VARIANTS: Record<Terrain, number> = {
   road: 1,
   plaza: 1,
   water: 2,
+  sand: 2,
+  rock: 2,
+  wall: 1,
 };
 
 export interface TileAtlas {
@@ -35,6 +39,36 @@ const hexToRgb = (hex: string): [number, number, number] => {
     Number.parseInt(value.slice(4, 6), 16),
   ];
 };
+
+const rgbToHex = (rgb: [number, number, number]): string =>
+  `#${rgb.map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0')).join('')}`;
+
+/** 把 a 往 b 混合 t（0 = 全 a，1 = 全 b）。 */
+const mix = (a: string, b: string, t: number): string => {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  return rgbToHex([ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t]);
+};
+
+const darken = (hex: string, amount: number): string => mix(hex, '#000000', amount);
+
+/**
+ * 补齐新地形的颜色：kit 可以显式给 sand/rock/wall，没给就按既有色推。
+ * 这样老 kit 不用改也能导出海岸与城墙，不会因为缺颜色而崩。
+ */
+function resolvePalette(layout: SceneLayout): Record<Terrain, string> {
+  const palette = layout.palette;
+  return {
+    ground: palette.ground,
+    green: palette.green,
+    road: palette.road,
+    plaza: palette.plaza,
+    water: palette.water,
+    sand: palette.sand ?? mix(palette.ground, '#f2e7c9', 0.6),
+    rock: palette.rock ?? darken(palette.ground, 0.42),
+    wall: palette.wall ?? darken(palette.road, 0.4),
+  };
+}
 
 /** 确定性噪声：同一个格子每次导出都得到同一个偏移量。 */
 function hash(x: number, y: number, seed: number): number {
@@ -65,8 +99,10 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
     rgba[offset + 3] = 255;
   };
 
+  const palette = resolvePalette(layout);
+
   for (const terrain of TERRAINS) {
-    const base = hexToRgb(layout.palette[terrain]);
+    const base = hexToRgb(palette[terrain]);
     for (let variant = 0; variant < VARIANTS[terrain]; variant += 1) {
       const originX = (start[terrain] + variant) * tileSize;
       for (let y = 0; y < tileSize; y += 1) {
@@ -105,6 +141,27 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
             r += grain + seam;
             g += grain + seam;
             b += grain + seam;
+          } else if (terrain === 'sand') {
+            // 沙滩：细颗粒 + 零星的贝壳亮点，不画条带（条带看起来像地毯）
+            const shell = hash(x, y, 33) % 211 === 0 ? 26 : 0;
+            r += grain + shell;
+            g += grain + shell * 0.8;
+            b += grain + shell * 0.5;
+          } else if (terrain === 'rock') {
+            // 崖壁：暗底 + 斜向裂缝 + 顶沿一道亮边（俯视图里这道边就是"高差"）
+            const crack = (x + y * 3 + variant * 5) % 17 === 0 ? -22 : 0;
+            const rim = y <= 1 ? 18 : 0;
+            r += grain + crack + rim;
+            g += grain + crack + rim;
+            b += grain + crack + rim;
+          } else if (terrain === 'wall') {
+            // 城墙：错缝的石块，缝隙压暗
+            const row = Math.floor(y / 8);
+            const shifted = x + (row % 2 === 0 ? 0 : 4);
+            const mortar = y % 8 === 0 || shifted % 8 === 0 ? -30 : 0;
+            r += grain + mortar;
+            g += grain + mortar;
+            b += grain + mortar;
           } else {
             r += grain;
             g += grain;
@@ -185,6 +242,30 @@ export function buildTileLayers(layout: SceneLayout, atlas: TileAtlas): TileLaye
     }
   }
 
+  // 岸线：挨着水的陆地铺一格沙。河、塘、海共用同一条规则——
+  // 只要水边是"陆地色"，一眼就看得出这是岸，不会像水被裁了个直角。
+  const isWater = (x: number, y: number) => under[idx(x, y)] === 'water';
+  const sand: Array<[number, number]> = [];
+  for (let y = 0; y < H; y += 1) {
+    for (let x = 0; x < W; x += 1) {
+      if (under[idx(x, y)] === 'water') continue;
+      if (isWater(x - 1, y) || isWater(x + 1, y) || isWater(x, y - 1) || isWater(x, y + 1)) {
+        sand.push([x, y]);
+      }
+    }
+  }
+  for (const [x, y] of sand) setUnder(x, y, 'sand');
+
+  const paintRects = (segments: Array<{ rect: { x: number; y: number; w: number; h: number } }>, terrain: Terrain) => {
+    for (const { rect } of segments) {
+      for (let y = rect.y; y < rect.y + rect.h; y += 1) {
+        for (let x = rect.x; x < rect.x + rect.w; x += 1) setUnder(x, y, terrain);
+      }
+    }
+  };
+  paintRects(layout.walls, 'wall');
+  paintRects(layout.cliffs, 'rock');
+
   const markRoad = (x: number, y: number) => {
     if (x < 0 || y < 0 || x >= W || y >= H) return;
     roads.add(idx(x, y));
@@ -214,7 +295,16 @@ export function buildTileLayers(layout: SceneLayout, atlas: TileAtlas): TileLaye
     return atlas.start[terrain] + pick;
   };
 
-  const counts: Record<Terrain, number> = { ground: 0, green: 0, road: 0, plaza: 0, water: 0 };
+  const counts: Record<Terrain, number> = {
+    ground: 0,
+    green: 0,
+    road: 0,
+    plaza: 0,
+    water: 0,
+    sand: 0,
+    rock: 0,
+    wall: 0,
+  };
   const ground: TileCell[] = [];
   const roadCells: TileCell[] = [];
   for (let y = 0; y < H; y += 1) {

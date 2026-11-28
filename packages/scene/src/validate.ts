@@ -10,7 +10,8 @@ export interface SceneIssue {
     | 'no-buildings'
     | 'too-dense'
     | 'too-sparse'
-    | 'missing-required';
+    | 'missing-required'
+    | 'sealed-walls';
   detail: string;
 }
 
@@ -103,6 +104,12 @@ export function validateScene(
     issues.push({ code: 'no-buildings', detail: 'solver placed nothing' });
   }
 
+  // 城墙围死了没有门：城里出不去，等于把玩家关起来。
+  // 只有一路堵死时才会出现（四面都是建筑、没有路穿过墙），所以是真缺陷不是噪声。
+  if (layout.walls.length > 0 && layout.gates.length === 0) {
+    issues.push({ code: 'sealed-walls', detail: `${layout.walls.length} wall segments, 0 gates` });
+  }
+
   // 需求覆盖
   const placedPrefabs = new Set(layout.buildings.map((building) => building.prefab));
   const missing = spec.required.filter((prefab) => !placedPrefabs.has(prefab));
@@ -161,6 +168,14 @@ export function validateScene(
     attached,
     // 模型声明的"做不到"数量：不判失败，但要在指标里看得见
     unmet: (spec.unmet ?? []).length,
+    // 地形与边界：城墙段/门洞/崖线/坡道，以及建筑分布在第几级台阶上
+    walls: layout.walls.length,
+    gates: layout.gates.length,
+    cliffs: layout.cliffs.length,
+    ramps: layout.ramps.length,
+    terraces: layout.terraces.length,
+    coast: layout.coastSide === null ? 0 : 1,
+    elevationMax: layout.buildings.reduce((max, building) => Math.max(max, building.elevation), 0),
     attachedShare: layout.buildings.length === 0 ? 0 : Number((attached / layout.buildings.length).toFixed(3)),
     density: Number(density.toFixed(3)),
     roadRatio: Number((countCells('road') / total).toFixed(3)),

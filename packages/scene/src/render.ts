@@ -45,6 +45,20 @@ export function renderSceneSvg(
     );
   }
 
+  // 崖壁：深色横带 + 顶部一道亮边。俯视图里没有真实高差，只能靠"边缘光"表达。
+  const rock = shade(layout.palette.ground, 0.45);
+  for (const cliff of layout.cliffs) {
+    const isHorizontal = cliff.rect.w >= cliff.rect.h;
+    parts.push(
+      `<rect x="${cliff.rect.x * t}" y="${cliff.rect.y * t}" width="${cliff.rect.w * t}" height="${cliff.rect.h * t}" fill="${rock}"/>`,
+    );
+    parts.push(
+      isHorizontal
+        ? `<line x1="${cliff.rect.x * t}" y1="${cliff.rect.y * t + 1}" x2="${(cliff.rect.x + cliff.rect.w) * t}" y2="${cliff.rect.y * t + 1}" stroke="${shade(layout.palette.ground, 0.05)}" stroke-width="2" opacity="0.7"/>`
+        : `<line x1="${cliff.rect.x * t + 1}" y1="${cliff.rect.y * t}" x2="${cliff.rect.x * t + 1}" y2="${(cliff.rect.y + cliff.rect.h) * t}" stroke="${shade(layout.palette.ground, 0.05)}" stroke-width="2" opacity="0.7"/>`,
+    );
+  }
+
   for (const road of layout.roads) {
     const points = road.points.map(([x, y]) => `${x * t},${y * t}`).join(' ');
     // 巷道用平头：圆头会朝两端多画半条路，看起来像戳进邻居家
@@ -58,6 +72,21 @@ export function renderSceneSvg(
     );
   }
 
+  // 城墙：砌块色 + 深描边；门洞本来就是缺口，不用额外画
+  const wallColor = shade(layout.palette.road, 0.42);
+  for (const segment of layout.walls) {
+    parts.push(
+      `<rect x="${segment.rect.x * t}" y="${segment.rect.y * t}" width="${segment.rect.w * t}" height="${segment.rect.h * t}" fill="${wallColor}" stroke="${shade(layout.palette.road, 0.6)}" stroke-width="1"/>`,
+    );
+  }
+  for (const gate of layout.gates) {
+    const cx = gate.at[0] * t + t / 2;
+    const cy = gate.at[1] * t + t / 2;
+    parts.push(
+      `<rect x="${cx - (gate.width * t) / 2}" y="${cy - t * 0.18}" width="${gate.width * t}" height="${t * 0.36}" fill="${layout.palette.road}" opacity="0.9"/>`,
+    );
+  }
+
   for (const building of layout.buildings) {
     const x = building.rect.x * t;
     const y = building.rect.y * t;
@@ -65,6 +94,13 @@ export function renderSceneSvg(
     const h = building.rect.h * t;
     const roofShade = shade(building.color, 0.22);
     const inner = Math.max(2, Math.min(w, h) * 0.12);
+    // 高台上的房子往右下投一道影：平面图里唯一的"高度感"来源
+    if (building.elevation > 0) {
+      const drop = Math.min(6, building.elevation * 2);
+      parts.push(
+        `<rect x="${x + drop}" y="${y + drop}" width="${w}" height="${h}" fill="#000000" opacity="${(0.06 * building.elevation).toFixed(2)}"/>`,
+      );
+    }
     const art = options.art?.get(building.prefab);
     const artLink = options.artUrl?.(building.prefab);
     if (art || artLink) {

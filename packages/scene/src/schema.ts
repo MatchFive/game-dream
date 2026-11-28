@@ -29,13 +29,41 @@ export const sceneSpecSchema = z.object({
   required: z.array(z.string().min(1)).default([]),
   /** 额外氛围道具密度 0–1，越大越密 */
   decor: z.number().min(0).max(1).default(0.4),
-  /** 是否用水系（河流/池塘）切开地图 */
-  water: z.enum(['none', 'pond', 'river']).default('none'),
+  /** 水域：river/pond 在地图中间，coast 沿一条边铺开海面 */
+  water: z.enum(['none', 'pond', 'river', 'coast']).default('none'),
   /**
-   * 需求里这份 format 表达不了的部分（城墙、海岸、崖、等高线、泉眼…）。
+   * 城墙：沿建成区外圈一圈墙，主干道穿过的地方自动留门洞。
+   * 墙不是装饰——它会挡路，所以门洞位置由路网决定，城区依然连通。
+   */
+  walls: z
+    .object({
+      enabled: z.boolean().default(false),
+      /** 墙体厚度（格） */
+      thickness: z.number().int().min(1).max(2).default(1),
+      /** 城墙离最外侧建筑的最小距离（格），留出临墙那一排房子的位置 */
+      setback: z.number().int().min(1).max(8).default(3),
+    })
+    .default({}),
+  /**
+   * 高程：从 from 那一侧向内每 step 格抬一级，级间是崖（不可通行），
+   * 路穿过崖的地方变成坡道。levels=0 即平地。
+   */
+  elevation: z
+    .object({
+      /** 抬几级（0 = 平地） */
+      levels: z.number().int().min(0).max(3).default(0),
+      /** 每级进深（格） */
+      step: z.number().int().min(5).max(40).default(12),
+      /** 高地在哪一侧 */
+      from: z.enum(['north', 'east', 'south', 'west']).default('north'),
+    })
+    .default({}),
+  /**
+   * 需求里这份 format 表达不了的部分（泉眼、矿坑、沼泽、雪原…）。
    *
    * 不判失败——求解器没有这些能力不是模型的错；但必须显式写出来，
    * 否则"沿海崖顶"被悄悄做成一条河，数据里永远发现不了。
+   * 城墙/海岸/高程现在能做了，再写进 unmet 就是谎报。
    */
   unmet: z.array(z.string().min(1)).default([]),
   notes: z.string().optional(),
@@ -73,6 +101,12 @@ export const kitSchema = z.object({
     plaza: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     water: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     green: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    /** 岸线沙滩；不给就按 ground 提亮 */
+    sand: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    /** 崖壁；不给就按 ground 压暗 */
+    rock: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    /** 墙体；不给就按 road 压暗 */
+    wall: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }),
   prefabs: z.array(prefabSchema).min(1),
 });
@@ -109,6 +143,8 @@ export const buildingSchema = z.object({
   color: z.string(),
   roof: z.string(),
   floors: z.number().int().min(1).max(4),
+  /** 所在台阶：0 = 最低一级，用于渲染阴影与导出叠放顺序 */
+  elevation: z.number().int().min(0).max(4).default(0),
 });
 
 export const propSchema = z.object({
@@ -122,6 +158,32 @@ export const anchorSchema = z.object({
   kind: z.enum(['spawn', 'exit', 'poi']),
   at: point,
   label: z.string().optional(),
+});
+
+/** 城墙上一段连续墙体（门洞已从这些矩形里扣掉）。 */
+export const wallSchema = z.object({
+  id: z.string(),
+  rect,
+});
+
+/** 门洞：城墙被路切开的位置，导出成可通行的缺口 + 门框。 */
+export const gateSchema = z.object({
+  id: z.string(),
+  /** 门洞中点（格） */
+  at: point,
+  /** 门洞宽度（格），等于穿过的路宽 */
+  width: z.number().int().positive(),
+  /** 门洞朝向：0=北 1=东 2=南 3=西，指墙的走向 */
+  facing: z.number().int().min(0).max(3),
+});
+
+/**
+ * 一级台阶：从 from 那侧数第 level 级（0 = 最低）。
+ * 只记带的范围，具体高差由 cliffs 表达。
+ */
+export const terraceSchema = z.object({
+  level: z.number().int().min(0),
+  rect,
 });
 
 /** 求解后的场景：引擎无关的完整布局，可直接导出或渲染。 */
@@ -140,6 +202,15 @@ export const sceneLayoutSchema = z.object({
   buildings: z.array(buildingSchema),
   props: z.array(propSchema),
   anchors: z.array(anchorSchema),
+  /** 城墙段与门洞；没开城墙时为空 */
+  walls: z.array(wallSchema).default([]),
+  gates: z.array(gateSchema).default([]),
+  /** 崖壁（不可通行）与坡道（崖上的路口） */
+  cliffs: z.array(wallSchema).default([]),
+  ramps: z.array(wallSchema).default([]),
+  terraces: z.array(terraceSchema).default([]),
+  /** 海在哪个边（0=北 1=东 2=南 3=西）；内陆地图为 null */
+  coastSide: z.number().int().min(0).max(3).nullable().default(null),
 });
 
 export type SceneLayout = z.infer<typeof sceneLayoutSchema>;
@@ -148,6 +219,9 @@ export type Lot = z.infer<typeof lotSchema>;
 export type Building = z.infer<typeof buildingSchema>;
 export type SceneProp = z.infer<typeof propSchema>;
 export type Anchor = z.infer<typeof anchorSchema>;
+export type WallSegment = z.infer<typeof wallSchema>;
+export type Gate = z.infer<typeof gateSchema>;
+export type Terrace = z.infer<typeof terraceSchema>;
 export type Rect = z.infer<typeof rect>;
 
 export function parseSceneSpec(input: unknown): SceneSpec {

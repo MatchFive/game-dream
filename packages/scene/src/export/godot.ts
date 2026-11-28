@@ -43,15 +43,23 @@ interface NavMesh {
  */
 function buildNavMesh(layout: SceneLayout): NavMesh {
   const blocked = new Set<string>();
-  for (const building of layout.buildings) {
-    for (let y = building.rect.y; y < building.rect.y + building.rect.h; y += 1) {
-      for (let x = building.rect.x; x < building.rect.x + building.rect.w; x += 1) blocked.add(`${x},${y}`);
+  const blockRect = (rect: { x: number; y: number; w: number; h: number }) => {
+    for (let y = rect.y; y < rect.y + rect.h; y += 1) {
+      for (let x = rect.x; x < rect.x + rect.w; x += 1) blocked.add(`${x},${y}`);
     }
-  }
+  };
+  for (const building of layout.buildings) blockRect(building.rect);
   for (const lot of layout.lots) {
-    if (lot.kind !== 'water') continue;
-    for (let y = lot.rect.y; y < lot.rect.y + lot.rect.h; y += 1) {
-      for (let x = lot.rect.x; x < lot.rect.x + lot.rect.w; x += 1) blocked.add(`${x},${y}`);
+    if (lot.kind === 'water') blockRect(lot.rect);
+  }
+  // 城墙与崖壁：走不过去的东西必须在导航网格里也走不过去，
+  // 否则寻路会"穿墙"直达门口，自检还全是绿的——最坏的那种假通过。
+  for (const segment of layout.walls) blockRect(segment.rect);
+  for (const cliff of layout.cliffs) blockRect(cliff.rect);
+  // 坡道是崖上的路，本来就没被记成崖；万一两者重叠也以坡道为准
+  for (const ramp of layout.ramps) {
+    for (let y = ramp.rect.y; y < ramp.rect.y + ramp.rect.h; y += 1) {
+      for (let x = ramp.rect.x; x < ramp.rect.x + ramp.rect.w; x += 1) blocked.delete(`${x},${y}`);
     }
   }
 
@@ -97,6 +105,11 @@ const CHECK_SCRIPT = [
   '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
   '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
   '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
+  '',
+  '\tvar town_walls := get_node_or_null("TownWalls")',
+  '\tvar cliffs := get_node_or_null("Cliffs")',
+  '\tprint("GAMEDREAM_SCENE_WALLS=%d" % (town_walls.get_child_count() if town_walls else 0))',
+  '\tprint("GAMEDREAM_SCENE_CLIFFS=%d" % (cliffs.get_child_count() if cliffs else 0))',
   '',
   '\tvar ground := get_node_or_null("Ground") as TileMapLayer',
   '\tvar roads := get_node_or_null("Roads") as TileMapLayer',
@@ -220,13 +233,20 @@ export function exportGodotScene(
   };
   const buildingShapeIds = layout.buildings.map((building) =>
     shapeIdFor(building.rect.w * size, building.rect.h * size));
-  const walls: Array<{ name: string; x: number; y: number; w: number; h: number }> = [
+  const boundary: Array<{ name: string; x: number; y: number; w: number; h: number }> = [
     { name: 'top', x: 0, y: -size / 2, w: bounds.width * size, h: size },
     { name: 'bottom', x: 0, y: bounds.height * size - size / 2, w: bounds.width * size, h: size },
     { name: 'left', x: -size / 2, y: 0, w: size, h: bounds.height * size },
     { name: 'right', x: bounds.width * size - size / 2, y: 0, w: size, h: bounds.height * size },
   ];
-  const wallShapeIds = walls.map((wall) => shapeIdFor(wall.w, wall.h));
+  const wallShapeIds = boundary.map((wall) => shapeIdFor(wall.w, wall.h));
+
+  // 城墙与崖壁是"真的挡路"：导出的碰撞体必须和导航网格一致，
+  // 不然玩家在城里走会和看不见的墙打架（或直接穿墙）。
+  const townWallShapeIds = layout.walls.map((segment) =>
+    shapeIdFor(segment.rect.w * size, segment.rect.h * size));
+  const cliffShapeIds = layout.cliffs.map((cliff) =>
+    shapeIdFor(cliff.rect.w * size, cliff.rect.h * size));
 
   const navMesh = buildNavMesh(layout);
   const navResource = navMesh.polygons.length > 0
@@ -281,15 +301,52 @@ export function exportGodotScene(
   }
   lines.push('[node name="Walls" type="StaticBody2D" parent="."]');
   lines.push('');
+  // 没有城墙/崖壁的场景不生成空节点：空 StaticBody2D 会让"这套工程有几个碰撞体"
+  // 这类自检指标失真
+  if (layout.walls.length > 0) {
+    lines.push('[node name="TownWalls" type="StaticBody2D" parent="."]');
+    lines.push('');
+  }
+  if (layout.cliffs.length > 0) {
+    lines.push('[node name="Cliffs" type="StaticBody2D" parent="."]');
+    lines.push('');
+  }
+  if (layout.gates.length > 0) {
+    lines.push('[node name="Gates" type="Node2D" parent="."]');
+    lines.push('');
+  }
   lines.push('[node name="Buildings" type="Node2D" parent="."]');
   lines.push('');
   lines.push('[node name="Anchors" type="Node2D" parent="."]');
   lines.push('');
 
-  walls.forEach((wall, index) => {
+  boundary.forEach((wall, index) => {
     lines.push(`[node name="${wall.name}" type="CollisionShape2D" parent="Walls"]`);
     lines.push(`position = Vector2(${wall.x + wall.w / 2}, ${wall.y + wall.h / 2})`);
     lines.push(`shape = SubResource("${wallShapeIds[index]}")`);
+    lines.push('');
+  });
+
+  layout.walls.forEach((segment, index) => {
+    const rect = segment.rect;
+    lines.push(`[node name="${segment.id}" type="CollisionShape2D" parent="TownWalls"]`);
+    lines.push(`position = Vector2(${rect.x * size + (rect.w * size) / 2}, ${rect.y * size + (rect.h * size) / 2})`);
+    lines.push(`shape = SubResource("${townWallShapeIds[index]}")`);
+    lines.push('');
+  });
+
+  layout.cliffs.forEach((cliff, index) => {
+    const rect = cliff.rect;
+    lines.push(`[node name="${cliff.id}" type="CollisionShape2D" parent="Cliffs"]`);
+    lines.push(`position = Vector2(${rect.x * size + (rect.w * size) / 2}, ${rect.y * size + (rect.h * size) / 2})`);
+    lines.push(`shape = SubResource("${cliffShapeIds[index]}")`);
+    lines.push('');
+  });
+
+  // 城门：留成 Marker2D 而不是实体——门是"可以过去的地方"，判断交给导航
+  layout.gates.forEach((gate) => {
+    lines.push(`[node name="${gate.id}" type="Marker2D" parent="Gates"]`);
+    lines.push(`position = Vector2(${gate.at[0] * size + size / 2}, ${gate.at[1] * size + size / 2})`);
     lines.push('');
   });
 
@@ -314,6 +371,8 @@ export function exportGodotScene(
         ],
         shapeId: buildingShapeIds[index],
         billboard: options.artStyle === 'billboard',
+        // 高台上的房子要压住低处的房子，否则叠放顺序只看底边，会盖错
+        zIndex: building.elevation * 10,
       },
       spec,
     ));
@@ -367,6 +426,12 @@ export function exportGodotScene(
       anchors: layout.anchors.length,
       ground: `${bounds.width}x${bounds.height}`,
       textures: artTextures.size,
+      walls: layout.walls.length,
+      gates: layout.gates.length,
+      cliffs: layout.cliffs.length,
+      ramps: layout.ramps.length,
+      terraces: layout.terraces.length,
+      coastSide: layout.coastSide,
       tiles: {
         cells: layers.ground.length,
         roadCells: layers.roads.length,

@@ -1,4 +1,4 @@
-export type Cell = 'empty' | 'road' | 'plaza' | 'green' | 'water' | 'building';
+export type Cell = 'empty' | 'road' | 'plaza' | 'green' | 'water' | 'building' | 'wall' | 'cliff';
 
 /** 场景栅格：既是求解时的工作区，也用于连通性校验。 */
 export class Grid {
@@ -30,10 +30,13 @@ export class Grid {
     }
   }
 
-  /** 能否站立：道路、广场、绿地、空地可走；建筑和水不可走。 */
+  /**
+   * 能否站立：道路、广场、绿地、空地可走；建筑、水、城墙、崖壁不可走。
+   * 城墙留的门洞是 road，崖上的坡道也是 road —— 所以"能走"这件事只有栅格说了算。
+   */
   walkable(x: number, y: number): boolean {
     const cell = this.get(x, y);
-    return cell !== 'building' && cell !== 'water';
+    return cell !== 'building' && cell !== 'water' && cell !== 'wall' && cell !== 'cliff';
   }
 
   count(cell: Cell): number {

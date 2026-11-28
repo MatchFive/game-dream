@@ -92,6 +92,8 @@ export interface InstancePlacement {
   entrance: [number, number];
   shapeId: string;
   billboard: boolean;
+  /** 叠放顺序：高台上的房子压住低处的房子 */
+  zIndex?: number;
 }
 
 /** 生成"实例 + 覆盖属性"的 tscn 片段。 */
@@ -100,6 +102,7 @@ export function instanceNodes(placement: InstancePlacement, spec: PrefabSpec): s
   const path = `Buildings/${placement.name}`;
   lines.push(`[node name="${placement.name}" parent="Buildings" instance=ExtResource("prefab_${placement.prefabId}")]`);
   lines.push(`position = Vector2(${placement.x}, ${placement.y})`);
+  if (placement.zIndex) lines.push(`z_index = ${placement.zIndex}`);
   lines.push('');
 
   if (spec.art) {

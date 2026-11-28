@@ -51,21 +51,44 @@ Return exactly one JSON object, no prose, no code fences. Schema:
   "bounds": { "width": integer 40..200, "height": integer 36..180 },
   "required": string[] (prefab ids from the kit, at most 4),
   "decor": number 0..1,
-  "water": "none" | "pond" | "river",
+  "water": "none" | "pond" | "river" | "coast",
+  "walls": { "enabled": boolean, "thickness": 1..2, "setback": 1..8 },
+  "elevation": { "levels": 0..3, "step": 5..40, "from": "north" | "east" | "south" | "west" },
   "unmet": string[],
   "notes": string (optional)
 }
 Rules:
 - Only use prefab ids that exist in the kit.
 - A camp is small (bounds under 60x52) with 1 required prefab; a city is 140x110 or larger.
+- "water": "coast" means the sea fills one map edge (side chosen by seed, the solver
+  picks east or west) with a wavy shoreline, a sand rim and room for docks. Use it
+  whenever the request is on a sea, a bay, a harbor or a cliff coast. Rivers and ponds
+  stay inland.
+- "walls": set enabled=true for a walled town, a fortified quarter, a border outpost with
+  perimeter walls, or any request that says the settlement sits inside/behind a wall.
+  The wall is built around the built-up area and opens gates wherever a road crosses it,
+  so the town stays connected. setback is how far outside the outermost building the wall
+  runs (3 is a normal ring road, 1..2 is a tight wall with houses against it).
+  Thickness 2 only for a city or a fortress.
+- "elevation": set levels>0 when the request mentions a hillside, a terraced slope,
+  elevation bands, a mountain pass, a cliff top, an upper/lower town, or a plateau.
+  levels is how many steps (each step is a cliff you cannot walk through, crossed only
+  where a road ramps over it); step is how deep each terrace is in tiles (10..14 reads
+  well on a 100-tile map); "from" is the edge the high ground sits on.
+  Use levels 0 for flat ground - do not add elevation to a request that does not mention it.
 - Put water only when the prompt mentions water, a river, a lake, or a coast.
 - Keep decor between 0.3 and 0.7 for villages and towns.
-- "unmet" lists every part of the request this format CANNOT express. The solver
-  only knows: buildings from the kit, a cross road, optional river/pond, a square.
-  It has no walls, no coast, no cliffs, no elevation, no springs, no districts.
-  So "城墙内" -> unmet: ["walled city (no wall support)"]; "沿海崖顶" ->
-  unmet: ["coast", "cliffs"]; "半山腰梯田沿等高线" -> unmet: ["elevation bands"].
-  Never silently map such a request onto the nearest feature: say what is missing.
+- "unmet" lists every part of the request this format CANNOT express. The solver knows:
+  buildings from the kit, a cross road with secondary streets, river/pond/coast,
+  a square, walls with gates, terraces with cliffs and ramps.
+  It still has NO interior props beyond trees/wells/lamps/crates/signs/docks/flowers,
+  NO mines, springs, canals, bridges, snow/desert/swamp/snow ground, NO building
+  interiors, NO events or schedules, NO road width control, NO custom prefabs.
+  So "矿镇" -> unmet: ["mine (no mine prefab)"]; "沙漠绿洲" ->
+  unmet: ["desert terrain"]; "城墙内的窄街" -> unmet: ["narrow street width"].
+  Coastal towns, walled towns and hillside terraces ARE supported now: never put
+  "coast", "cliffs", "walls", "walled city", "elevation bands" or "terraced" in unmet.
+  Never silently map an unsupported request onto the nearest feature: say what is missing.
   Use [] when nothing is missing. Keep each entry under 60 characters.`;
 
 function kitBrief(kit: Kit): string {
@@ -168,6 +191,8 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
         required: [],
         decor: 0,
         water: 'none',
+        walls: { enabled: false, thickness: 1, setback: 3 },
+        elevation: { levels: 0, step: 12, from: 'north' },
         unmet: [],
       } as SceneSpec,
       { id: kit.id, hash: hashKit(kit) },
@@ -195,7 +220,7 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
       recorder.step('plan', `spec rejected: ${failure}`);
       // 解析失败也记一条，badcase 里能看到模型吐了什么
       const brokenTrace = recorder.finish(
-        { id: 'invalid', name: 'invalid', kind: 'village', kitId: kit.id, style: kit.style, seed, tileSize: 32, bounds: { width: 0, height: 0 }, palette: kit.palette, roads: [], lots: [], buildings: [], props: [], anchors: [] },
+        { id: 'invalid', name: 'invalid', kind: 'village', kitId: kit.id, style: kit.style, seed, tileSize: 32, bounds: { width: 0, height: 0 }, palette: kit.palette, roads: [], lots: [], buildings: [], props: [], anchors: [], walls: [], gates: [], cliffs: [], ramps: [], terraces: [], coastSide: null },
         { pass: false, metrics: {}, issues: [] },
       );
       traces.push(brokenTrace);
@@ -259,6 +284,12 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
     buildings: [],
     props: [],
     anchors: [],
+    walls: [],
+    gates: [],
+    cliffs: [],
+    ramps: [],
+    terraces: [],
+    coastSide: null,
   };
 
   return {

@@ -9,6 +9,7 @@ import {
   parseKit,
   villageEuroKit,
   writeKitArtwork,
+  buildScene,
   buildSceneWithTrace,
   exportGodotScene,
   hashLayout,
@@ -407,11 +408,187 @@ describe('unmet requests', () => {
   });
 
   it('keeps declared gaps and reports them as a metric', () => {
-    const spec = { ...baseSpec, unmet: ['walled city (no wall support)', 'coast'] };
+    const spec = { ...baseSpec, unmet: ['spring source', 'mine (no mine prefab)'] };
     const { layout, validation } = buildSceneWithTrace(spec, kit);
     // 声明 unmet 不该让布局失败：求解器没这个能力不是布局的错
     expect(validation.pass).toBe(true);
     expect(validation.metrics.unmet).toBe(2);
     expect(layout.buildings.length).toBeGreaterThan(0);
+  });
+});
+
+describe('coast, walls and elevation', () => {
+  const walkFromSpawn = (spec: Record<string, unknown>) => {
+    const parsed = parseSceneSpec(spec);
+    const { layout, grid } = buildScene(parsed, kit);
+    const spawn = layout.anchors.find((anchor) => anchor.kind === 'spawn');
+    expect(spawn).toBeDefined();
+    const reachable = grid.flood((spawn as { at: [number, number] }).at[0], (spawn as { at: [number, number] }).at[1]);
+    const validation = validateScene(layout, parsed, (x, y) => grid.walkable(x, y), reachable);
+    return { layout, grid, validation, reachable };
+  };
+
+  it('defaults to no walls and flat ground so old specs keep parsing', () => {
+    const spec = parseSceneSpec({ ...baseSpec });
+    expect(spec.water).toBe('river');
+    expect(spec.walls.enabled).toBe(false);
+    expect(spec.elevation.levels).toBe(0);
+  });
+
+  it('fills one edge with sea, a wavy shore and a sand rim', () => {
+    const spec = { ...baseSpec, water: 'coast' as const, bounds: { width: 100, height: 88 } };
+    const { layout, validation } = walkFromSpawn(spec);
+
+    expect(layout.coastSide).not.toBeNull();
+    expect(validation.pass).toBe(true);
+    // 海占了可观的一块，但没把整张图淹掉
+    expect(validation.metrics.waterRatio).toBeGreaterThan(0.06);
+    expect(validation.metrics.waterRatio).toBeLessThan(0.35);
+
+    // 岸线必须起伏：如果所有列的水深都一样，那就是一条直边，不是海岸
+    const sea = layout.lots.filter((lot) => lot.kind === 'water');
+    expect(sea.length).toBeGreaterThan(0);
+    const pressedIntoLand = sea.every((lot) => {
+      const side = layout.coastSide as number;
+      if (side === 1) return lot.rect.x + lot.rect.w === layout.bounds.width;
+      if (side === 3) return lot.rect.x === 0;
+      if (side === 0) return lot.rect.y === 0;
+      return lot.rect.y + lot.rect.h === layout.bounds.height;
+    });
+    expect(pressedIntoLand).toBe(true);
+
+    // 没有一栋房子站在海里
+    const inSea = layout.buildings.filter((building) =>
+      sea.some((lot) =>
+        building.rect.x < lot.rect.x + lot.rect.w
+        && lot.rect.x < building.rect.x + building.rect.w
+        && building.rect.y < lot.rect.y + lot.rect.h
+        && lot.rect.y < building.rect.y + building.rect.h));
+    expect(inSea).toEqual([]);
+    expect(validation.metrics.entranceCoverage).toBe(1);
+  });
+
+  it('rings a walled town with gates on every road that crosses it', () => {
+    const spec = {
+      ...baseSpec,
+      kind: 'town' as const,
+      bounds: { width: 120, height: 100 },
+      walls: { enabled: true, thickness: 1, setback: 3 },
+    };
+    const { layout, grid, validation } = walkFromSpawn(spec);
+
+    expect(layout.walls.length).toBeGreaterThan(3);
+    expect(layout.gates.length).toBeGreaterThan(0);
+    expect(validation.issues).toEqual([]);
+    expect(validation.metrics.entranceCoverage).toBe(1);
+
+    // 墙不能盖住房子，也不能站在出生点/出口上
+    const overlapsWall = layout.buildings.filter((building) =>
+      layout.walls.some((wall) =>
+        building.rect.x < wall.rect.x + wall.rect.w
+        && wall.rect.x < building.rect.x + building.rect.w
+        && building.rect.y < wall.rect.y + wall.rect.h
+        && wall.rect.y < building.rect.y + building.rect.h));
+    expect(overlapsWall).toEqual([]);
+    for (const anchor of layout.anchors) {
+      expect(grid.walkable(anchor.at[0], anchor.at[1])).toBe(true);
+    }
+    // 墙内的房子走不到墙外的话，城门就是画上去的
+    expect(validation.metrics.reachableCells).toBeGreaterThan(0);
+  });
+
+  it('cuts terraces into the map and keeps a ramp wherever a road crosses a cliff', () => {
+    const spec = {
+      ...baseSpec,
+      bounds: { width: 96, height: 104 },
+      elevation: { levels: 2, step: 13, from: 'north' as const },
+    };
+    const { layout, grid, validation } = walkFromSpawn(spec);
+
+    expect(layout.cliffs.length).toBeGreaterThan(4);
+    expect(layout.ramps.length).toBeGreaterThan(0);
+    expect(layout.terraces.length).toBe(3);
+    expect(validation.pass).toBe(true);
+    expect(validation.metrics.entranceCoverage).toBe(1);
+
+    // 城市真的分成了高台与低地，而不是全在同一级
+    const levels = new Set(layout.buildings.map((building) => building.elevation));
+    expect(levels.size).toBeGreaterThan(1);
+
+    // 崖壁不可通行；坡道可通行（否则整座山会被一刀切断）
+    for (const cliff of layout.cliffs) {
+      for (let y = cliff.rect.y; y < cliff.rect.y + cliff.rect.h; y += 1) {
+        for (let x = cliff.rect.x; x < cliff.rect.x + cliff.rect.w; x += 1) {
+          expect(grid.walkable(x, y)).toBe(false);
+        }
+      }
+    }
+    for (const ramp of layout.ramps) {
+      expect(grid.walkable(ramp.rect.x, ramp.rect.y)).toBe(true);
+    }
+  });
+
+  it('places every required prefab on a cramped terraced map', () => {
+    // 这条是真实批次里的 badcase：72×60 上切三级台阶，四条必需建筑，
+    // 结果 smithy / tavern 没落地。根因不是放不下，是院落尝试失败时
+    // 把队列里的必需项吃掉了（房子没盖，需求也没了）
+    const spec = {
+      ...baseSpec,
+      seed: 1,
+      bounds: { width: 72, height: 60 },
+      required: ['house-small', 'house-long', 'smithy', 'tavern'],
+      water: 'none' as const,
+      elevation: { levels: 3, step: 12, from: 'north' as const },
+    };
+    const { layout, validation, grid } = walkFromSpawn(spec);
+    const placed = new Set(layout.buildings.map((building) => building.prefab));
+    for (const required of spec.required) expect(placed.has(required)).toBe(true);
+    expect(validation.issues).toEqual([]);
+    // 门必须落在能站的格子上：台阶地形里房子常紧贴崖壁
+    for (const building of layout.buildings) {
+      expect(grid.walkable(building.entrance[0], building.entrance[1])).toBe(true);
+    }
+  });
+
+  it('flags a wall ring that closed itself with no gate', () => {
+    const spec = {
+      ...baseSpec,
+      kind: 'town' as const,
+      bounds: { width: 120, height: 100 },
+      walls: { enabled: true, thickness: 1, setback: 3 },
+    };
+    const { layout } = buildScene(parseSceneSpec(spec), kit);
+    // 人为把门洞去掉：只剩墙、没有缺口，就是"把玩家关起来"
+    const sealed: SceneLayout = { ...layout, gates: [] };
+    const validation = validateScene(sealed, parseSceneSpec(spec), () => true, new Set(['0,0']));
+    expect(validation.issues.map((issue) => issue.code)).toContain('sealed-walls');
+  });
+
+  it('exports wall and cliff collision so the engine agrees with the layout', () => {
+    const walled = buildScene(parseSceneSpec({
+      ...baseSpec,
+      kind: 'town' as const,
+      bounds: { width: 120, height: 100 },
+      walls: { enabled: true, thickness: 1, setback: 3 },
+    }), kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gd-walls-'));
+    exportGodotScene(walled.layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+    // 墙的碰撞体挂在 TownWalls 下；数父节点比自己切字符串稳
+    const wallBodies = tscn.match(/parent="TownWalls"/g) ?? [];
+    expect(wallBodies.length).toBe(walled.layout.walls.length);
+    expect(tscn).toContain('node name="Gates"');
+    // 门洞必须是 Marker2D：门是"能过去的地方"，碰撞交给导航
+    expect((tscn.match(/parent="Gates"/g) ?? []).length).toBe(walled.layout.gates.length);
+
+    const terraced = buildScene(parseSceneSpec({
+      ...baseSpec,
+      bounds: { width: 96, height: 104 },
+      elevation: { levels: 2, step: 13, from: 'north' as const },
+    }), kit);
+    const cliffDir = mkdtempSync(join(tmpdir(), 'gd-cliffs-'));
+    exportGodotScene(terraced.layout, cliffDir);
+    const cliffTscn = readFileSync(join(cliffDir, 'scene/scene.tscn'), 'utf8');
+    expect((cliffTscn.match(/parent="Cliffs"/g) ?? []).length).toBe(terraced.layout.cliffs.length);
   });
 });

@@ -31,17 +31,19 @@
 | M1 Agent 运行生产化 | 预算、队列、审批策略、崩溃回收、重试 | 8/8 | Done |
 | M2 验证与试玩闭环 | Godot/Unity runtime、G6 视觉门、MCP 回归 | 7/7 | Done |
 | M3 资产管线 | 动画/图集/BGM/SFX/绑定 | 16/18 | 差 AS3（缺模型）/ AS6（3D） |
-| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 9/11 | **当前主线**（差 S3 Unity / S6 训练） |
+| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 10/12 | **当前主线**（差 S3 Unity / S6 训练） |
 | M4 内容深度 | 7 类游戏模板的短局循环 | 5/5 | Done |
 | M5 平台扩展 | Unity/Unreal/3D/协作 | 0/4 | Backlog |
 
 当前硬指标（可复跑）：
 
 ```
-pnpm typecheck / build              10 包通过
-pnpm test                           402 passed / 15 skipped / 0 failed
+pnpm typecheck / build              9 包通过
+pnpm test                           435 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
-真实 Godot 4.4.1 导出              nav 32/32、65/65、15/15；tiles 7680/819 等
+真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
+  海岸 / 城墙 / 三级台阶            walls=22、cliffs=28 碰撞体与 layout 逐项相等
+真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 ```
 
@@ -62,13 +64,19 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
   首批 24 条真实样本已入库（`docs/evidence/scene-batch/`）
 - `spec.unmet[]`：模型必须声明"这份 format 做不到"的需求；统计、CLI、Studio 场景页可见。
   重跑同一批：19/25 样本带 unmet，且表述准确（城墙/海岸/崖/等高线/水渠/仓库…）
+- **地形与边界**：`water: "coast"`（海沿一边铺开、起伏岸线、岸边一格沙）、
+  `walls`（贴建成区成环、路口自动开门、导出 `TownWalls` 碰撞体与 `Gates` 标记）、
+  `elevation`（按 `step` 切台阶、崖线错开走等高线、路穿崖处变坡道、导出 `Cliffs` 碰撞体）；
+  城墙外留一圈田野。证据 `docs/evidence/s13-terrain/`
 
 ## 3. 当前焦点
 
-1. **S13 地形与边界表达力** —— unmet 排行榜已经给出需求：城墙、海岸、崖、等高线、水渠。
-   这批是"用户提了但做不出来"，比任何猜测的需求清单都硬。
-2. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
-3. **Q1 导出回归进 CI** —— prefab/tilemap 结构刚改完，没有 CI 兜底，下次改动会悄悄坏。
+1. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
+   地形/墙/台阶已经在引擎无关层（`SceneLayout`）里表达完整，第二个出口可以直接吃同一份 layout。
+2. **Q1 导出回归进 CI** —— 这次地形改动把 `scene-godot-smoke` 从 3 个场景扩到 6 个
+   （墙/崖碰撞体数、nav 可达率都在里面），该进 CI 了。
+3. **S7 高度与天际线** —— 台阶已经存在（`elevation`），但楼层高度还是随机；
+   `elevation` 只解决"地面上下的差"，不解决"楼多高"。
 
 ## 4. 待做需求
 
@@ -78,15 +86,16 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
-| S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | 一半用户进不来；同一份 layout 只能出 Godot | Unity EditorVerifier 打开导出工程；建筑数/Marker 数与 layout 一致；NavMesh 采样到每个门 < 0.5m | Unity 6 本机已可 batchmode | L |
+| S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | 一半用户进不来；同一份 layout 只能出 Godot | Unity EditorVerifier 打开导出工程；建筑数/Marker 数与 layout 一致；NavMesh 采样到每个门 < 0.5m | 地形/墙/台阶已在 layout 层就绪 | L |
 | Q1 | 场景导出进 CI（`test-scene` job） | prefab/tilemap/`.tscn` 语法一变，线上才炸 | CI 有 Godot 时跑 `scene-godot-smoke`，无引擎时显式 skip + 报告 | `GODOT_BIN` 或 CI 下载 | S |
-| S13 | 地形与边界表达力（海/崖/城墙/等高线/水渠） | 重跑同一批 24 条：19 条自己声明"做不到"，集中在城墙/海岸/崖/等高线/水渠——需求真实存在，只是 format 装不下 | `water: coast`、`walls`、`elevation` 进 spec 与求解器；导出含海岸线/城墙碰撞；同一批 prompt 里对应 unmet 条目归零 | — | L |
 | T1 | 真实 tileset 替换程序瓦片 | 地面仍是配色块，接不了美术 | `scene/tiles.png` 换成带过渡/边角的 tileset 后工程可直接用；kit 声明 tile 映射；三示例截图对比 | 美术资源 | M |
 
 ### P1 · 明显提升价值
 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
+| S15 | 道具导出到引擎 | 场景里的树/井/灯/箱/牌/码头/花只画在预览里，**引擎工程里一个都没有**：导出的城里除了房子和地面是空的，遮不住"色块感" | 道具进 atlas（带透明底）；导出 `Props` TileMapLayer；引擎内格子数 == `layout.props` | — | S |
+| S14 | 路网参数（主路宽/街宽/巷道密度） | 真模型批次里 `narrow street width` 仍只能写进 unmet：主路宽写死 4 格，做不了"窄街老城" | `roads: { mainWidth, streetWidth, density }` 进 spec；三档宽度各出一张对比图 | — | S |
 | S7 | 场景高度与天际线 | 纯平面，城市"好看"主要靠高度与遮挡；`floors` 目前随机 | 高度按街区分层（主街高、背街低），预览与导出体现楼层差 | — | M |
 | S9 | prefab 附加节点（kit 扩展） | prefab 只有贴图+碰撞，灯光/招牌/交互挂不上去，不算真 prefab | kit 支持 `nodes[]`（type/name/offset/props），导出写进 `prefabs/*.tscn`；引擎加载节点数匹配 | — | M |
 | S10 | 场景片段/模块复用 | 逐栋生成不可控；真实关卡是"广场围合、码头区、市场街"这类模块拼的 | `segments/` 定义 + 拼装规则；trace 记录用了哪些片段 | S7 | L |
@@ -115,7 +124,7 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 | 采集 | ✅ 可用 | 每次构建/重试/评审都写一行 trace（`origin` 区分 agent/manual） |
 | 统计 | ✅ 可用 | `dream scene dataset`：通过率、失败分布、确定性、评审分布 |
 | 导出 | ✅ 可用 | SFT（只收过闸门样本）+ 偏好对（闸门 pass/fail、人工 good/bad） |
-| **样本量** | ❌ 不足 | 真实模型 trace ≈ 0；批量脚本目前跑的是桩模型基线 |
+| **样本量** | ⚠️ 起步 | 真实模型 30 条（首批 24 + 地形回归 6），通过 26；离 500 还差一个数量级 |
 | 训练 | ⛔ 未开始 | 门槛见下 |
 
 起步门槛（经验值，需用 held-out 集验证，不是拍脑袋的承诺）：

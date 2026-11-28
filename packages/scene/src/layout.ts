@@ -1,6 +1,7 @@
 import type {
   Anchor,
   Building,
+  Gate,
   Kit,
   Lot,
   Prefab,
@@ -9,9 +10,18 @@ import type {
   SceneLayout,
   SceneProp,
   SceneSpec,
+  WallSegment,
 } from './schema.js';
 import { Grid } from './grid.js';
 import { createRng, weightedPick, type Rng } from './rng.js';
+import {
+  elevationLevel,
+  paintCoast,
+  paintElevation,
+  planCoast,
+  planWalls,
+  snapToWalkable,
+} from './terrain.js';
 
 export interface SceneBuildResult {
   layout: SceneLayout;
@@ -148,7 +158,7 @@ function carveAlley(grid: Grid, start: [number, number], facing: number): Array<
       target = [x, y];
       break;
     }
-    if (grid.get(x, y) === 'building' || grid.get(x, y) === 'water') break;
+    if (grid.get(x, y) === 'building' || grid.get(x, y) === 'water' || grid.get(x, y) === 'cliff') break;
   }
   if (!target) return null;
   const points: Array<[number, number]> = [start];
@@ -427,6 +437,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
   }
 
   // 2. 水系：河流横穿，但每条纵向道路都架桥，不然街道会被切断成孤岛
+  let coastSide: Side | null = null;
   if (spec.water === 'river') {
     const riverY = horizontalY + mainW + 6 + rng.int(0, 4);
     if (riverY + 3 < H - MARGIN) {
@@ -450,6 +461,13 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       }
     }
     lots.push({ id: 'water-pond', kind: 'water', rect: { x: px - r, y: py - r, w: r * 2 + 1, h: r * 2 + 1 } });
+  } else if (spec.water === 'coast') {
+    // 海沿着一条边铺开，岸线逐格起伏。水面会盖掉伸进海里的路——那一段就是码头。
+    const coast = planCoast(rng, { width: W, height: H });
+    for (const rect of paintCoast(grid, coast)) {
+      lots.push({ id: `water-sea-${lots.length}`, kind: 'water', rect });
+    }
+    coastSide = coast.side;
   }
 
   // 3. 交叉口广场：贴着十字路口，四面街区都会向它开正门
@@ -461,9 +479,20 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     lots.push({ id: 'plaza-center', kind: 'plaza', rect: { x: plazaX, y: plazaY, w: plazaSize, h: plazaSize } });
   }
 
-  // 4. 街区 = 路网带之间的空隙，BSP 再切成地块
-  const gapX = gapsBetween(vBands, MARGIN, W - MARGIN);
-  const gapY = gapsBetween(hBands, MARGIN, H - MARGIN);
+  // 3.5 高程：崖线必须在切地块之前定下来，否则房子会盖在崖上。
+  //     崖上的路口（坡道）由路网决定——路已经画好了，这里只判定哪些格子是坡。
+  const cliffPlan = paintElevation(grid, spec.elevation, spec.seed);
+
+  // 3.6 锚点先算出来：城墙要绕开出生点与出口，否则第一步就站在墙里
+  const spawnAt: [number, number] = [verticalX + Math.floor(mainW / 2), H - MARGIN - 1];
+  const exitAt: [number, number] = [W - MARGIN - 1, horizontalY + Math.floor(mainW / 2)];
+
+  // 4. 街区 = 路网带之间的空隙，BSP 再切成地块。
+  //    有城墙时城区往内缩一圈：墙外留出田野与牧场，墙才不像"画在地图边上的框"。
+  //    路仍然通到地图边缘——穿过墙的那一段就是城外大路，墙在那里开门。
+  const belt = spec.walls.enabled ? 9 : 0;
+  const gapX = gapsBetween(vBands, MARGIN + belt, W - MARGIN - belt);
+  const gapY = gapsBetween(hBands, MARGIN + belt, H - MARGIN - belt);
   const rawLots: Rect[] = [];
   for (const [x0, x1] of gapX) {
     for (const [y0, y1] of gapY) {
@@ -500,21 +529,35 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     floors: number,
   ): boolean => {
     if (!rectFree(grid, rect)) return false;
+    // 正门那一格必须能站人。台阶地形里房子常紧贴崖壁，门开在崖上就走不出去了——
+    // 先试同一面，再试对门与两侧，都不行就放弃这栋（宁可不放，也不放一栋没有门的房子）
+    const facingOrder = [facing, (facing + 2) % 4, (facing + 1) % 4, (facing + 3) % 4];
+    let side = facing;
+    let entrance: [number, number] = entranceFor(rect, facing);
+    for (const candidate of facingOrder) {
+      const spot = entranceFor(rect, candidate);
+      if (grid.walkable(spot[0], spot[1])) {
+        side = candidate;
+        entrance = spot;
+        break;
+      }
+    }
+    if (!grid.walkable(entrance[0], entrance[1])) return false;
     grid.fill(rect.x, rect.y, rect.w, rect.h, 'building');
-    const entrance = entranceFor(rect, facing);
     buildings.push({
       id: `building-${buildingIndex}`,
       prefab: prefab.id,
       role: prefab.role,
       rect,
-      facing,
+      facing: side,
       entrance,
       color: prefab.color,
       roof: prefab.roof,
       floors,
       typology,
+      elevation: elevationLevel(rect, spec.elevation, spec.bounds),
     });
-    const alley = carveAlley(grid, entrance, facing);
+    const alley = carveAlley(grid, entrance, side);
     if (alley) roads.push({ id: `alley-${buildingIndex}`, kind: 'alley', width: 1, points: alley });
     buildingIndex += 1;
     return true;
@@ -623,15 +666,22 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     const mainSpan = frame.length - passage - 1;
     if (mainSpan < 5) return false;
 
-    const mainPrefab = takeQueued() ?? weightedPick(rowPool.length > 0 ? rowPool : kit.prefabs, rng);
+    const fromQueue = takeQueued();
+    const mainPrefab = fromQueue ?? weightedPick(rowPool.length > 0 ? rowPool : kit.prefabs, rng);
+    // 从需求队列里取出来的预置建筑，放不下要还回去——否则"必有酒馆"会被
+    // 一次失败的院落尝试悄悄吃掉，最后 gates 报 missing-required，而队列里已经没有它了
+    const giveBack = (): boolean => {
+      if (fromQueue) queue.unshift(fromQueue);
+      return false;
+    };
     const mainW = Math.min(mainPrefab.footprint.maxWidth, mainSpan);
     // 先留出 4 格后院，主屋因此比连排房浅一档
     const mainD = Math.min(mainPrefab.footprint.maxHeight, frame.depth - 3);
-    if (mainW < mainPrefab.footprint.minWidth || mainD < mainPrefab.footprint.minHeight) return false;
+    if (mainW < mainPrefab.footprint.minWidth || mainD < mainPrefab.footprint.minHeight) return giveBack();
 
     const mainRect = frame.rect(frame.start, mainW, mainD);
-    if (!rectFree(grid, mainRect)) return false;
-    if (!commit(mainPrefab, mainRect, frame.side, 'courtyard', rng.int(1, 2))) return false;
+    if (!rectFree(grid, mainRect)) return giveBack();
+    if (!commit(mainPrefab, mainRect, frame.side, 'courtyard', rng.int(1, 2))) return giveBack();
 
     // 后排小屋：贴后墙，门朝院子，与主屋错开留出一条侧巷
     const backPool = houses.length > 0 ? houses : rowPool;
@@ -787,13 +837,24 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
   // 必需要素没找到位置：最后兜底塞进任意还能建的地块，宁可挤也不能缺
   for (const prefab of [...queue]) {
     if (placeStandalone(
-      { x: MARGIN, y: MARGIN, w: verticalX - MARGIN - BLOCK_GAP, h: horizontalY - MARGIN - BLOCK_GAP },
+      {
+        x: MARGIN + belt,
+        y: MARGIN + belt,
+        w: verticalX - MARGIN - belt - BLOCK_GAP,
+        h: horizontalY - MARGIN - belt - BLOCK_GAP,
+      },
       prefab,
     )) {
       const index = queue.indexOf(prefab);
       if (index >= 0) queue.splice(index, 1);
     }
   }
+
+  // 5.5 城墙：建成区外圈一圈墙，路穿过的地方成为城门。
+  //     顺序很重要——必须等房子都落定，墙才知道该围多大。
+  const wallPlan = planWalls(grid, buildings, spec, [spawnAt, exitAt]);
+  const walls: WallSegment[] = wallPlan.walls;
+  const gates: Gate[] = wallPlan.gates;
 
   // 6. 装饰：沿主干道布灯，广场放水井，绿地种树，水边放码头
   let propIndex = 0;
@@ -829,6 +890,22 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
       addProp('flower', rng.int(yard.x, yard.x + yard.w - 1), rng.int(yard.y, yard.y + yard.h - 1));
     }
   }
+  // 墙外的田野：有城墙才有"城外"。不种树的话，墙外那圈就是大片纯色地面，
+  // 一眼看去像地图没画完
+  if (walls.length > 0) {
+    const wx0 = Math.min(...walls.map((wall) => wall.rect.x));
+    const wy0 = Math.min(...walls.map((wall) => wall.rect.y));
+    const wx1 = Math.max(...walls.map((wall) => wall.rect.x + wall.rect.w));
+    const wy1 = Math.max(...walls.map((wall) => wall.rect.y + wall.rect.h));
+    const groves = Math.round(60 + 80 * spec.decor);
+    for (let i = 0; i < groves; i += 1) {
+      const x = rng.int(MARGIN, W - MARGIN - 1);
+      const y = rng.int(MARGIN, H - MARGIN - 1);
+      if (x >= wx0 && x < wx1 && y >= wy0 && y < wy1) continue;
+      addProp('tree', x, y);
+    }
+  }
+
   const plaza = lots.find((lot) => lot.kind === 'plaza');
   if (plaza) {
     addProp('well', plaza.rect.x + Math.floor(plaza.rect.w / 2), plaza.rect.y + Math.floor(plaza.rect.h / 2));
@@ -841,16 +918,12 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     addProp('dock', waterLot.rect.x + Math.floor(waterLot.rect.w / 2), waterLot.rect.y - 1);
   }
 
-  // 7. 锚点：出生点在南端主干道，出口在东端
-  const spawnX = verticalX + Math.floor(mainW / 2);
-  const spawnY = H - MARGIN - 1;
-  anchors.push({ id: 'anchor-spawn', kind: 'spawn', at: [spawnX, spawnY], label: 'player spawn' });
-  anchors.push({
-    id: 'anchor-exit',
-    kind: 'exit',
-    at: [W - MARGIN - 1, horizontalY + Math.floor(mainW / 2)],
-    label: 'world exit',
-  });
+  // 7. 锚点：出生点在南端主干道，出口在东端。
+  //    城墙/海岸可能压在默认位置上，所以往外挪到最近的可走格——自检脚本第一帧就要用到。
+  const spawn = snapToWalkable(grid, spawnAt, [0, -1]);
+  const exit = snapToWalkable(grid, exitAt, [-1, 0]);
+  anchors.push({ id: 'anchor-spawn', kind: 'spawn', at: spawn, label: 'player spawn' });
+  anchors.push({ id: 'anchor-exit', kind: 'exit', at: exit, label: 'world exit' });
   if (plaza) {
     anchors.push({
       id: 'anchor-plaza',
@@ -875,6 +948,12 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     buildings,
     props,
     anchors,
+    walls,
+    gates,
+    cliffs: cliffPlan.cliffs,
+    ramps: cliffPlan.ramps,
+    terraces: cliffPlan.terraces,
+    coastSide,
   };
 
   return { layout, grid };

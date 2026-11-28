@@ -23,6 +23,11 @@ const cases = [
   { id: 'riverbend', seed: 20261128, bounds: { width: 96, height: 80 }, required: ['tavern', 'chapel', 'smithy'], water: 'river', kind: 'village' },
   { id: 'stonecross', seed: 424242, bounds: { width: 120, height: 96 }, required: ['market-hall', 'chapel', 'tavern'], water: 'pond', kind: 'town' },
   { id: 'lakeside', seed: 7, bounds: { width: 56, height: 48 }, required: ['smithy'], water: 'pond', kind: 'camp' },
+  // S13：三种新地形各一条。它们不是"多一个 case"，而是各自会打开不同的代码路径——
+  // 海岸改水面与岸线、城墙往场景里塞静态碰撞体、高程改导航网格的连通形状。
+  { id: 'cliffharbor', seed: 4111, bounds: { width: 110, height: 92 }, required: ['chapel', 'tavern', 'dock-house'], water: 'coast', kind: 'town' },
+  { id: 'walledquarter', seed: 4222, bounds: { width: 120, height: 100 }, required: ['chapel', 'market-hall', 'tavern'], water: 'none', walls: { enabled: true, thickness: 1, setback: 3 }, kind: 'town' },
+  { id: 'terracevillage', seed: 4333, bounds: { width: 96, height: 110 }, required: ['chapel', 'smithy'], water: 'none', elevation: { levels: 2, step: 13, from: 'north' }, kind: 'village' },
 ];
 
 rmSync(outRoot, { recursive: true, force: true });
@@ -52,6 +57,8 @@ for (const scene of cases) {
   const tilesRoads = read('GAMEDREAM_TILES_ROADS');
   const navTotal = read('GAMEDREAM_NAV_TOTAL');
   const navReached = read('GAMEDREAM_NAV_REACHED');
+  const townWalls = read('GAMEDREAM_SCENE_WALLS');
+  const cliffs = read('GAMEDREAM_SCENE_CLIFFS');
   const ok = output.includes('GAMEDREAM_SCENE_OK=1');
 
   const expected = layout.buildings.length;
@@ -63,6 +70,10 @@ for (const scene of cases) {
   if (!validation.pass) problems.push('layout gates failed');
   if (navTotal !== expected) problems.push(`nav targets ${navTotal} != ${expected}`);
   if (navReached !== expected) problems.push(`nav unreachable ${expected - navReached}`);
+  // 墙与崖必须真的进了场景：数量对不上说明导出丢了静态碰撞体，
+  // 玩家会在城里"隔空卡住"——这种错只会被引擎发现，布局校验看不见
+  if (townWalls !== layout.walls.length) problems.push(`wall bodies ${townWalls} != ${layout.walls.length}`);
+  if (cliffs !== layout.cliffs.length) problems.push(`cliff bodies ${cliffs} != ${layout.cliffs.length}`);
   // 瓦片层：地形层必须铺满整张图，道路层必须有格子，atlas 必须挂上
   const cells = layout.bounds.width * layout.bounds.height;
   if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
@@ -75,7 +86,7 @@ for (const scene of cases) {
   } else {
     console.log(
       `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal} `
-      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads} `
+      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads} walls=${townWalls} cliffs=${cliffs} `
       + `spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
     );
   }

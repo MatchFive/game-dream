@@ -1,0 +1,45 @@
+{
+  "provider": "openai",
+  "prompts": "dist/s13-batch/prompts.txt",
+  "stats": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "byOrigin": {
+      "agent": 5
+    },
+    "issues": [],
+    "unmet": [
+      {
+        "code": "fortress building (no fortress prefab)",
+        "count": 1
+      },
+      {
+        "code": "narrow street width",
+        "count": 1
+      }
+    ],
+    "withUnmet": 2,
+    "kits": [
+      {
+        "id": "village-euro",
+        "count": 5
+      }
+    ],
+    "reviews": {
+      "good": 0,
+      "acceptable": 0,
+      "bad": 0,
+      "none": 5
+    },
+    "withPrompt": 5,
+    "determinism": {
+      "groups": 5,
+      "stable": 5,
+      "conflicts": []
+    },
+    "avgBuildings": 15.6,
+    "avgDensity": 0.104
+  },
+  "skipped": 0
+}
