@@ -179,6 +179,7 @@
 | S2.3 | AI 生成建筑贴图：统一风格锚 + 3/4 视角 + billboard 导出 + manifest 追溯 | Done |
 | S2.4 | 场景导出接进产品入口：CLI `--art/--art-style`、Studio「导出 Godot 工程」按钮 + `/api/scenes/:id/export` | Done |
 | S2.5 | 美术生产命令化：`dream scene art`（prompt → ComfyUI → 透明分支 → 裁边 → manifest），删除一次性脚本，按 `boundaries.md` 归入项目能力 | Done |
+| S2.6 | 批量跑量命令化：`dream scene batch`（读需求 → agent → trace → 统计 → SFT/偏好对），复用 Studio 模型凭据；首批 24 条真实样本 `docs/evidence/scene-batch/` | Done |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | Next |
 | S4a | Agent 循环 + CLI `dream scene build`：模型出 spec、闸门失败回喂重试、每次尝试落 trace | Done |
 | S4b | Studio `/scenes` 页：列表 / 布局预览 / 闸门详情 / 人工评审写回 trace | Done |

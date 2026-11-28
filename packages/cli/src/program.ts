@@ -12,6 +12,7 @@ import {
 import { doctorCommand } from './commands/doctor.js';
 import { sceneBuildCommand, sceneDatasetCommand } from './commands/scene.js';
 import { sceneArtCommand } from './commands/scene-art.js';
+import { sceneBatchCommand } from './commands/scene-batch.js';
 import {
   formatRequestList,
   requestList,
@@ -1460,6 +1461,72 @@ export function createProgram(): Command {
     });
 
 
+
+
+  sceneCommand
+    .command('batch')
+    .description('Run a list of settlement prompts through the agent and record traces')
+    .requiredOption('--prompts <file>', 'one prompt per line, # for comments')
+    .requiredOption('--out <dir>', 'output directory for traces and stats')
+    .option('--kit <path>', 'kit JSON', 'packages/scene/kits/village-euro.json')
+    .option('--limit <n>', 'only the first N prompts', (value) => Number(value))
+    .option('--provider <kind>', 'auto | fake | openai', 'auto')
+    .option('--workspace <dir>', 'read model settings from <dir>/.gamedream/studio')
+    .option('--attempts <n>', 'max attempts per prompt', (value) => Number(value))
+    .option('--append', 'keep existing traces instead of starting clean')
+    .option('--json', 'print JSON')
+    .action(async (options: {
+      prompts: string;
+      out: string;
+      kit: string;
+      limit?: number;
+      provider: string;
+      workspace?: string;
+      attempts?: number;
+      append?: boolean;
+      json?: boolean;
+    }) => {
+      try {
+        const outcome = await sceneBatchCommand({
+          promptsPath: options.prompts,
+          outDir: options.out,
+          kitPath: options.kit,
+          limit: options.limit,
+          provider: options.provider as never,
+          workspace: options.workspace,
+          attempts: options.attempts,
+          append: options.append,
+          onResult: (result, index, total) => {
+            if (options.json) return;
+            const state = result.finished ? 'pass' : 'fail';
+            const issues = result.issues.length > 0 ? ` [${result.issues.join(',')}]` : '';
+            printLine(
+              `[${index + 1}/${total}] ${state.padEnd(4)} ${String(result.buildings).padStart(3)}b `
+              + `d=${result.density} ${(result.ms / 1000).toFixed(1)}s${issues}  ${result.prompt.slice(0, 40)}`,
+            );
+          },
+        });
+
+        if (options.json) {
+          printJson({ provider: outcome.provider, traceFile: outcome.traceFile, stats: outcome.stats, results: outcome.results });
+        } else {
+          const { stats } = outcome;
+          printLine('');
+          printLine(`provider=${outcome.provider} samples=${stats.total} passed=${stats.passed} failed=${stats.failed} skipped=${outcome.skipped}`);
+          printLine(`withPrompt=${stats.withPrompt} avgBuildings=${stats.avgBuildings} avgDensity=${stats.avgDensity}`);
+          printLine(`determinism=${stats.determinism.stable}/${stats.determinism.groups}`);
+          if (stats.issues.length > 0) {
+            printLine('failures:');
+            for (const issue of stats.issues.slice(0, 8)) printLine(`  ${issue.code}: ${issue.count}`);
+          }
+          printLine(`traces -> ${outcome.traceFile}`);
+        }
+      } catch (error) {
+        const formatted = formatCliError(error);
+        printLine(formatted.message);
+        process.exitCode = formatted.exitCode;
+      }
+    });
 
   sceneCommand
     .command('art')

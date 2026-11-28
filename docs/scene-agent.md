@@ -189,23 +189,27 @@ Studio 新增 `/scenes`：
 ## 7.65 批量跑量（S5 之后）
 
 ```bash
-# 有 key：真模型跑，产出可用于训练的 trace
-OPENAI_API_KEY=... node scripts/scene-batch.mjs --prompts scripts/scene-prompts.txt
+# 真模型：直接复用 Studio 里配好的凭据，不用再导出 env
+dream scene batch \
+  --prompts packages/scene/prompts/settlements.txt \
+  --out dist/scene-batch \
+  --workspace dist/nav-verify     # 读 <workspace>/.gamedream/studio/settings.json
 
-# 没 key：跑离线启发式基线（规则映射 prompt → spec），验证管线与产出
-node scripts/scene-batch.mjs --provider fake
+# 没 key / 只想验管线：规则基线（prompt → spec 的启发式映射）
+dream scene batch --prompts ... --out ... --provider fake --limit 3
 ```
 
-脚本逐步打印每条需求的尝试次数、建筑数、密度与耗时，结束时自动出统计并写
-`stats.json`（含 provider 与 prompt 文件，便于溯源）。
+逐条打印 `pass/fail · 建筑数 · 密度 · 耗时`，结束时出统计并写 `stats.json`
+（含 provider 与 prompt 文件，便于溯源）。单条需求崩了不会中断整批，
+异常计入 `skipped`——一条脏需求不该让后面几十条跑不了。
 
-注意两点：
+`--limit` 用来先估成本；`--append` 才累积到已有 trace，默认每次清空。
 
-1. **没有 key 时不要用 `--provider auto`**。脚本会直接退出并提示，因为让 provider
-   抛错会把"环境没配好"伪装成"模型输出不合格"，污染失败样本。
-2. `--provider fake` 产出的**是基线样本，不是模型样本**。它的价值是给出对照：
-   一个懂 kit 的规则小函数能拿到 24/24 通过率，说明闸门本身不算苛刻，模型跑不好
-   时问题更可能在提示词或 spec 约束上。
+首批 24 条真实样本（MiniMax-M3.1-Flash）的结论见
+[`evidence/scene-batch/README.md`](evidence/scene-batch/README.md)：
+**24/24 一次过闸门，但这恰恰是问题**——闸门只保证几何合理，不保证"做的是你要的东西"。
+"城墙内""沿海崖顶""梯田沿等高线"这类需求都被静默降级成最近的地形，
+而没有任何指标能看出来。
 
 ## 7.7 数据管道（S5）
 

@@ -1,0 +1,34 @@
+{
+  "provider": "openai",
+  "prompts": "scripts/scene-prompts.txt",
+  "stats": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0,
+    "byOrigin": {
+      "agent": 24
+    },
+    "issues": [],
+    "kits": [
+      {
+        "id": "village-euro",
+        "count": 24
+      }
+    ],
+    "reviews": {
+      "good": 0,
+      "acceptable": 0,
+      "bad": 0,
+      "none": 24
+    },
+    "withPrompt": 24,
+    "determinism": {
+      "groups": 24,
+      "stable": 24,
+      "conflicts": []
+    },
+    "avgBuildings": 22.04,
+    "avgDensity": 0.157
+  },
+  "skipped": 0
+}

@@ -24,6 +24,14 @@ export {
   type BuildBinding,
   type BuildBindings,
 } from './assets.js';
+export {
+  loadStudioSettings,
+  publicStudioSettings,
+  saveStudioSettings,
+  settingsPath,
+  studioEnv,
+  type StudioSettings,
+} from './settings.js';
 export { ComfyRunner } from './comfyui.js';
 export { generateSfx, sfxTypeFromPrompt, type SfxOptions, type SfxResult, type SfxType } from './sfx.js';
 export {

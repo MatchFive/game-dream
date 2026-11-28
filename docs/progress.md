@@ -58,10 +58,13 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 - Studio `/scenes`：列表、布局预览、闸门详情、人工评审、**导出 Godot 工程**
 - `dream scene art`：按 kit 逐 prefab 生成 3/4 视角贴图（自动注入透明分支 + 裁边 + manifest），
   项目能力而非一次性脚本；旧的 `scripts/scene-art-ai.mjs` 已删除
+- `dream scene batch`：批量跑需求（真模型/桩模型皆可）→ trace → 统计 → SFT/偏好对；
+  首批 24 条真实样本已入库（`docs/evidence/scene-batch/`）
 
 ## 3. 当前焦点
 
-1. **D1 用真模型跑量** —— 管道齐了但没有真实样本，S6 无从谈起，也看不见模型的真实失败分布。
+1. **D3 需求覆盖检查** —— 首批 24 条全部一次过闸门，但"城墙/海/崖/等高线"这类需求被静默
+   降级成"河/无"，闸门看不出来。让 spec 带 `unmet[]`，把"没满足"记成可统计的标签。
 2. **S3 Unity 导出** —— 产品定位是"Unity/Godot 双引擎"，现在只有 Godot 一半。
 3. **Q1 导出回归进 CI** —— prefab/tilemap 结构刚改完，没有 CI 兜底，下次改动会悄悄坏。
 
@@ -74,19 +77,20 @@ Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
 | S3 | Unity 导出：`.unity` + prefab 实例 + NavMesh | 一半用户进不来；同一份 layout 只能出 Godot | Unity EditorVerifier 打开导出工程；建筑数/Marker 数与 layout 一致；NavMesh 采样到每个门 < 0.5m | Unity 6 本机已可 batchmode | L |
-| D1 | 真模型批量跑量（50–100 条 prompt） | 没有真实 trace，训练与提示词优化都是空谈 | `--provider auto` 产出 ≥100 条 trace；输出通过率、失败分布、`standalone/attachedShare` 分布 | MiniMax 已配 | S |
 | Q1 | 场景导出进 CI（`test-scene` job） | prefab/tilemap/`.tscn` 语法一变，线上才炸 | CI 有 Godot 时跑 `scene-godot-smoke`，无引擎时显式 skip + 报告 | `GODOT_BIN` 或 CI 下载 | S |
 | T1 | 真实 tileset 替换程序瓦片 | 地面仍是配色块，接不了美术 | `scene/tiles.png` 换成带过渡/边角的 tileset 后工程可直接用；kit 声明 tile 映射；三示例截图对比 | 美术资源 | M |
+| D3 | 需求覆盖检查（`spec.unmet[]`） | 首批 24 条全过闸门，但"城墙/海/崖/等高线"被静默降级，看数据完全发现不了 | spec 增加 `unmet: string[]`；提示词要求模型列出无法满足的需求；`scene dataset` 按 unmet 聚类；不满足不判 fail，但要可见 | — | S |
 
 ### P1 · 明显提升价值
 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
+| S13 | 地形与边界表达力（海/崖/城墙/等高线） | 现在只有 `water: none|pond|river`；"沿海崖顶""城墙内""梯田"只能映射成最接近的地形，产出与需求不符 | `water: coast`、`walls`、`elevation` 进 spec 与求解器；导出含海岸线/城墙碰撞；同一批 prompt 重跑对比 | D3 | L |
 | S7 | 场景高度与天际线 | 纯平面，城市"好看"主要靠高度与遮挡；`floors` 目前随机 | 高度按街区分层（主街高、背街低），预览与导出体现楼层差 | — | M |
 | S9 | prefab 附加节点（kit 扩展） | prefab 只有贴图+碰撞，灯光/招牌/交互挂不上去，不算真 prefab | kit 支持 `nodes[]`（type/name/offset/props），导出写进 `prefabs/*.tscn`；引擎加载节点数匹配 | — | M |
 | S10 | 场景片段/模块复用 | 逐栋生成不可控；真实关卡是"广场围合、码头区、市场街"这类模块拼的 | `segments/` 定义 + 拼装规则；trace 记录用了哪些片段 | S7 | L |
 | S8 | 世界地图与区域连接 | 只能造单点聚落；RPG 需要"多场景 + 连接" | `WorldSpec`（聚落 + 道路 + 地形带）→ 世界布局；每个聚落可单独展开；导出含区域跳转标记 | S3 或 S2 | L |
-| D2 | badcase 看板（Studio） | 失败只能靠命令行数字；调提示词/求解器没有靶子 | `/scenes/insights`：按 issue 聚类、点开看布局与评审、导出筛选后的样本 | D1 | M |
+| D2 | badcase 看板（Studio） | 失败只能靠命令行数字；调提示词/求解器没有靶子 | `/scenes/insights`：按 issue/unmet 聚类、点开看布局与评审、导出筛选后的样本 | D3 | M |
 | U1 | Studio 场景编辑（拖拽/微调） | agent 出的布局总要人修两笔；不能改就只能重生成 | 画布拖动建筑、改门朝向，保存回 layout 并写 `origin=human-edit` 的 trace | — | L |
 | T2 | 建筑贴图一致性生产化 | 7 张图靠提示词碰运气，一套 kit 像两三套素材 | 参考图 + i2i 或风格 LoRA；给出可量化的色调/笔触一致性对比 | ComfyUI edit 工作流 | M |
 | S11 | 场景交互点 | 场景只能看不能碰（商店门、可拾取、触发器） | layout 支持 `interactions[]`，导出为 Area2D + 元数据；引擎内可触发 | S9 | M |
