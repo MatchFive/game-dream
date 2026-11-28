@@ -32,6 +32,27 @@ export const sceneSpecSchema = z.object({
   /** 水域：river/pond 在地图中间，coast 沿一条边铺开海面 */
   water: z.enum(['none', 'pond', 'river', 'coast']).default('none'),
   /**
+   * 路网尺度。
+   *
+   * 这是"这是条什么街"最直接的表达：主干道 4 格能过马车，2 格只能过人；
+   * spacing 越小，街区越碎、巷子越密——窄街老城和平坦新村是同一套代码的两种参数。
+   */
+  roads: z
+    .object({
+      /** 主干道宽度（格） */
+      mainWidth: z.number().int().min(2).max(7).default(4),
+      /** 次级街道宽度（格） */
+      streetWidth: z.number().int().min(1).max(4).default(2),
+      /**
+       * 次级街道间距（格）；越小路网越密。
+       * 下限 13 不是随手定的：街区净宽 = spacing - 1(街) - 2(退线)，
+       * 一栋房子最窄 5 格，要排得下两栋才成"街"，所以 spacing ≥ 13。
+       * 再密的"窄街"应该靠收窄 mainWidth/streetWidth 表达，而不是把街区切碎。
+       */
+      spacing: z.number().int().min(13).max(40).default(18),
+    })
+    .default({}),
+  /**
    * 城墙：沿建成区外圈一圈墙，主干道穿过的地方自动留门洞。
    * 墙不是装饰——它会挡路，所以门洞位置由路网决定，城区依然连通。
    */

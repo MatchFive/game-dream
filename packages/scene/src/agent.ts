@@ -52,6 +52,7 @@ Return exactly one JSON object, no prose, no code fences. Schema:
   "required": string[] (prefab ids from the kit, at most 4),
   "decor": number 0..1,
   "water": "none" | "pond" | "river" | "coast",
+  "roads": { "mainWidth": 2..7, "streetWidth": 1..4, "spacing": 13..40 },
   "walls": { "enabled": boolean, "thickness": 1..2, "setback": 1..8 },
   "elevation": { "levels": 0..3, "step": 5..40, "from": "north" | "east" | "south" | "west" },
   "unmet": string[],
@@ -64,6 +65,14 @@ Rules:
   picks east or west) with a wavy shoreline, a sand rim and room for docks. Use it
   whenever the request is on a sea, a bay, a harbor or a cliff coast. Rivers and ponds
   stay inland.
+- "roads" is how the map reads as a street network. mainWidth is the cross road in
+  tiles (4 carries carts, 2 is people-only); streetWidth is the secondary grid
+  (1 reads as an alley, 3 as a real street); spacing is the block size in tiles
+  (smaller = denser grid, more corners). Defaults 4 / 2 / 18.
+  Narrow lanes, old quarters, walled inner cities -> mainWidth 2-3, streetWidth 1,
+  spacing 13 (the floor: a 5-tile house needs two of them per frontage to form a street). Ceremonial or capital avenues -> mainWidth 5-6, streetWidth 3.
+  Spacing also decides whether a secondary grid appears at all: a town needs 4 blocks,
+  a village 6, so spacing 24 on a 120-tile map still gets a grid but a 60-tile camp may not.
 - "walls": set enabled=true for a walled town, a fortified quarter, a border outpost with
   perimeter walls, or any request that says the settlement sits inside/behind a wall.
   The wall is built around the built-up area and opens gates wherever a road crosses it,
@@ -82,10 +91,11 @@ Rules:
   buildings from the kit, a cross road with secondary streets, river/pond/coast,
   a square, walls with gates, terraces with cliffs and ramps.
   It still has NO interior props beyond trees/wells/lamps/crates/signs/docks/flowers,
-  NO mines, springs, canals, bridges, snow/desert/swamp/snow ground, NO building
-  interiors, NO events or schedules, NO road width control, NO custom prefabs.
-  So "矿镇" -> unmet: ["mine (no mine prefab)"]; "沙漠绿洲" ->
-  unmet: ["desert terrain"]; "城墙内的窄街" -> unmet: ["narrow street width"].
+  NO mines, springs, canals, bridges, snow/desert/swamp ground, NO building
+  interiors, NO events or schedules, NO custom prefabs.
+  So "矿镇" -> unmet: ["mine (no mine prefab)"]; "沙漠绿洲" -> unmet: ["desert terrain"].
+  Street width IS a parameter now: do not put "narrow street" or "wide main road" in unmet,
+  put it in roads.
   Coastal towns, walled towns and hillside terraces ARE supported now: never put
   "coast", "cliffs", "walls", "walled city", "elevation bands" or "terraced" in unmet.
   Never silently map an unsupported request onto the nearest feature: say what is missing.
@@ -191,6 +201,7 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
         required: [],
         decor: 0,
         water: 'none',
+        roads: { mainWidth: 4, streetWidth: 2, spacing: 18 },
         walls: { enabled: false, thickness: 1, setback: 3 },
         elevation: { levels: 0, step: 12, from: 'north' },
         unmet: [],

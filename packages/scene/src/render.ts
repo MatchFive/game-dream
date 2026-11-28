@@ -60,7 +60,14 @@ export function renderSceneSvg(
   }
 
   for (const road of layout.roads) {
-    const points = road.points.map(([x, y]) => `${x * t},${y * t}`).join(' ');
+    // 折线坐标是"带宽中心格"，而笔触是绕中心画的：要盖住的格子是
+    // [p - floor((w-1)/2), +w)，所以中心要往正方向挪 w/2 - floor((w-1)/2) 个格。
+    // 只挪宽度那一轴——挪长度那轴会让路整条平移、端头空出一格。
+    const shift = road.width / 2 - Math.floor((road.width - 1) / 2);
+    const vertical = road.points.every(([x]) => x === road.points[0][0]);
+    const points = road.points
+      .map(([x, y]) => `${vertical ? (x + shift) * t : x * t},${vertical ? y * t : (y + shift) * t}`)
+      .join(' ');
     // 巷道用平头：圆头会朝两端多画半条路，看起来像戳进邻居家
     const cap = road.kind === 'alley' ? 'butt' : 'round';
     parts.push(

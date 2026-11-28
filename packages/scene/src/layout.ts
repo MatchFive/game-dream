@@ -408,9 +408,15 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
 
   // 1. 路网：十字主干道 + 大图次级街道。所有道路都记成"带"，
   //    地块直接在带与带之间的空隙里切，天生临街——这是街墙能成立的前提。
-  const mainW = 4;
+  //    宽度与间距来自 spec.roads：窄街老城和外围新村是同一套代码的两种参数。
+  const mainW = spec.roads.mainWidth;
+  const streetW = spec.roads.streetWidth;
+  const streetSpacing = spec.roads.spacing;
   const verticalX = Math.round(W * (0.34 + rng.next() * 0.12));
   const horizontalY = Math.round(H * (0.44 + rng.next() * 0.1));
+  // 折线的坐标是"带宽的中心格"：贴图与 SVG 都按 p - floor((w-1)/2) 还原成格子，
+  // 所以中心格必须是 start + floor((w-1)/2)，否则路面会整体偏一格（老代码就偏了）
+  const centreOf = (start: number, width: number) => start + Math.floor((width - 1) / 2);
   const vBands: Array<[number, number]> = [[verticalX, verticalX + mainW]];
   const hBands: Array<[number, number]> = [[horizontalY, horizontalY + mainW]];
 
@@ -420,20 +426,22 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     id: 'road-main-v',
     kind: 'main',
     width: mainW,
-    points: [[verticalX + Math.floor(mainW / 2), MARGIN], [verticalX + Math.floor(mainW / 2), H - MARGIN]],
+    points: [[centreOf(verticalX, mainW), MARGIN], [centreOf(verticalX, mainW), H - MARGIN]],
   });
   roads.push({
     id: 'road-main-h',
     kind: 'main',
     width: mainW,
-    points: [[MARGIN, horizontalY + Math.floor(mainW / 2)], [W - MARGIN, horizontalY + Math.floor(mainW / 2)]],
+    points: [[MARGIN, centreOf(horizontalY, mainW)], [W - MARGIN, centreOf(horizontalY, mainW)]],
   });
 
-  // 1.5 大图补次级路网：只靠一条十字主路，离路远的地块全成绿地，城市会变成荒地
-  if (W >= 120 || H >= 100) {
-    const spacing = 18;
-    const streetW = 2;
-    for (let x = MARGIN + spacing; x < W - MARGIN - streetW; x += spacing) {
+  // 1.5 大图补次级路网：只靠一条十字主路，离路远的地块全成绿地，城市会变成荒地。
+  //    判据是"这张图能放下几个 spacing"：城镇至少要 4 个街区，村子营地给 6 个——
+  //    村子本来就该是一条街长出来的，不该为了凑街区把巷子铺满。
+  //    默认 spacing 18 时，村子阈值 108 格，和原来的 W≥120/H≥100 基本重合。
+  const blocksNeeded = spec.kind === 'city' || spec.kind === 'town' ? 4 : 6;
+  if (W >= streetSpacing * blocksNeeded || H >= streetSpacing * blocksNeeded) {
+    for (let x = MARGIN + streetSpacing; x < W - MARGIN - streetW; x += streetSpacing) {
       if (x + streetW > verticalX - 2 && x < verticalX + mainW + 2) continue; // 让开主路
       grid.fill(x, MARGIN, streetW, H - MARGIN * 2, 'road');
       vBands.push([x, x + streetW]);
@@ -441,10 +449,10 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
         id: `street-v-${x}`,
         kind: 'street',
         width: streetW,
-        points: [[x + 1, MARGIN], [x + 1, H - MARGIN]],
+        points: [[centreOf(x, streetW), MARGIN], [centreOf(x, streetW), H - MARGIN]],
       });
     }
-    for (let y = MARGIN + spacing; y < H - MARGIN - streetW; y += spacing) {
+    for (let y = MARGIN + streetSpacing; y < H - MARGIN - streetW; y += streetSpacing) {
       if (y + streetW > horizontalY - 2 && y < horizontalY + mainW + 2) continue;
       grid.fill(MARGIN, y, W - MARGIN * 2, streetW, 'road');
       hBands.push([y, y + streetW]);
@@ -452,7 +460,7 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
         id: `street-h-${y}`,
         kind: 'street',
         width: streetW,
-        points: [[MARGIN, y + 1], [W - MARGIN, y + 1]],
+        points: [[MARGIN, centreOf(y, streetW)], [W - MARGIN, centreOf(y, streetW)]],
       });
     }
   }
@@ -607,10 +615,13 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     const limit = frame.start + frame.length;
     const place = options.anchor === 'front' ? frame.rect : frame.back;
 
-    while (along < limit - 4 && placed < 6) {
+    // 剩余宽度正好 4 格时也要再试一次：老条件 (> 4) 会在每排尾巴固定留 4 格空地
+    while (limit - along >= 4 && placed < 6) {
       const remaining = limit - along;
       const candidate = locked ?? weightedPick(rowPool.length > 0 ? rowPool : kit.prefabs, rng);
       const maxW = Math.min(candidate.footprint.maxWidth, remaining);
+      // min 会被 max 压下来：宁可把最后一栋挤窄，也不要在街墙上留一个洞。
+      // 街墙连续比"这栋房子严格符合 kit 的尺寸区间"更重要——断掉的排看着像荒地。
       const minW = Math.min(candidate.footprint.minWidth, maxW);
       const maxD = Math.min(candidate.footprint.maxHeight, options.depthCap);
       const minD = Math.min(candidate.footprint.minHeight, maxD);
@@ -677,8 +688,8 @@ export function buildScene(spec: SceneSpec, kit: Kit): SceneBuildResult {
     else grid.fill(laneRect.x, lo, lane, hi - lo, 'road');
 
     const mid = horizontal
-      ? Math.round(laneRect.y + (lane - 1) / 2)
-      : Math.round(laneRect.x + (lane - 1) / 2);
+      ? centreOf(laneRect.y, lane)
+      : centreOf(laneRect.x, lane);
     roads.push({
       id: `lane-${buildingIndex}`,
       kind: 'alley',

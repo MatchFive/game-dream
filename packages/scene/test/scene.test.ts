@@ -18,6 +18,7 @@ import {
   validateScene,
   type SceneLayout,
 } from '../src/index.js';
+import { buildTileLayers, renderTileAtlas } from '../src/export/tiles.js';
 
 const kitPath = fileURLToPath(new URL('../kits/village-euro.json', import.meta.url));
 const kit = loadKit(kitPath);
@@ -488,6 +489,87 @@ describe('skyline', () => {
     expect(sum).toBe(layout.buildings.reduce((total, building) => total + building.floors, 0));
     const floors = result.summary.floors as { mean: number; max: number };
     expect(floors.max).toBe(Math.max(...layout.buildings.map((b) => b.floors)));
+  });
+});
+
+describe('street network parameters', () => {
+  const townAt = (roads: Record<string, number>) => parseSceneSpec({
+    ...baseSpec,
+    id: 'streets',
+    kind: 'town' as const,
+    bounds: { width: 120, height: 96 },
+    required: ['tavern'],
+    roads,
+  });
+
+  it('defaults to 4 / 2 / 18 so old specs keep the same network', () => {
+    const spec = parseSceneSpec({ ...baseSpec });
+    expect(spec.roads).toEqual({ mainWidth: 4, streetWidth: 2, spacing: 18 });
+
+    const { layout } = buildScene(townAt({}), kit);
+    expect(new Set(layout.roads.filter((road) => road.kind === 'main').map((road) => road.width))).toEqual(new Set([4]));
+    const streets = layout.roads.filter((road) => road.kind === 'street');
+    expect(streets.length).toBeGreaterThan(4);
+    expect(new Set(streets.map((road) => road.width))).toEqual(new Set([2]));
+  });
+
+  it('honours narrow and wide widths all the way to the exported tiles', () => {
+    const narrow = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }), kit).layout;
+    expect(new Set(narrow.roads.filter((road) => road.kind === 'main').map((road) => road.width))).toEqual(new Set([2]));
+    expect(new Set(narrow.roads.filter((road) => road.kind === 'street').map((road) => road.width))).toEqual(new Set([1]));
+
+    const wide = buildScene(townAt({ mainWidth: 6, streetWidth: 3, spacing: 20 }), kit).layout;
+    const wideMain = wide.roads.find((road) => road.id === 'road-main-h');
+    expect(wideMain?.width).toBe(6);
+    // 主路不能比次级街窄——否则"宽主路"只是个数字
+    for (const street of wide.roads.filter((road) => road.kind === 'street')) {
+      expect(street.width).toBeLessThan(6);
+    }
+  });
+
+  it('uses the spacing to decide how dense the grid is', () => {
+    const dense = buildScene(townAt({ spacing: 10 }), kit).layout;
+    const sparse = buildScene(townAt({ spacing: 26 }), kit).layout;
+    const count = (layout: SceneLayout) => layout.roads.filter((road) => road.kind === 'street').length;
+    expect(count(dense)).toBeGreaterThan(count(sparse));
+  });
+
+  it('lines the road tiles up with the walkable band, not one cell off', () => {
+    // 折线坐标是"带宽的中心格"，贴图按 p - floor((w-1)/2) 还原。
+    // 这条守的是一个老 bug：4 格宽的主路整体偏一格，路面压在旁边的地块上。
+    const { layout } = buildScene(townAt({}), kit);
+    const atlas = renderTileAtlas(layout);
+    const layers = buildTileLayers(layout, atlas);
+    // 横向主路：宽度在 y 上，折线给的是带宽中心那一行
+    const main = layout.roads.find((road) => road.id === 'road-main-h');
+    expect(main).toBeDefined();
+    const [, cy] = (main as { points: Array<[number, number]> }).points[0];
+    const width = (main as { width: number }).width;
+    const top = cy - Math.floor((width - 1) / 2);
+
+    // 取路中段的一列，看这一列上是不是正好 width 格
+    const middle = (main as { points: Array<[number, number]> }).points[0][0] + 20;
+    const column = layers.roads.filter((cell) => cell.x === middle && cell.y >= top && cell.y < top + width);
+    expect(column).toHaveLength(width);
+    expect(layers.roads.some((cell) => cell.x === middle && cell.y === top - 1)).toBe(false);
+
+    // 这几格在栅格里也必须是 road：贴图和"能不能走"说的是同一件事
+    const { grid } = buildScene(townAt({}), kit);
+    for (let y = top; y < top + width; y += 1) expect(grid.get(middle, y)).toBe('road');
+  });
+
+  it('keeps every door reachable when the main road is only two tiles wide', () => {
+    const built = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }), kit);
+    const spawn = built.layout.anchors.find((anchor) => anchor.kind === 'spawn');
+    const reachable = built.grid.flood((spawn as { at: [number, number] }).at[0], (spawn as { at: [number, number] }).at[1]);
+    const validation = validateScene(
+      built.layout,
+      townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }),
+      (x, y) => built.grid.walkable(x, y),
+      reachable,
+    );
+    expect(validation.issues).toEqual([]);
+    expect(validation.metrics.entranceCoverage).toBe(1);
   });
 });
 
