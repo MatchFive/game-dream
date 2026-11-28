@@ -4,6 +4,7 @@ import { createProvider } from '@gamedream/agent';
 import {
   appendTrace,
   buildSceneWithTrace,
+  exportGodotScene,
   findBuiltinKit,
   loadKit,
   parseSceneSpec,
@@ -249,6 +250,42 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     attempts: agent.attempts.length,
   });
   return { scene, finished: agent.finished, failure: agent.failure };
+}
+
+export interface SceneExportOutcome {
+  /** 工程目录，可直接用 Godot 打开 */
+  dir: string;
+  files: number;
+  summary: Record<string, unknown>;
+}
+
+export function exportsDir(root: string): string {
+  return join(root, '.gamedream', 'studio', 'exports');
+}
+
+/**
+ * 把已保存的场景导出成一个可编辑的引擎工程。
+ *
+ * 产物不是一个"截图式的成品"，而是能继续做下去的东西：地面是 TileMapLayer
+ * （可逐格刷改），建筑是 prefabs/*.tscn 的实例（改一次全图生效），
+ * 再加上碰撞、正门标记、导航网格与边界墙。
+ *
+ * 这个函数是项目能力的一部分：CLI 的 `dream scene build`、Studio 的导出按钮、
+ * 以后 agent 的工具调用，走的都是同一个导出器。
+ */
+export function exportScene(
+  root: string,
+  id: string,
+  options: { artStyle?: 'tile' | 'billboard' } = {},
+): SceneExportOutcome {
+  const scene = loadScene(root, id);
+  if (!scene) throw new Error(`scene not found: ${id}`);
+  const dir = join(exportsDir(root), id);
+  const result = exportGodotScene(scene.layout, dir, {
+    artDir: artDir(root),
+    artStyle: options.artStyle ?? 'billboard',
+  });
+  return { dir, files: result.files.length, summary: result.summary };
 }
 
 export function reviewScene(

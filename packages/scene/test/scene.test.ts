@@ -147,7 +147,7 @@ describe('trace dataset', () => {
 });
 
 describe('godot export', () => {
-  it('writes a loadable project with matching node counts', () => {
+  it('instances prefabs instead of baking every building into the scene', () => {
     const { layout } = buildSceneWithTrace(baseSpec, kit);
     const dir = mkdtempSync(join(tmpdir(), 'gamedream godot scene '));
     const result = exportGodotScene(layout, dir);
@@ -163,14 +163,57 @@ describe('godot export', () => {
     const sub = (tscn.match(/^\[sub_resource/gm) ?? []).length;
     expect(loadSteps).toBe(ext + sub + 1);
 
-    // 每栋建筑一个 StaticBody2D + 碰撞体 + 入口标记
-    // 建筑各一个 + Walls 容器本身
-    expect((tscn.match(/type="StaticBody2D"/g) ?? []).length).toBe(layout.buildings.length + 1);
-    expect((tscn.match(/type="CollisionShape2D"/g) ?? []).length)
-      .toBe(layout.buildings.length + 4); // 每栋建筑一个 + 四面边界墙
-    expect((tscn.match(/parent="Buildings"/g) ?? []).length).toBe(layout.buildings.length);
+    // 建筑一律是 prefab 实例：场景里只剩 Walls 一个 StaticBody2D
+    const usedPrefabs = new Set(layout.buildings.map((building) => building.prefab));
+    expect((tscn.match(/instance=ExtResource\("prefab_/g) ?? []).length).toBe(layout.buildings.length);
+    expect((tscn.match(/type="StaticBody2D"/g) ?? []).length).toBe(1);
+
+    // 每个用到的 prefab 都有自己的场景文件，且结构完整
+    for (const prefab of usedPrefabs) {
+      const file = join(dir, 'prefabs', `${prefab}.tscn`);
+      expect(existsSync(file)).toBe(true);
+      const prefabText = readFileSync(file, 'utf8');
+      expect(prefabText).toContain('type="StaticBody2D"');
+      expect(prefabText).toContain('[node name="Art"');
+      expect(prefabText).toContain('[node name="Body" type="CollisionShape2D"');
+    }
+
+    // 每栋建筑的尺寸/入口靠属性覆盖，而不是复制节点树
+    expect((tscn.match(/\[node name="Art" parent="Buildings\//g) ?? []).length).toBe(layout.buildings.length);
+    expect((tscn.match(/\[node name="Body" parent="Buildings\//g) ?? []).length).toBe(layout.buildings.length);
+    expect((tscn.match(/\[node name="Entrance" type="Marker2D" parent="Buildings\//g) ?? []).length)
+      .toBe(layout.buildings.length);
     expect((tscn.match(/parent="Anchors"/g) ?? []).length).toBe(layout.anchors.length);
     expect(tscn).not.toContain('/>'); // Godot 4 的 ext_resource 用 ] 结尾
+  });
+
+  it('paints the ground as two tile layers', () => {
+    const { layout } = buildSceneWithTrace(baseSpec, kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream godot tiles '));
+    const result = exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+
+    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(2);
+    expect(tscn).toContain('tile_set = ExtResource("2_tileset")');
+    // 两层各一份 tile_map_data
+    expect((tscn.match(/tile_map_data = PackedByteArray\(/g) ?? []).length).toBe(2);
+
+    // 地形层必须铺满整张图：漏一格就会露出引擎底色
+    const cells = layout.bounds.width * layout.bounds.height;
+    expect(result.summary.tiles.cells).toBe(cells);
+    expect(result.summary.tiles.roadCells).toBeGreaterThan(0);
+
+    // tile_map_data：2 字节版本号 + 每格 12 字节
+    const first = (tscn.match(/tile_map_data = PackedByteArray\(([^)]*)\)/) ?? [])[1] ?? '';
+    const bytes = first.split(',').length;
+    expect(bytes).toBe(2 + cells * 12);
+
+    // atlas 与 TileSet 资源都要落盘，且每个地形至少一个瓦片
+    expect(existsSync(join(dir, 'scene/tiles.png'))).toBe(true);
+    const tres = readFileSync(join(dir, 'scene/tiles.tres'), 'utf8');
+    expect(tres).toContain('TileSetAtlasSource');
+    const tiles = (tres.match(/^\d+:0\/0 = 0$/gm) ?? []).length;
+    expect(tiles).toBeGreaterThanOrEqual(5);
   });
 
   it('emits a navigation mesh built from walkable cells', () => {
@@ -202,7 +245,7 @@ describe('godot export', () => {
     const result = exportGodotScene(layout, dir);
     expect(result.summary.buildings).toBe(layout.buildings.length);
     expect(result.summary.anchors).toBe(layout.anchors.length);
-    expect(result.summary.collisions).toBeGreaterThan(0);
+    expect(result.summary.prefabs).toBe(new Set(layout.buildings.map((b) => b.prefab)).size);
   });
 });
 
@@ -256,14 +299,20 @@ describe('artwork layer', () => {
     const withArt = exportGodotScene(layout, join(dir, 'with'), { artDir: join(dir, 'art') });
     const sceneWith = readFileSync(join(dir, 'with', 'scene/scene.tscn'), 'utf8');
     expect(withArt.summary.textures).toBeGreaterThan(0);
-    expect(sceneWith).toContain('type="Sprite2D"');
     expect(sceneWith).toContain('scale = Vector2(');
     expect(existsSync(join(dir, 'with', 'scene/art', 'house-small.png'))).toBe(true);
+    // 贴图挂在 prefab 上：换图改一个文件就够
+    const prefabWithArt = readFileSync(join(dir, 'with', 'prefabs', 'house-small.tscn'), 'utf8');
+    expect(prefabWithArt).toContain('type="Sprite2D"');
+    expect(prefabWithArt).toContain('Texture2D" path="res://scene/art/house-small.png"');
 
     const without = exportGodotScene(layout, join(dir, 'without'));
-    const sceneWithout = readFileSync(join(dir, 'without', 'scene/scene.tscn'), 'utf8');
     expect(without.summary.textures).toBe(0);
-    expect(sceneWithout).toContain('type="Polygon2D"');
+    const prefabWithout = readFileSync(join(dir, 'without', 'prefabs', 'house-small.tscn'), 'utf8');
+    expect(prefabWithout).toContain('type="Polygon2D"');
+    // 没有贴图时实例仍然用 scale 拉到 footprint
+    const sceneWithout = readFileSync(join(dir, 'without', 'scene/scene.tscn'), 'utf8');
+    expect(sceneWithout).toContain('[node name="Art" parent="Buildings/');
   });
 
   it('embeds artwork into the svg preview', () => {
@@ -295,9 +344,12 @@ describe('billboard artwork', () => {
     expect(tiled.summary.textures).toBe(billboard.summary.textures);
 
     const scene = readFileSync(join(dir, 'billboard', 'scene/scene.tscn'), 'utf8');
-    // 等宽 + 底边对齐：靠 centered=false 与负 offset 实现
+    // 等宽 + 底边对齐：每栋实例都覆盖 centered 与 offset
     expect((scene.match(/centered = false/g) ?? []).length).toBe(layout.buildings.length);
     expect(scene).toMatch(/offset = Vector2\(-[\d.]+, -[\d.]+\)/);
+    // tile 模式不写负偏移：贴图直接铺满 footprint
+    const tiledScene = readFileSync(join(dir, 'tile', 'scene/scene.tscn'), 'utf8');
+    expect((tiledScene.match(/offset = Vector2\(0, 0\)/g) ?? []).length).toBe(layout.buildings.length);
   });
 });
 

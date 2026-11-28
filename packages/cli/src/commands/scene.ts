@@ -27,6 +27,10 @@ export interface SceneBuildOptions {
   /** 额外硬约束，透传给模型 */
   constraints?: string[];
   traceFile?: string;
+  /** 建筑贴图目录（约定 <artDir>/<kitId>/<prefab>.png） */
+  artDir?: string;
+  /** tile 铺满足迹 / billboard 底边对齐向上溢出 */
+  artStyle?: 'tile' | 'billboard';
   onAttempt?: (index: number, layout: SceneLayout, validation: SceneValidation, finished: boolean) => void;
 }
 
@@ -46,7 +50,11 @@ function resolveKit(kitPath: string): Kit {
   return loadKit(path);
 }
 
-function writeArtifacts(layout: SceneLayout, outDir: string): string[] {
+function writeArtifacts(
+  layout: SceneLayout,
+  outDir: string,
+  options: { artDir?: string; artStyle?: 'tile' | 'billboard' } = {},
+): string[] {
   mkdirSync(outDir, { recursive: true });
   const files: string[] = [];
   const layoutPath = join(outDir, 'layout.json');
@@ -55,8 +63,12 @@ function writeArtifacts(layout: SceneLayout, outDir: string): string[] {
   const svgPath = join(outDir, 'scene.svg');
   writeFileSync(svgPath, renderSceneSvg(layout), 'utf8');
   files.push(svgPath);
+  // 直接产出可编辑的引擎工程：地面是 TileMapLayer，建筑是 prefab 实例
   const godotDir = join(outDir, 'godot');
-  const godot = exportGodotScene(layout, godotDir);
+  const godot = exportGodotScene(layout, godotDir, {
+    artDir: options.artDir ? resolve(options.artDir) : undefined,
+    artStyle: options.artStyle ?? 'billboard',
+  });
   return [...files, ...godot.files.map((file) => join(godotDir, file))];
 }
 
@@ -112,7 +124,9 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
     };
   }
 
-  const files = result.finished ? writeArtifacts(result.layout, options.outDir) : [];
+  const files = result.finished
+    ? writeArtifacts(result.layout, options.outDir, { artDir: options.artDir, artStyle: options.artStyle })
+    : [];
   return { ...result, files };
 }
 

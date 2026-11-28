@@ -107,6 +107,11 @@ export const api = {
     post<{ scene: StoredScene; finished: boolean; failure?: string }>('/api/scenes', body),
   reviewScene: (id: string, body: { verdict: 'good' | 'acceptable' | 'bad'; score?: number; notes?: string }) =>
     post<{ scene: StoredScene }>(`/api/scenes/${id}/review`, body),
+  exportScene: (id: string, engine: 'godot' = 'godot', artStyle: 'tile' | 'billboard' = 'billboard') =>
+    post<{ dir: string; files: number; summary: Record<string, unknown> }>(`/api/scenes/${id}/export`, {
+      engine,
+      artStyle,
+    }),
   choosePath: (body: { kind: 'file' | 'folder'; title?: string; filter?: string }) =>
     post<{ path: string | null }>('/api/dialog', body),
   job: (id: string) => request<{ job: ComfyJob }>(`/api/jobs/${id}`),

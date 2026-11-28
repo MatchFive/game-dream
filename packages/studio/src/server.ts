@@ -20,7 +20,7 @@ import { ComfyAudioRunner, ComfyWorkflowRunner } from './comfyui.js';
 import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
-import { artDir, buildScene, ensureArtwork, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
+import { artDir, buildScene, ensureArtwork, exportScene, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
 import {
   assertTrustedMutation,
   HttpSecurityError,
@@ -1382,6 +1382,25 @@ async function handleApi(
 
   if (method === 'GET' && pathname === '/api/scenes') {
     json(response, 200, { scenes: listScenes(root) });
+    return;
+  }
+
+  const sceneExportMatch = pathname.match(/^\/api\/scenes\/([^/]+)\/export$/);
+  if (method === 'POST' && sceneExportMatch) {
+    try {
+      const body = (await readJson(request)) as { engine?: unknown; artStyle?: unknown };
+      const engine = typeof body.engine === 'string' ? body.engine : 'godot';
+      if (engine !== 'godot') {
+        json(response, 400, { error: `unsupported engine: ${engine}` });
+        return;
+      }
+      const outcome = exportScene(root, sceneExportMatch[1], {
+        artStyle: body.artStyle === 'tile' ? 'tile' : 'billboard',
+      });
+      json(response, 200, outcome);
+    } catch (error) {
+      json(response, 400, { error: (error as Error).message });
+    }
     return;
   }
 

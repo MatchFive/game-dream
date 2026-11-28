@@ -1,7 +1,8 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { encodePng } from '@gamedream/core';
 import type { SceneLayout } from '../schema.js';
+import { instanceNodes, prefabScene, type PrefabArt, type PrefabSpec } from './prefabs.js';
+import { buildTileLayers, encodeTileMapData, renderTileAtlas, tileSetResource } from './tiles.js';
 
 export interface GodotExportResult {
   dir: string;
@@ -30,70 +31,6 @@ function pngSize(file: string): { width: number; height: number } | null {
     return null;
   }
 }
-
-const hexToRgb = (hex: string): [number, number, number] => {
-  const value = hex.replace('#', '');
-  return [
-    Number.parseInt(value.slice(0, 2), 16),
-    Number.parseInt(value.slice(2, 4), 16),
-    Number.parseInt(value.slice(4, 6), 16),
-  ];
-};
-
-const colorLiteral = (hex: string, alpha = 1): string => {
-  const [r, g, b] = hexToRgb(hex);
-  return `Color(${(r / 255).toFixed(4)}, ${(g / 255).toFixed(4)}, ${(b / 255).toFixed(4)}, ${alpha})`;
-};
-
-/** 把场景栅格化成一张地面底图：地块填色 + 道路描粗。 */
-function renderGround(layout: SceneLayout): Buffer {
-  const size = layout.tileSize;
-  const width = layout.bounds.width * size;
-  const height = layout.bounds.height * size;
-  const rgba = Buffer.alloc(width * height * 4);
-
-  const paint = (x: number, y: number, hex: string) => {
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
-    const [r, g, b] = hexToRgb(hex);
-    const offset = (y * width + x) * 4;
-    rgba[offset] = r;
-    rgba[offset + 1] = g;
-    rgba[offset + 2] = b;
-    rgba[offset + 3] = 255;
-  };
-  const fillRect = (x: number, y: number, w: number, h: number, hex: string) => {
-    for (let row = y; row < y + h; row += 1) {
-      for (let col = x; col < x + w; col += 1) paint(col, row, hex);
-    }
-  };
-
-  fillRect(0, 0, width, height, layout.palette.ground);
-  for (const lot of layout.lots) {
-    const color = lot.kind === 'plaza'
-      ? layout.palette.plaza
-      : lot.kind === 'green'
-        ? layout.palette.green
-        : lot.kind === 'water'
-          ? layout.palette.water
-          : null;
-    if (color) fillRect(lot.rect.x * size, lot.rect.y * size, lot.rect.w * size, lot.rect.h * size, color);
-  }
-  for (const road of layout.roads) {
-    for (let i = 1; i < road.points.length; i += 1) {
-      const [x1, y1] = road.points[i - 1];
-      const [x2, y2] = road.points[i];
-      if (x1 === x2) {
-        const left = x1 - Math.floor((road.width - 1) / 2);
-        fillRect(left * size, Math.min(y1, y2) * size, road.width * size, (Math.abs(y2 - y1) + 1) * size, layout.palette.road);
-      } else {
-        const top = y1 - Math.floor((road.width - 1) / 2);
-        fillRect(Math.min(x1, x2) * size, top * size, (Math.abs(x2 - x1) + 1) * size, road.width * size, layout.palette.road);
-      }
-    }
-  }
-  return encodePng(width, height, rgba);
-}
-
 
 interface NavMesh {
   vertices: Array<[number, number]>;
@@ -141,16 +78,82 @@ function buildNavMesh(layout: SceneLayout): NavMesh {
   return { vertices, polygons };
 }
 
-interface ShapeEntry {
-  id: string;
-  w: number;
-  h: number;
-}
+const CHECK_SCRIPT = [
+  'extends Node2D',
+  '',
+  '## 由 GameDream 场景导出器生成：自检节点结构、瓦片层、导航可达性，然后退出。',
+  'func _ready() -> void:',
+  '\tvar buildings := get_node("Buildings").get_child_count()',
+  '\tvar shapes := 0',
+  '\tvar entrances := 0',
+  '\tfor child in get_node("Buildings").get_children():',
+  '\t\tfor sub in child.get_children():',
+  '\t\t\tif sub is CollisionShape2D:',
+  '\t\t\t\tshapes += 1',
+  '\t\t\telif sub is Marker2D:',
+  '\t\t\t\tentrances += 1',
+  '\tvar anchors := get_node("Anchors").get_child_count()',
+  '\tprint("GAMEDREAM_SCENE_BUILDINGS=%d" % buildings)',
+  '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
+  '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
+  '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
+  '',
+  '\tvar ground := get_node_or_null("Ground") as TileMapLayer',
+  '\tvar roads := get_node_or_null("Roads") as TileMapLayer',
+  '\tif ground == null or roads == null:',
+  '\t\tprint("GAMEDREAM_TILES_MISSING=1")',
+  '\telse:',
+  '\t\tprint("GAMEDREAM_TILES_GROUND=%d" % ground.get_used_cells().size())',
+  '\t\tprint("GAMEDREAM_TILES_ROADS=%d" % roads.get_used_cells().size())',
+  '\t\tprint("GAMEDREAM_TILES_ATLAS=%s" % str(ground.tile_set != null))',
+  '',
+  '\tvar spawn_node := get_node_or_null("Anchors/Spawn0") as Marker2D',
+  '\tif spawn_node:',
+  '\t\tprint("GAMEDREAM_SCENE_SPAWN=%d,%d" % [int(spawn_node.position.x), int(spawn_node.position.y)])',
+  '',
+  '\tvar region := get_node_or_null("Navigation") as NavigationRegion2D',
+  '\tif region == null:',
+  '\t\tprint("GAMEDREAM_NAV_MISSING=1")',
+  '\telse:',
+  '\t\tvar map: RID = region.get_navigation_map()',
+  '\t\t# 导航地图是异步构建的：先等几帧完成首次同步（否则第一条查询会报 map not synchronized），',
+  '\t\t# 再轮询到出生点真的落在网格上，然后才测路径',
+  '\t\tfor _i in range(3):',
+  '\t\t\tawait get_tree().physics_frame',
+  '\t\tNavigationServer2D.map_force_update(map)',
+  '\t\tfor _i in range(40):',
+  '\t\t\tawait get_tree().physics_frame',
+  '\t\t\tNavigationServer2D.map_force_update(map)',
+  '\t\t\tif NavigationServer2D.map_get_closest_point(map, spawn_node.global_position) != Vector2.ZERO:',
+  '\t\t\t\tbreak',
+  '\t\tvar total := 0',
+  '\t\tvar reached := 0',
+  '\t\tvar failed: Array[String] = []',
+  '\t\tfor child in get_node("Buildings").get_children():',
+  '\t\t\tvar entrance := child.get_node_or_null("Entrance") as Marker2D',
+  '\t\t\tif entrance == null or spawn_node == null:',
+  '\t\t\t\tcontinue',
+  '\t\t\ttotal += 1',
+  '\t\t\tvar path := NavigationServer2D.map_get_path(map, spawn_node.global_position, entrance.global_position, true)',
+  '\t\t\tif path.size() > 0 and path[path.size() - 1].distance_to(entrance.global_position) < 2.0:',
+  '\t\t\t\treached += 1',
+  '\t\t\telse:',
+  '\t\t\t\tfailed.append(String(child.name))',
+  '\t\tprint("GAMEDREAM_NAV_TOTAL=%d" % total)',
+  '\t\tprint("GAMEDREAM_NAV_REACHED=%d" % reached)',
+  '\t\tif failed.size() > 0:',
+  '\t\t\tprint("GAMEDREAM_NAV_FAILED=%s" % ",".join(failed))',
+  '',
+  '\tprint("GAMEDREAM_SCENE_OK=1")',
+  '\tget_tree().quit()',
+  '',
+].join('\n');
 
 /**
  * 导出成可直接用 Godot 4.4 打开的项目：
- * 地面是一张底图，建筑是带碰撞的 StaticBody2D，锚点是 Marker2D。
- * 节点数量与布局一一对应，便于在引擎里逐项核对。
+ * - 地面是两张 TileMapLayer（地形 / 道路），可在编辑器里逐格刷改
+ * - 建筑是 `prefabs/*.tscn` 的实例，改 prefab 一次全图生效
+ * - 导航与边界墙照旧
  */
 export function exportGodotScene(
   layout: SceneLayout,
@@ -158,14 +161,56 @@ export function exportGodotScene(
   options: GodotExportOptions = {},
 ): GodotExportResult {
   const sceneDir = join(outDir, 'scene');
+  const prefabDir = join(outDir, 'prefabs');
   mkdirSync(sceneDir, { recursive: true });
+  mkdirSync(prefabDir, { recursive: true });
 
-  const png = renderGround(layout);
-  writeFileSync(join(sceneDir, 'ground.png'), png);
+  const size = layout.tileSize;
+  const bounds = layout.bounds;
+
   writeFileSync(join(sceneDir, 'layout.json'), `${JSON.stringify(layout, null, 2)}\n`, 'utf8');
 
-  // 尺寸相同的建筑共用一个矩形碰撞体
-  const shapes: ShapeEntry[] = [];
+  // 1. 瓦片：atlas + TileSet 资源
+  const atlas = renderTileAtlas(layout);
+  writeFileSync(join(sceneDir, 'tiles.png'), atlas.png);
+  writeFileSync(join(sceneDir, 'tiles.tres'), tileSetResource(layout, atlas), 'utf8');
+  const layers = buildTileLayers(layout, atlas);
+
+  // 2. 建筑贴图：约定 <artDir>/<kitId>/<prefab>.png
+  const artDir = options.artDir ? join(options.artDir, layout.kitId) : undefined;
+  const artTextures = new Map<string, PrefabArt>();
+  if (artDir && existsSync(artDir)) {
+    const artOutDir = join(sceneDir, 'art');
+    mkdirSync(artOutDir, { recursive: true });
+    for (const prefab of new Set(layout.buildings.map((building) => building.prefab))) {
+      const source = join(artDir, `${prefab}.png`);
+      if (!existsSync(source)) continue;
+      const png = pngSize(source);
+      if (!png) continue;
+      copyFileSync(source, join(artOutDir, `${prefab}.png`));
+      artTextures.set(prefab, { res: `res://scene/art/${prefab}.png`, width: png.width, height: png.height });
+    }
+  }
+
+  // 3. prefab：每种 kit 建筑一个，场景里只放实例
+  const prefabSpecs = new Map<string, PrefabSpec>();
+  for (const building of layout.buildings) {
+    if (prefabSpecs.has(building.prefab)) continue;
+    prefabSpecs.set(building.prefab, {
+      id: building.prefab,
+      color: building.color,
+      roof: building.roof,
+      art: artTextures.get(building.prefab),
+    });
+  }
+  const prefabFiles: string[] = [];
+  for (const spec of prefabSpecs.values()) {
+    writeFileSync(join(prefabDir, `${spec.id}.tscn`), prefabScene(spec, size), 'utf8');
+    prefabFiles.push(`prefabs/${spec.id}.tscn`);
+  }
+
+  // 4. 碰撞形状：尺寸相同的建筑共用一个
+  const shapes: Array<{ id: string; w: number; h: number }> = [];
   const shapeIdFor = (w: number, h: number): string => {
     const existing = shapes.find((entry) => entry.w === w && entry.h === h);
     if (existing) return existing.id;
@@ -173,10 +218,8 @@ export function exportGodotScene(
     shapes.push(entry);
     return entry.id;
   };
-  const buildingShapeIds = layout.buildings.map((building) => shapeIdFor(building.rect.w * layout.tileSize, building.rect.h * layout.tileSize));
-  // 边界墙也占 sub_resource，必须在写 header 之前登记，load_steps 才不会偏小
-  const size = layout.tileSize;
-  const bounds = layout.bounds;
+  const buildingShapeIds = layout.buildings.map((building) =>
+    shapeIdFor(building.rect.w * size, building.rect.h * size));
   const walls: Array<{ name: string; x: number; y: number; w: number; h: number }> = [
     { name: 'top', x: 0, y: -size / 2, w: bounds.width * size, h: size },
     { name: 'bottom', x: 0, y: bounds.height * size - size / 2, w: bounds.width * size, h: size },
@@ -188,33 +231,18 @@ export function exportGodotScene(
   const navMesh = buildNavMesh(layout);
   const navResource = navMesh.polygons.length > 0
     ? [
-      `[sub_resource type="NavigationPolygon" id="nav_mesh"]`,
+      '[sub_resource type="NavigationPolygon" id="nav_mesh"]',
       `vertices = PackedVector2Array(${navMesh.vertices.map(([x, y]) => `${x}, ${y}`).join(', ')})`,
       `polygons = [${navMesh.polygons.map((polygon) => `PackedInt32Array(${polygon.join(', ')})`).join(', ')}]`,
     ].join('\n')
     : null;
 
-  // 建筑贴图：约定 <artDir>/<kitId>/<prefab>.png
-  const artDir = options.artDir ? join(options.artDir, layout.kitId) : undefined;
-  const artTextures = new Map<string, { res: string; width: number; height: number }>();
-  if (artDir && existsSync(artDir)) {
-    const artOutDir = join(sceneDir, 'art');
-    mkdirSync(artOutDir, { recursive: true });
-    for (const prefab of new Set(layout.buildings.map((building) => building.prefab))) {
-      const source = join(artDir, `${prefab}.png`);
-      if (!existsSync(source)) continue;
-      const size = pngSize(source);
-      if (!size) continue;
-      copyFileSync(source, join(artOutDir, `${prefab}.png`));
-      artTextures.set(prefab, { res: `res://scene/art/${prefab}.png`, width: size.width, height: size.height });
-    }
-  }
-
+  // 5. 场景文件
   const extResources = [
     '[ext_resource type="Script" path="res://scene/scene_check.gd" id="1_script"]',
-    '[ext_resource type="Texture2D" path="res://scene/ground.png" id="2_ground"]',
-    ...[...artTextures.entries()].map(
-      ([prefab, texture]) => `[ext_resource type="Texture2D" path="${texture.res}" id="art_${prefab}"]`,
+    '[ext_resource type="TileSet" path="res://scene/tiles.tres" id="2_tileset"]',
+    ...[...prefabSpecs.keys()].map(
+      (id) => `[ext_resource type="PackedScene" path="res://prefabs/${id}.tscn" id="prefab_${id}"]`,
     ),
   ];
   const subResources = shapes.map(
@@ -235,9 +263,17 @@ export function exportGodotScene(
   lines.push('[node name="Scene" type="Node2D"]');
   lines.push('script = ExtResource("1_script")');
   lines.push('');
-  lines.push('[node name="Ground" type="Sprite2D" parent="."]');
-  lines.push('texture = ExtResource("2_ground")');
+
+  // 地面：地形一层，道路一层。两层分开，改路面时不用碰地形
+  lines.push('[node name="Ground" type="TileMapLayer" parent="."]');
+  lines.push(`tile_map_data = ${encodeTileMapData(layers.ground)}`);
+  lines.push('tile_set = ExtResource("2_tileset")');
   lines.push('');
+  lines.push('[node name="Roads" type="TileMapLayer" parent="."]');
+  lines.push(`tile_map_data = ${encodeTileMapData(layers.roads)}`);
+  lines.push('tile_set = ExtResource("2_tileset")');
+  lines.push('');
+
   if (navResource) {
     lines.push('[node name="Navigation" type="NavigationRegion2D" parent="."]');
     lines.push('navigation_polygon = SubResource("nav_mesh")');
@@ -250,65 +286,37 @@ export function exportGodotScene(
   lines.push('[node name="Anchors" type="Node2D" parent="."]');
   lines.push('');
 
-  // 地图边界墙：4 个碰撞体，防止角色走出场景
   walls.forEach((wall, index) => {
-    const shapeId = wallShapeIds[index];
     lines.push(`[node name="${wall.name}" type="CollisionShape2D" parent="Walls"]`);
     lines.push(`position = Vector2(${wall.x + wall.w / 2}, ${wall.y + wall.h / 2})`);
-    lines.push(`shape = SubResource("${shapeId}")`);
+    lines.push(`shape = SubResource("${wallShapeIds[index]}")`);
     lines.push('');
   });
 
+  // 按底边排序，靠下的盖住靠上的（billboard 溢出时尤其重要）
   const drawOrder = [...layout.buildings].sort((a, b) => (a.rect.y + a.rect.h) - (b.rect.y + b.rect.h));
   drawOrder.forEach((building) => {
     const index = layout.buildings.indexOf(building);
     const px = building.rect.x * size;
     const py = building.rect.y * size;
-    const w = building.rect.w * size;
-    const h = building.rect.h * size;
-    lines.push(`[node name="${building.id}" type="StaticBody2D" parent="Buildings"]`);
-    lines.push(`position = Vector2(${px}, ${py})`);
-    lines.push('');
-    const art = artTextures.get(building.prefab);
-    if (art) {
-      if (options.artStyle === 'billboard') {
-        // 等宽缩放，底边落在 footprint 底边，向上溢出表现"楼高"
-        const scale = w / art.width;
-        lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
-        lines.push('centered = false');
-        lines.push(`position = Vector2(${w / 2}, ${h})`);
-        lines.push(`offset = Vector2(${(-w / 2).toFixed(2)}, ${(-art.height * scale).toFixed(2)})`);
-        lines.push(`scale = Vector2(${scale.toFixed(4)}, ${scale.toFixed(4)})`);
-        lines.push(`texture = ExtResource("art_${building.prefab}")`);
-        lines.push('');
-      } else {
-        // 平铺缩放，锚点放在建筑中心
-        lines.push(`[node name="Art" type="Sprite2D" parent="Buildings/${building.id}"]`);
-        lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
-        lines.push(`scale = Vector2(${(w / art.width).toFixed(4)}, ${(h / art.height).toFixed(4)})`);
-        lines.push(`texture = ExtResource("art_${building.prefab}")`);
-        lines.push('');
-      }
-    } else {
-      lines.push(`[node name="Roof" type="Polygon2D" parent="Buildings/${building.id}"]`);
-      lines.push(`color = ${colorLiteral(building.color)}`);
-      lines.push(`polygon = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h})`);
-      lines.push('');
-      lines.push(`[node name="Outline" type="Line2D" parent="Buildings/${building.id}"]`);
-      lines.push(`points = PackedVector2Array(0, 0, ${w}, 0, ${w}, ${h}, 0, ${h}, 0, 0)`);
-      lines.push(`width = 2.0`);
-      lines.push(`default_color = ${colorLiteral('#4a3f33')}`);
-      lines.push('');
-    }
-    lines.push(`[node name="Body" type="CollisionShape2D" parent="Buildings/${building.id}"]`);
-    lines.push(`position = Vector2(${w / 2}, ${h / 2})`);
-    lines.push(`shape = SubResource("${buildingShapeIds[index]}")`);
-    lines.push('');
-    lines.push(`[node name="Entrance" type="Marker2D" parent="Buildings/${building.id}"]`);
-    lines.push(
-      `position = Vector2(${(building.entrance[0] * size) - px + size / 2}, ${(building.entrance[1] * size) - py + size / 2})`,
-    );
-    lines.push('');
+    const spec = prefabSpecs.get(building.prefab) as PrefabSpec;
+    lines.push(...instanceNodes(
+      {
+        name: building.id,
+        prefabId: building.prefab,
+        x: px,
+        y: py,
+        w: building.rect.w * size,
+        h: building.rect.h * size,
+        entrance: [
+          building.entrance[0] * size - px + size / 2,
+          building.entrance[1] * size - py + size / 2,
+        ],
+        shapeId: buildingShapeIds[index],
+        billboard: options.artStyle === 'billboard',
+      },
+      spec,
+    ));
   });
 
   const anchorNames: Record<string, string> = { spawn: 'Spawn', exit: 'Exit', poi: 'Poi' };
@@ -338,76 +346,33 @@ export function exportGodotScene(
     'utf8',
   );
 
-  writeFileSync(
-    join(sceneDir, 'scene_check.gd'),
-    [
-      'extends Node2D',
-      '',
-      '## 由 GameDream 场景导出器生成：自检节点结构、导航可达性，然后退出。',
-      'func _ready() -> void:',
-      '\tvar buildings := get_node("Buildings").get_child_count()',
-      '\tvar shapes := 0',
-      '\tvar entrances := 0',
-      '\tfor child in get_node("Buildings").get_children():',
-      '\t\tfor sub in child.get_children():',
-      '\t\t\tif sub is CollisionShape2D:',
-      '\t\t\t\tshapes += 1',
-      '\t\t\telif sub is Marker2D:',
-      '\t\t\t\tentrances += 1',
-      '\tvar anchors := get_node("Anchors").get_child_count()',
-      '\tprint("GAMEDREAM_SCENE_BUILDINGS=%d" % buildings)',
-      '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
-      '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
-      '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
-      '\tvar spawn_node := get_node_or_null("Anchors/Spawn0") as Marker2D',
-      '\tif spawn_node:',
-      '\t\tprint("GAMEDREAM_SCENE_SPAWN=%d,%d" % [int(spawn_node.position.x), int(spawn_node.position.y)])',
-      '',
-      '\tvar region := get_node_or_null("Navigation") as NavigationRegion2D',
-      '\tif region == null:',
-      '\t\tprint("GAMEDREAM_NAV_MISSING=1")',
-      '\telse:',
-      '\t\tvar map: RID = region.get_navigation_map()',
-      '\t\t# 导航地图是异步构建的：轮询到出生点落在网格上再开始测路径',
-      '\t\tfor _i in range(40):',
-      '\t\t\tawait get_tree().physics_frame',
-      '\t\t\tNavigationServer2D.map_force_update(map)',
-      '\t\t\tif NavigationServer2D.map_get_closest_point(map, spawn_node.global_position) != Vector2.ZERO:',
-      '\t\t\t\tbreak',
-      '\t\tvar total := 0',
-      '\t\tvar reached := 0',
-      '\t\tvar failed: Array[String] = []',
-      '\t\tfor child in get_node("Buildings").get_children():',
-      '\t\t\tvar entrance := child.get_node_or_null("Entrance") as Marker2D',
-      '\t\t\tif entrance == null or spawn_node == null:',
-      '\t\t\t\tcontinue',
-      '\t\t\ttotal += 1',
-      '\t\t\tvar path := NavigationServer2D.map_get_path(map, spawn_node.global_position, entrance.global_position, true)',
-      '\t\t\tif path.size() > 0 and path[path.size() - 1].distance_to(entrance.global_position) < 2.0:',
-      '\t\t\t\treached += 1',
-      '\t\t\telse:',
-      '\t\t\t\tfailed.append(String(child.name))',
-      '\t\tprint("GAMEDREAM_NAV_TOTAL=%d" % total)',
-      '\t\tprint("GAMEDREAM_NAV_REACHED=%d" % reached)',
-      '\t\tif failed.size() > 0:',
-      '\t\t\tprint("GAMEDREAM_NAV_FAILED=%s" % ",".join(failed))',
-      '',
-      '\tprint("GAMEDREAM_SCENE_OK=1")',
-      '\tget_tree().quit()',
-      '',
-    ].join('\n'),
-    'utf8',
-  );
+  writeFileSync(join(sceneDir, 'scene_check.gd'), CHECK_SCRIPT, 'utf8');
 
   return {
     dir: outDir,
-    files: ['project.godot', 'scene/scene.tscn', 'scene/ground.png', 'scene/scene_check.gd', 'scene/layout.json'],
+    files: [
+      'project.godot',
+      'scene/scene.tscn',
+      'scene/tiles.png',
+      'scene/tiles.tres',
+      'scene/scene_check.gd',
+      'scene/layout.json',
+      ...prefabFiles,
+      ...[...artTextures.keys()].map((id) => `scene/art/${id}.png`),
+    ],
     summary: {
       buildings: layout.buildings.length,
+      prefabs: prefabSpecs.size,
       collisions: shapes.length,
       anchors: layout.anchors.length,
-      ground: `${layout.bounds.width * size}x${layout.bounds.height * size}`,
+      ground: `${bounds.width}x${bounds.height}`,
       textures: artTextures.size,
+      tiles: {
+        cells: layers.ground.length,
+        roadCells: layers.roads.length,
+        byTerrain: layers.counts,
+      },
+      tileAtlas: `${atlas.total} tiles @ ${atlas.tileSize}px`,
       navPolygons: navMesh.polygons.length,
       navVertices: navMesh.vertices.length,
     },

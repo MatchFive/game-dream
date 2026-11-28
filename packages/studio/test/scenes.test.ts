@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildScene, listScenes, loadScene, reviewScene, scenesDir } from '../src/scenes.js';
+import { buildScene, exportScene, listScenes, loadScene, reviewScene, scenesDir } from '../src/scenes.js';
 
 const spec = {
   id: 'riverbend',
@@ -61,6 +61,24 @@ describe('studio scene store', () => {
     const last = JSON.parse(lines[lines.length - 1]);
     expect(last.review?.verdict).toBe('good');
     expect(last.steps[0].summary).toContain('human review');
+  });
+
+  it('exports a saved scene as an editable engine project', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'gamedream studio scenes export '));
+    const outcome = await buildScene(root, { spec });
+
+    const result = exportScene(root, outcome.scene.id);
+    // 导出的是工程而不是图片：场景文件 + prefab + 瓦片资源都要在
+    expect(existsSync(join(result.dir, 'project.godot'))).toBe(true);
+    expect(existsSync(join(result.dir, 'scene/scene.tscn'))).toBe(true);
+    expect(existsSync(join(result.dir, 'scene/tiles.tres'))).toBe(true);
+    expect(existsSync(join(result.dir, 'prefabs', `${outcome.scene.layout.buildings[0].prefab}.tscn`))).toBe(true);
+
+    const tscn = readFileSync(join(result.dir, 'scene/scene.tscn'), 'utf8');
+    expect((tscn.match(/type="TileMapLayer"/g) ?? []).length).toBe(2);
+    expect((tscn.match(/instance=ExtResource\("prefab_/g) ?? []).length)
+      .toBe(outcome.scene.layout.buildings.length);
+    expect(result.summary.buildings).toBe(outcome.scene.layout.buildings.length);
   });
 
   it('rejects unknown scenes and unsafe ids', async () => {

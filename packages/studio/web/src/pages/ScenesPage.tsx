@@ -21,6 +21,8 @@ export function ScenesPage() {
   const [selectedId, setSelectedId] = useState<string>();
   const [building, setBuilding] = useState(false);
   const [notes, setNotes] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState<{ dir: string; files: number }>();
 
   const scenes = useQuery({ queryKey: ['scenes'], queryFn: api.scenes });
   const scene = useQuery({
@@ -58,6 +60,20 @@ export function ScenesPage() {
       toast.push((error as Error).message, 'error');
     } finally {
       setBuilding(false);
+    }
+  }
+
+  async function exportProject() {
+    if (!active) return;
+    setExporting(true);
+    try {
+      const result = await api.exportScene(active.id, 'godot');
+      setExported({ dir: result.dir, files: result.files });
+      toast.push(t('scenes.exported'));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -197,6 +213,20 @@ export function ScenesPage() {
               {active.review && (
                 <p className="context-path">
                   {t('scenes.reviewedAt')} {new Date(active.review.at).toLocaleString()}
+                </p>
+              )}
+              <div className="eyebrow">{t('scenes.exportTitle')}</div>
+              <button
+                className="button primary"
+                type="button"
+                disabled={exporting}
+                onClick={() => void exportProject()}
+              >
+                <Icon name="layers" /> {exporting ? t('scenes.exporting') : t('scenes.exportGodot')}
+              </button>
+              {exported && (
+                <p className="context-path">
+                  {t('scenes.exportedTo')} {exported.dir} ({exported.files} {t('scenes.exportFiles')})
                 </p>
               )}
               <p className="context-path">

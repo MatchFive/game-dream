@@ -1229,6 +1229,8 @@ export function createProgram(): Command {
     .option('--provider <kind>', 'auto, fake, or openai', 'auto')
     .option('--constraint <text...>', 'extra hard constraints for the model')
     .option('--trace <file>', 'append every attempt to this JSONL file')
+    .option('--art <dir>', 'building artwork root (<dir>/<kitId>/<prefab>.png)')
+    .option('--art-style <style>', 'tile or billboard', 'billboard')
     .option('--json', 'print JSON')
     .action(async (options: {
       prompt?: string;
@@ -1240,6 +1242,8 @@ export function createProgram(): Command {
       provider: string;
       constraint?: string[];
       trace?: string;
+      art?: string;
+      artStyle: string;
       json?: boolean;
     }) => {
       try {
@@ -1253,6 +1257,8 @@ export function createProgram(): Command {
           provider: parseProviderKind(options.provider),
           constraints: options.constraint,
           traceFile: options.trace,
+          artDir: options.art,
+          artStyle: options.artStyle === 'tile' ? 'tile' : 'billboard',
           onAttempt: (index, _layout, validation, passed) => {
             if (options.json) return;
             const state = passed

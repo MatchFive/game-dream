@@ -48,6 +48,8 @@ for (const scene of cases) {
   const buildings = read('GAMEDREAM_SCENE_BUILDINGS');
   const entrances = read('GAMEDREAM_SCENE_ENTRANCES');
   const anchors = read('GAMEDREAM_SCENE_ANCHORS');
+  const tilesGround = read('GAMEDREAM_TILES_GROUND');
+  const tilesRoads = read('GAMEDREAM_TILES_ROADS');
   const navTotal = read('GAMEDREAM_NAV_TOTAL');
   const navReached = read('GAMEDREAM_NAV_REACHED');
   const ok = output.includes('GAMEDREAM_SCENE_OK=1');
@@ -61,6 +63,11 @@ for (const scene of cases) {
   if (!validation.pass) problems.push('layout gates failed');
   if (navTotal !== expected) problems.push(`nav targets ${navTotal} != ${expected}`);
   if (navReached !== expected) problems.push(`nav unreachable ${expected - navReached}`);
+  // 瓦片层：地形层必须铺满整张图，道路层必须有格子，atlas 必须挂上
+  const cells = layout.bounds.width * layout.bounds.height;
+  if (tilesGround !== cells) problems.push(`ground tiles ${tilesGround} != ${cells}`);
+  if (tilesRoads <= 0) problems.push('road tiles missing');
+  if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
 
   if (problems.length > 0) {
     failures += 1;
@@ -68,7 +75,8 @@ for (const scene of cases) {
   } else {
     console.log(
       `SCENE_GODOT_OK=${scene.id} buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal} `
-      + `anchors=${anchors} spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
+      + `anchors=${anchors} tiles=${tilesGround}/${tilesRoads} `
+      + `spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`,
     );
   }
 }

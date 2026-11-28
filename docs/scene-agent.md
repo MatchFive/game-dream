@@ -253,7 +253,8 @@ Preference pairs: 3 -> dpo.jsonl
 约定这个目录后，三处自动生效：
 
 1. **Studio 预览**：`renderSceneSvg` 把 png 以 data-uri 内嵌，布局图里看到的就是贴图
-2. **Godot 导出**：有贴图的建筑生成 `Sprite2D`（按 footprint 缩放），没有的仍退回 `Polygon2D`
+2. **Godot 导出**：每种建筑生成一个 prefab（`Sprite2D` 贴图，缺图时退回 `Polygon2D`），
+   场景里只放实例
 3. **素材生成**：`POST /api/scenes/art` 或 `node scripts/scene-art.mjs` 按 kit 的
    palette / roof / footprint 生成一套顶视占位图（屋檐、屋脊、门窗），并写 manifest
 
@@ -302,18 +303,65 @@ billboard 模式下建筑按"底边 y"排序绘制，靠下的盖住靠上的，
 
 ## 8. Godot 导出（S2）
 
-`exportGodotScene(layout, dir)` 产出一个可直接用 Godot 4.4 打开的项目：
+`exportGodotScene(layout, dir, { artDir, artStyle })` 产出一个可直接用 Godot 4.4
+打开、并且能继续编辑的项目：
 
 ```
 project.godot            # main_scene 指向 scene/scene.tscn，gl_compatibility
-scene/ground.png         # 地块 + 道路的底图（建筑不烘焙进去）
-scene/scene.tscn         # Sprite2D 地面 + 建筑 StaticBody2D + 四面边界墙 + Marker2D 锚点
-scene/scene_check.gd     # 加载后打印节点统计并退出，供 CI 核对
+scene/scene.tscn         # TileMapLayer × 2 + prefab 实例 + 导航 + 边界墙 + 锚点
+scene/tiles.png          # 9 格瓦片 atlas（土地×3 / 草×2 / 路 / 石板 / 水×2）
+scene/tiles.tres         # TileSet：一个 atlas source，每种地形一个瓦片
+scene/art/<prefab>.png   # 建筑贴图
+scene/scene_check.gd     # 加载后打印节点/瓦片/导航统计并退出，供 CI 核对
 scene/layout.json        # 原始布局，便于与节点对照
+prefabs/<prefab>.tscn    # 每种建筑一个预制体
 ```
 
-节点映射：每栋建筑 → `StaticBody2D`（`Polygon2D` 屋顶 + `CollisionShape2D` 碰撞 +
-`Marker2D` 入口），每个锚点 → `Marker2D`。相同尺寸的建筑共用 `RectangleShape2D`。
+这套结构是**库能力**，不是一次性脚本：`dream scene build`、Studio 的
+「导出 Godot 工程」按钮、以后 agent 的工具调用都走同一个 `exportGodotScene`。
+
+### 地面是瓦片，不是底图
+
+以前地面是一张烘焙好的 PNG（`Sprite2D`），看着对但改不了。现在是两张
+`TileMapLayer`：
+
+| 图层 | 内容 |
+| --- | --- |
+| `Ground` | 地形：土地 / 草地 / 广场 / 水面，**铺满整张图** |
+| `Roads` | 道路与巷道，叠在地形之上（桥因此天然出现在水面上） |
+
+布局里不保存栅格（那会让 trace 膨胀二十倍），导出时按「地块 → 道路折线」重画一遍。
+瓦片数据写成 `tile_map_data`：**2 字节版本号 + 每格 12 字节**
+（x, y, source_id, atlas_x, atlas_y, alternative，全部 uint16 小端）。这个格式是拿
+真实引擎写一遍再读回来核对的，不是猜的。
+
+瓦片不是纯色：每种地形带确定性噪声（草有草丛暗点、石板有缝、水有波纹），
+同一格每次导出都得到同一个变体，换 atlas 就换画风。
+
+### 建筑是 prefab 实例
+
+每栋建筑不再是场景里平铺的一堆节点，而是 `prefabs/<prefab>.tscn` 的一个实例：
+
+```
+[gd_scene]
+[node name="tavern" type="StaticBody2D"]      ← prefab 根就是碰撞体
+  Art  (Sprite2D, 贴图)                        ← 换图只改这里
+  Body (CollisionShape2D, 默认 1 格)
+```
+
+场景里每栋建筑只写三样随 footprint 变化的东西（Godot 的实例属性覆盖语法）：
+
+```
+[node name="building-3" parent="Buildings" instance=ExtResource("prefab_tavern")]
+position = Vector2(320, 480)
+
+[node name="Art" parent="Buildings/building-3" index="0"]     ← 贴图缩放/锚点
+[node name="Body" parent="Buildings/building-3" index="1"]    ← 碰撞尺寸
+[node name="Entrance" type="Marker2D" parent="Buildings/building-3"]  ← 正门
+```
+
+好处很直接：**美术改一次 prefab，全图十几栋一起变**；给 prefab 加一盏灯、一块招牌，
+所有实例都有。而尺寸、正门位置这些"每栋都不一样"的数据仍然是每栋覆盖的。
 
 ### 导航网格
 
@@ -329,11 +377,14 @@ scene/layout.json        # 原始布局，便于与节点对照
 
 ```
 $ GODOT_BIN=... node scripts/scene-godot-smoke.mjs
-SCENE_GODOT_OK=riverbend  buildings=12 entrances=12 nav=12/12 anchors=3 spawn=1488,2448
-SCENE_GODOT_OK=stonecross buildings=23 entrances=23 nav=23/23 anchors=3 spawn=1456,2960
-SCENE_GODOT_OK=lakeside   buildings=5  entrances=5  nav=5/5   anchors=3 spawn=688,1424
+SCENE_GODOT_OK=riverbend  buildings=32 entrances=32 nav=32/32 anchors=3 tiles=7680/819
+SCENE_GODOT_OK=stonecross buildings=65 entrances=65 nav=65/65 anchors=3 tiles=11520/3049
+SCENE_GODOT_OK=lakeside   buildings=15 entrances=15 nav=15/15 anchors=3 tiles=2688/467
 GODOT_SCENE_OK=1
 ```
+
+`tiles=<地形格>/<道路格>` 是引擎报的 `get_used_cells().size()`：地形层必须等于
+地图格数（漏一格就会露出引擎底色），道路层必须有内容。
 
 第三个坑：导航地图是**异步构建**的。6894 个多边形的网格在小场景里 3 帧就好，
 大地图要十几帧；只等固定两三帧会得到 `map_get_closest_point() == (0,0)`、路径全空，
