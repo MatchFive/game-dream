@@ -329,7 +329,8 @@ corepack pnpm release:accept \
 ## Documentation
 
 - [Architecture and technical choices](docs/architecture.md)
-- [Development roadmap and backlog](docs/roadmap.md)
+- [Project progress board](docs/progress.md) — what to build next, with value and acceptance
+- [Development roadmap and backlog](docs/roadmap.md) — full history and criteria
 - [Design spec](docs/superpowers/specs/2026-11-12-gamedream-design.md)
 - [Web deployment](docs/deploy-web.md)
 - [Godot release](docs/release-godot.md)
