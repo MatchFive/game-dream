@@ -743,3 +743,7 @@
   resize: vertical;
 }
 .scene-verdicts { display: flex; gap: 6px; }
+
+/* 需求里"做不到"的部分：不判失败，但必须显眼 */
+.scene-unmet li { color: var(--text); }
+.scene-unmet .warn { color: var(--amber); font-weight: 700; margin-right: 2px; }

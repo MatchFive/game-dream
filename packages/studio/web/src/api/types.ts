@@ -166,6 +166,8 @@ export interface SceneSummary {
   buildings: number;
   pass: boolean;
   issues: string[];
+  /** 模型声明"这份 format 做不到"的需求 */
+  unmet: string[];
   attempts: number;
   review?: SceneReview;
 }
@@ -174,7 +176,7 @@ export interface StoredScene {
   id: string;
   name: string;
   createdAt: string;
-  spec: Record<string, unknown>;
+  spec: { unmet?: string[]; [key: string]: unknown };
   layout: {
     buildings: Array<{ id: string; prefab: string; rect: { x: number; y: number; w: number; h: number } }>;
     props: Array<{ id: string; type: string }>;

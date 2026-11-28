@@ -52,13 +52,21 @@ Return exactly one JSON object, no prose, no code fences. Schema:
   "required": string[] (prefab ids from the kit, at most 4),
   "decor": number 0..1,
   "water": "none" | "pond" | "river",
+  "unmet": string[],
   "notes": string (optional)
 }
 Rules:
 - Only use prefab ids that exist in the kit.
 - A camp is small (bounds under 60x52) with 1 required prefab; a city is 140x110 or larger.
 - Put water only when the prompt mentions water, a river, a lake, or a coast.
-- Keep decor between 0.3 and 0.7 for villages and towns.`;
+- Keep decor between 0.3 and 0.7 for villages and towns.
+- "unmet" lists every part of the request this format CANNOT express. The solver
+  only knows: buildings from the kit, a cross road, optional river/pond, a square.
+  It has no walls, no coast, no cliffs, no elevation, no springs, no districts.
+  So "城墙内" -> unmet: ["walled city (no wall support)"]; "沿海崖顶" ->
+  unmet: ["coast", "cliffs"]; "半山腰梯田沿等高线" -> unmet: ["elevation bands"].
+  Never silently map such a request onto the nearest feature: say what is missing.
+  Use [] when nothing is missing. Keep each entry under 60 characters.`;
 
 function kitBrief(kit: Kit): string {
   const prefabs = kit.prefabs
@@ -149,7 +157,19 @@ export async function runSceneAgent(options: SceneAgentOptions): Promise<SceneAg
 
   for (let index = 0; index < maxAttempts; index += 1) {
     const recorder = new TraceRecorder(
-      { id: 'pending', name: 'pending', kind: 'village', kitId: kit.id, seed, tileSize: 32, bounds: { width: 0, height: 0 }, required: [], decor: 0, water: 'none' } as SceneSpec,
+      {
+        id: 'pending',
+        name: 'pending',
+        kind: 'village',
+        kitId: kit.id,
+        seed,
+        tileSize: 32,
+        bounds: { width: 0, height: 0 },
+        required: [],
+        decor: 0,
+        water: 'none',
+        unmet: [],
+      } as SceneSpec,
       { id: kit.id, hash: hashKit(kit) },
       'agent',
       options.prompt,

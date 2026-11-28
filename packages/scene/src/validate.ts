@@ -159,6 +159,8 @@ export function validateScene(
     standalone,
     frontageShare,
     attached,
+    // 模型声明的"做不到"数量：不判失败，但要在指标里看得见
+    unmet: (spec.unmet ?? []).length,
     attachedShare: layout.buildings.length === 0 ? 0 : Number((attached / layout.buildings.length).toFixed(3)),
     density: Number(density.toFixed(3)),
     roadRatio: Number((countCells('road') / total).toFixed(3)),

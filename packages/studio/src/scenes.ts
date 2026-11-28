@@ -45,6 +45,8 @@ export interface SceneSummary {
   buildings: number;
   pass: boolean;
   issues: string[];
+  /** 模型声明"这份 format 做不到"的需求 */
+  unmet: string[];
   attempts: number;
   review?: SceneReview;
 }
@@ -153,6 +155,7 @@ export function listScenes(root: string): SceneSummary[] {
         buildings: scene.layout.buildings.length,
         pass: scene.validation.pass,
         issues: scene.validation.issues.map((issue) => issue.code),
+        unmet: scene.spec?.unmet ?? [],
         attempts: scene.attempts,
         review: scene.review,
       });

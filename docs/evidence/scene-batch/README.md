@@ -62,3 +62,56 @@ Other instances in the same 24: 「河汊交汇…桥梁连接两岸」(one stra
 2. **S13 地形与边界表达力** — `water: coast`, `walls`, elevation bands, so those
    prompts have somewhere to land.
 3. Re-run this same 24 and compare: the pass rate will drop, and that is the point.
+
+---
+
+# Second run: the model now declares what it cannot do
+
+Same 24 prompts, same kit, after `SceneSpec.unmet[]` and a system prompt that
+forbids silently substituting unsupported features.
+
+```
+Samples: 25 (passed 24, failed 1)     # one prompt needed a retry
+avgBuildings=17.76  avgDensity=0.153  determinism=25/25
+Unmet requests: 19/25
+```
+
+19 of 25 samples now carry an explicit list of what the format could not do —
+written by the model, in its own words, and accurate:
+
+| Prompt | declared unmet |
+| --- | --- |
+| 沙漠绿洲旁的小村，房屋沿水渠排开 | `desert terrain` ; `irrigation canals (only river/pond supported)` |
+| 林地深处的隐修村，教堂安静地藏在树后 | `deep woodland setting (no tree prefabs)` ; `trees screening the chapel (no tree/occlusion support)` |
+| 边境要塞附属的居民区 | `border fortress (no fortress support)` ; `perimeter walls (no wall support)` |
+| 半山腰的梯田村，房屋沿等高线错落分布 | `mountain elevation bands` ; `contour-aligned staggered placement` ; `terraced hillside layout` |
+| 沿海崖顶的小镇，房屋面向海面 | `coast` ; `cliffs` ; `house orientation toward the sea` |
+| 港口城镇，仓库和码头要紧邻主路 | `warehouse (no warehouse prefab)` |
+| 王都城郊的卫星镇，主路宽阔，市集居中 | `wide main road (no road-width support)` |
+| 温泉旁的小型聚落，建筑围绕泉眼 | `hot spring` ; `spring source` |
+
+The one failure is instructive: 「城墙内的小型城池，街巷狭窄」 first produced a
+spec that broke a gate, the retry succeeded, and the accepted spec declares
+`walled city (no wall support)` ; `narrow street widths (no explicit width
+control)`. Both the retry and the declaration are in `traces-v2.jsonl`.
+
+## What changed in the numbers
+
+`avgBuildings` fell from 22.04 to 17.76 for the same prompts. With the solver's
+limits spelled out, the model stops oversizing settlements it cannot fill —
+"沿海崖顶" now produces a small coastal hamlet instead of a 29-building town.
+
+## How to read `unmet`
+
+It is free-form text, not an enum: entries are the model's own phrasing, so
+`coast` and `coastal` do not merge. That is deliberate for now — the value is
+that a silent downgrade became a recorded one. Turning it into a closed
+vocabulary is a later step (and needs S13 to land first, otherwise every entry
+would be "not supported").
+
+## What it says to build next
+
+The list is a feature backlog ordered by demand: walls, coast, elevation,
+water channels, terrain types, warehouse/mine prefabs, road width. `S13` in
+`docs/progress.md` covers terrain and boundaries; the prefab gaps
+(`warehouse`, `mine`) are a kit-authoring task, not a solver task.

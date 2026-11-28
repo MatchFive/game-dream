@@ -1450,6 +1450,11 @@ export function createProgram(): Command {
         } else {
           printLine(`Scene: ${result.layout.name} (${result.layout.buildings.length} buildings, ${result.layout.props.length} props)`);
           printLine(`Gates: ${result.finished ? 'pass' : `fail: ${result.failure ?? 'unknown'}`}`);
+          if (result.unmet.length > 0) {
+            // 布局过了闸门，但需求里有做不到的部分——这必须看得出来
+            printLine(`Not supported by this format (${result.unmet.length}):`);
+            for (const item of result.unmet) printLine(`  - ${item}`);
+          }
           for (const file of result.files) printLine(`  ${file}`);
         }
         if (!result.finished) process.exitCode = 2;
@@ -1613,6 +1618,11 @@ export function createProgram(): Command {
             + (stats.determinism.conflicts.length ? `, conflicts: ${stats.determinism.conflicts.join('; ')}` : ''),
           );
           printLine(`Reviews: ${Object.entries(stats.reviews).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+          if (stats.withUnmet > 0) {
+            // 模型自己说"做不到"的部分：这是闸门看不见的质量信号
+            printLine(`Unmet requests: ${stats.withUnmet}/${stats.total}`);
+            for (const item of stats.unmet.slice(0, 6)) printLine(`  ${item.code}: ${item.count}`);
+          }
           if (stats.issues.length > 0) {
             printLine('Top failures:');
             for (const issue of stats.issues.slice(0, 6)) printLine(`  ${issue.code}: ${issue.count}`);

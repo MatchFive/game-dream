@@ -1,0 +1,169 @@
+{
+  "provider": "openai",
+  "prompts": "packages/scene/prompts/settlements.txt",
+  "stats": {
+    "total": 25,
+    "passed": 24,
+    "failed": 1,
+    "byOrigin": {
+      "agent": 25
+    },
+    "issues": [],
+    "unmet": [
+      {
+        "code": "mountain foothill elevation",
+        "count": 1
+      },
+      {
+        "code": "snowfield terrain",
+        "count": 1
+      },
+      {
+        "code": "desert terrain",
+        "count": 1
+      },
+      {
+        "code": "irrigation canals (only river/pond supported)",
+        "count": 1
+      },
+      {
+        "code": "deep woodland setting (no tree prefabs)",
+        "count": 1
+      },
+      {
+        "code": "trees screening the chapel (no tree/occlusion support)",
+        "count": 1
+      },
+      {
+        "code": "warehouse (no warehouse prefab)",
+        "count": 1
+      },
+      {
+        "code": "mine or mining feature (no mine prefab)",
+        "count": 1
+      },
+      {
+        "code": "wide main road (no road-width support)",
+        "count": 1
+      },
+      {
+        "code": "border fortress (no fortress support)",
+        "count": 1
+      },
+      {
+        "code": "perimeter walls (no wall support)",
+        "count": 1
+      },
+      {
+        "code": "houses arranged along the inner wall side",
+        "count": 1
+      },
+      {
+        "code": "academy affiliation",
+        "count": 1
+      },
+      {
+        "code": "mountain elevation bands",
+        "count": 1
+      },
+      {
+        "code": "contour-aligned staggered placement",
+        "count": 1
+      },
+      {
+        "code": "terraced hillside layout",
+        "count": 1
+      },
+      {
+        "code": "swamp terrain",
+        "count": 1
+      },
+      {
+        "code": "elevated houses above water",
+        "count": 1
+      },
+      {
+        "code": "coast",
+        "count": 1
+      },
+      {
+        "code": "cliffs",
+        "count": 1
+      },
+      {
+        "code": "house orientation toward the sea",
+        "count": 1
+      },
+      {
+        "code": "abandoned mine pit (no mine or terrain support)",
+        "count": 1
+      },
+      {
+        "code": "雪山地形（无积雪或高程支持）",
+        "count": 1
+      },
+      {
+        "code": "专用牲口场地（无牲畜设施支持）",
+        "count": 1
+      },
+      {
+        "code": "recurring harvest festival event scheduling",
+        "count": 1
+      },
+      {
+        "code": "river-branch confluence",
+        "count": 1
+      },
+      {
+        "code": "bridges",
+        "count": 1
+      },
+      {
+        "code": "walled city (no wall support)",
+        "count": 1
+      },
+      {
+        "code": "narrow street width (no explicit support)",
+        "count": 1
+      },
+      {
+        "code": "mountain-pass terrain and elevation",
+        "count": 1
+      },
+      {
+        "code": "checkpoint gate or barrier",
+        "count": 1
+      },
+      {
+        "code": "hot spring",
+        "count": 1
+      },
+      {
+        "code": "spring source",
+        "count": 1
+      }
+    ],
+    "withUnmet": 19,
+    "kits": [
+      {
+        "id": "village-euro",
+        "count": 25
+      }
+    ],
+    "reviews": {
+      "good": 0,
+      "acceptable": 0,
+      "bad": 0,
+      "none": 25
+    },
+    "withPrompt": 25,
+    "determinism": {
+      "groups": 25,
+      "stable": 25,
+      "conflicts": []
+    },
+    "avgBuildings": 17.76,
+    "avgDensity": 0.153
+  },
+  "skipped": 0
+}

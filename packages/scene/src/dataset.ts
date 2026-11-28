@@ -13,6 +13,10 @@ export interface DatasetStats {
   failed: number;
   byOrigin: Record<string, number>;
   issues: IssueCount[];
+  /** 需求里"这份 format 表达不了"的东西，按文本聚类（城墙 / 海岸 / 等高线…） */
+  unmet: IssueCount[];
+  /** 有 unmet 声明的样本数 */
+  withUnmet: number;
   kits: Array<{ id: string; count: number }>;
   reviews: Record<string, number>;
   /** 带原始需求的样本数 —— 只有这些能当 SFT 的 input */
@@ -58,6 +62,8 @@ export function readTraces(file: string): { traces: SceneTrace[]; skipped: numbe
 export function summarize(traces: SceneTrace[]): DatasetStats {
   const byOrigin: Record<string, number> = {};
   const issueCounts = new Map<string, number>();
+  const unmetCounts = new Map<string, number>();
+  let withUnmet = 0;
   const kitCounts = new Map<string, number>();
   const reviews: Record<string, number> = { good: 0, acceptable: 0, bad: 0, none: 0 };
   const groups = new Map<string, Set<string>>();
@@ -71,6 +77,13 @@ export function summarize(traces: SceneTrace[]): DatasetStats {
     if (trace.validation?.pass) passed += 1;
     for (const issue of trace.validation?.issues ?? []) {
       issueCounts.set(issue.code, (issueCounts.get(issue.code) ?? 0) + 1);
+    }
+    // unmet 是模型自己声明的"做不到"，聚类后就是"这套 format 最缺什么"的排行榜
+    const unmet = trace.spec?.unmet ?? [];
+    if (unmet.length > 0) withUnmet += 1;
+    for (const item of unmet) {
+      const key = item.trim().toLowerCase();
+      if (key) unmetCounts.set(key, (unmetCounts.get(key) ?? 0) + 1);
     }
     kitCounts.set(trace.kit?.id ?? 'unknown', (kitCounts.get(trace.kit?.id ?? 'unknown') ?? 0) + 1);
     const verdict = trace.review?.verdict ?? 'none';
@@ -98,6 +111,10 @@ export function summarize(traces: SceneTrace[]): DatasetStats {
     issues: [...issueCounts.entries()]
       .map(([code, count]) => ({ code, count }))
       .sort((a, b) => b.count - a.count),
+    unmet: [...unmetCounts.entries()]
+      .map(([code, count]) => ({ code, count }))
+      .sort((a, b) => b.count - a.count),
+    withUnmet,
     kits: [...kitCounts.entries()].map(([id, count]) => ({ id, count })),
     reviews,
     withPrompt,

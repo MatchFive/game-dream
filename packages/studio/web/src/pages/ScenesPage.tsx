@@ -190,6 +190,20 @@ export function ScenesPage() {
                 </>
               )}
 
+              {(active.spec.unmet?.length ?? 0) > 0 && (
+                <>
+                  <div className="eyebrow">{t('scenes.unmet')}</div>
+                  <ul className="context-list scene-unmet">
+                    {(active.spec.unmet ?? []).map((item) => (
+                      <li key={item}>
+                        <span className="warn">!</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="context-path">{t('scenes.unmetHint')}</p>
+                </>
+              )}
+
               <div className="eyebrow">{t('scenes.review')}</div>
               <textarea
                 className="scene-notes"

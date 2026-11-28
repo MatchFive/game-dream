@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appendTrace,
+  parseSceneSpec,
   parseKit,
   villageEuroKit,
   writeKitArtwork,
@@ -396,5 +397,21 @@ describe('settlement structure', () => {
       (building) => building.role === 'civic' && distanceTo(building.rect, plaza as never) <= 5,
     );
     expect(civic.length).toBeGreaterThan(0);
+  });
+});
+
+describe('unmet requests', () => {
+  it('defaults to an empty list so old specs keep parsing', () => {
+    const spec = parseSceneSpec({ ...baseSpec });
+    expect(spec.unmet).toEqual([]);
+  });
+
+  it('keeps declared gaps and reports them as a metric', () => {
+    const spec = { ...baseSpec, unmet: ['walled city (no wall support)', 'coast'] };
+    const { layout, validation } = buildSceneWithTrace(spec, kit);
+    // 声明 unmet 不该让布局失败：求解器没这个能力不是布局的错
+    expect(validation.pass).toBe(true);
+    expect(validation.metrics.unmet).toBe(2);
+    expect(layout.buildings.length).toBeGreaterThan(0);
   });
 });

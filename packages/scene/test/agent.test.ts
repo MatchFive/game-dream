@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ModelProvider } from '@gamedream/agent';
-import { extractJsonObject, loadKit, runSceneAgent, type SceneSpec } from '../src/index.js';
+import {
+  SCENE_SYSTEM_PROMPT,
+  extractJsonObject,
+  loadKit,
+  runSceneAgent,
+  type SceneSpec,
+} from '../src/index.js';
 
 const kitPath = fileURLToPath(new URL('../kits/village-euro.json', import.meta.url));
 const kit = loadKit(kitPath);
@@ -102,5 +108,12 @@ describe('scene agent', () => {
     expect(extractJsonObject('no json here')).toBeNull();
     // 嵌套对象要能正确配对
     expect(extractJsonObject('{"a":{"b":1},"c":2}')).toBe('{"a":{"b":1},"c":2}');
+  });
+
+  it('tells the model to declare what it cannot express', () => {
+    // 闸门只验几何：需求里做不到的部分必须由模型自己写进 unmet，否则没人发现
+    expect(SCENE_SYSTEM_PROMPT).toContain('"unmet"');
+    expect(SCENE_SYSTEM_PROMPT).toMatch(/walls|wall support/);
+    expect(SCENE_SYSTEM_PROMPT).toContain('Never silently map');
   });
 });

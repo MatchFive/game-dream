@@ -42,6 +42,8 @@ export interface SceneBuildResult {
   failure?: string;
   traces: number;
   files: string[];
+  /** 模型声明的"这份 format 做不到"的需求 */
+  unmet: string[];
 }
 
 function resolveKit(kitPath: string): Kit {
@@ -78,7 +80,15 @@ function writeArtifacts(
  */
 export async function sceneBuildCommand(options: SceneBuildOptions): Promise<SceneBuildResult> {
   const kit = resolveKit(options.kitPath);
-  let result: { layout: SceneLayout; validation: SceneValidation; finished: boolean; attempts: number; failure?: string; traces: number };
+  let result: {
+    layout: SceneLayout;
+    validation: SceneValidation;
+    finished: boolean;
+    attempts: number;
+    failure?: string;
+    traces: number;
+    unmet: string[];
+  };
 
   if (options.specPath) {
     const spec = parseSceneSpec(JSON.parse(readFileSync(options.specPath, 'utf8')));
@@ -93,6 +103,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
       finished: built.validation.pass,
       attempts: 1,
       traces: 1,
+      unmet: spec.unmet,
     };
   } else {
     if (!options.prompt?.trim()) throw new Error('either --prompt or --spec is required');
@@ -114,6 +125,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
         options.onAttempt?.(attempt.index, attempt.layout, attempt.validation, attempt.validation.pass);
       },
     });
+    const lastAttempt = agent.attempts[agent.attempts.length - 1];
     result = {
       layout: agent.layout,
       validation: agent.validation,
@@ -121,6 +133,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
       attempts: agent.attempts.length,
       failure: agent.failure,
       traces: agent.traces.length,
+      unmet: lastAttempt?.spec?.unmet ?? [],
     };
   }
 

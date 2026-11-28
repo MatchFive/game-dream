@@ -143,4 +143,17 @@ describe('training exports', () => {
     expect(pairs).toHaveLength(1);
     expect(pairs[0].reason).toEqual(['human-review']);
   });
+
+  it('counts what the model said it could not express', () => {
+    // 24 条全过闸门的批次里，唯一有价值的质量信号就是模型自己声明的 unmet
+    const stats = summarize([
+      trace({ specPatch: { unmet: ['walled city (no wall support)'] } }),
+      trace({ specPatch: { unmet: ['walled city (no wall support)', 'coast'] } }),
+      trace({ specPatch: { unmet: [] } }),
+    ]);
+
+    expect(stats.withUnmet).toBe(2);
+    expect(stats.unmet[0]).toEqual({ code: 'walled city (no wall support)', count: 2 });
+    expect(stats.unmet.find((item) => item.code === 'coast')?.count).toBe(1);
+  });
 });

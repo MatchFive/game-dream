@@ -31,6 +31,13 @@ export const sceneSpecSchema = z.object({
   decor: z.number().min(0).max(1).default(0.4),
   /** 是否用水系（河流/池塘）切开地图 */
   water: z.enum(['none', 'pond', 'river']).default('none'),
+  /**
+   * 需求里这份 format 表达不了的部分（城墙、海岸、崖、等高线、泉眼…）。
+   *
+   * 不判失败——求解器没有这些能力不是模型的错；但必须显式写出来，
+   * 否则"沿海崖顶"被悄悄做成一条河，数据里永远发现不了。
+   */
+  unmet: z.array(z.string().min(1)).default([]),
   notes: z.string().optional(),
 });
 
