@@ -20,11 +20,24 @@ export interface PrefabArt {
   height: number;
 }
 
+/** prefab 上挂的节点（与 kit 的 nodes[] 一一对应）。 */
+export interface PrefabNodeSpec {
+  type: 'marker' | 'light' | 'area';
+  name: string;
+  /** 相对 footprint 的比例位置（0–1） */
+  at: [number, number];
+  props: Record<string, string | number | boolean>;
+}
+
 export interface PrefabSpec {
   id: string;
   color: string;
   roof: string;
   art?: PrefabArt;
+  /** 挂在 prefab 上的节点：门口灯、交互区、路点 */
+  nodes?: PrefabNodeSpec[];
+  /** 灯光贴图（res:// 路径）。PointLight2D 没有贴图就什么都不画。 */
+  lightTexture?: string;
 }
 
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -43,20 +56,37 @@ const colorLiteral = (hex: string, alpha = 1): string => {
 
 /** 生成一个 prefab 的场景文件内容。 */
 export function prefabScene(spec: PrefabSpec, tileSize: number): string {
-  const ext = spec.art
-    ? [`[ext_resource type="Texture2D" path="${spec.art.res}" id="1_art"]`]
-    : [];
-  const sub = [
+  const nodes = spec.nodes ?? [];
+  const hasLight = nodes.some((node) => node.type === 'light');
+  const ext = [
+    ...(spec.art ? [`[ext_resource type="Texture2D" path="${spec.art.res}" id="1_art"]`] : []),
+    ...(hasLight && spec.lightTexture
+      ? [`[ext_resource type="Texture2D" path="${spec.lightTexture}" id="2_light"]`]
+      : []),
+  ];
+  const areas = nodes
+    .map((node, index) => ({ node, index }))
+    .filter((entry) => entry.node.type === 'area');
+  const sub: string[] = [
     '[sub_resource type="RectangleShape2D" id="body"]',
     `size = Vector2(${tileSize}, ${tileSize})`,
+    '',
   ];
+  for (const { node, index } of areas) {
+    sub.push(
+      `[sub_resource type="RectangleShape2D" id="area_${index}"]`,
+      `size = Vector2(${num(node.props.width, 1) * tileSize}, ${num(node.props.height, 1) * tileSize})`,
+      '',
+    );
+  }
 
   const lines: string[] = [];
-  lines.push(`[gd_scene load_steps=${ext.length + sub.length + 1} format=3]`, '');
+  // load_steps 只数真正的资源（ext + sub），空行不算——写大了 Godot 也能开，但那是骗自己
+  lines.push(`[gd_scene load_steps=${ext.length + 1 + areas.length + 1} format=3]`, '');
   if (ext.length > 0) {
     lines.push(...ext, '');
   }
-  lines.push(...sub, '');
+  lines.push(...sub);
 
   // 根节点就是碰撞体：实例只需覆盖尺寸，不需要额外的 StaticBody2D
   lines.push(`[node name="${spec.id}" type="StaticBody2D"]`, '');
@@ -75,7 +105,42 @@ export function prefabScene(spec: PrefabSpec, tileSize: number): string {
   lines.push('');
   lines.push('[node name="Body" type="CollisionShape2D" parent="."]');
   lines.push('shape = SubResource("body")');
+  lines.push('');
+
+  // 附加节点：位置先按"1 格"的默认 footprint 写，实例再按实际尺寸覆盖。
+  // 这样同一个 prefab 用在 8×6 和 10×8 上，灯都落在门口。
+  nodes.forEach((node, index) => {
+    const px = node.at[0] * tileSize;
+    const py = node.at[1] * tileSize;
+    if (node.type === 'marker') {
+      lines.push(`[node name="${node.name}" type="Marker2D" parent="."]`);
+    } else if (node.type === 'light') {
+      lines.push(`[node name="${node.name}" type="PointLight2D" parent="."]`);
+    } else {
+      lines.push(`[node name="${node.name}" type="Area2D" parent="."]`);
+    }
+    lines.push(`position = Vector2(${px.toFixed(2)}, ${py.toFixed(2)})`);
+
+    if (node.type === 'light') {
+      if (spec.lightTexture) lines.push('texture = ExtResource("2_light")');
+      lines.push(`color = ${colorLiteral(String(node.props.color ?? '#ffd9a0'))}`);
+      lines.push(`energy = ${num(node.props.energy, 1.1)}`);
+      // 贴图 128px 宽、亮到边缘衰减到 0，所以可见半径 = 64 * texture_scale
+      lines.push(`texture_scale = ${(num(node.props.radius, 3) * tileSize / 64).toFixed(3)}`);
+      if (node.props.shadow === true) lines.push('shadow_enabled = true');
+    } else if (node.type === 'area') {
+      lines.push('[node name="Shape" type="CollisionShape2D" parent="' + String(node.name) + '"]');
+      lines.push(`shape = SubResource("area_${index}")`);
+    }
+    lines.push('');
+  });
+
   return `${lines.join('\n')}\n`;
+}
+
+/** props 里的数字可能被 JSON 写成字符串，这里统一收口。 */
+function num(value: string | number | boolean | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 export interface InstancePlacement {
@@ -144,5 +209,16 @@ export function instanceNodes(placement: InstancePlacement, spec: PrefabSpec): s
   lines.push(`[node name="Entrance" type="Marker2D" parent="${path}"]`);
   lines.push(`position = Vector2(${placement.entrance[0]}, ${placement.entrance[1]})`);
   lines.push('');
+
+  // prefab 自带的节点：位置按实际 footprint 覆盖。
+  // anchor=entrance 的节点跟着正门走——门朝哪边是逐栋算的，灯不能钉死在比例位置上。
+  (spec.nodes ?? []).forEach((node, offset) => {
+    const [px, py] = node.props.anchor === 'entrance'
+      ? placement.entrance
+      : [node.at[0] * placement.w, node.at[1] * placement.h];
+    lines.push(`[node name="${node.name}" parent="${path}" index="${offset + 2}"]`);
+    lines.push(`position = Vector2(${px.toFixed(2)}, ${py.toFixed(2)})`);
+    lines.push('');
+  });
   return lines;
 }

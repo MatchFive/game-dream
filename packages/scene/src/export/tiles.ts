@@ -214,6 +214,29 @@ export function renderTileAtlas(layout: SceneLayout): TileAtlas {
   return { png: encodePng(width, height, rgba), tileSize, start, variants: VARIANTS, propStart, total };
 }
 
+/**
+ * 灯光贴图：一张径向衰减的白色圆斑。
+ *
+ * PointLight2D 没有 texture 就什么都不画；Godot 官方示例里也是这么给的。
+ * 128px、边缘衰减到 0，所以可见半径 = 64 × texture_scale。
+ */
+export function renderLightTexture(size = 128): Buffer {
+  const rgba = Buffer.alloc(size * size * 4);
+  const centre = (size - 1) / 2;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const distance = Math.hypot(x - centre, y - centre) / centre;
+      const alpha = Math.max(0, 1 - distance) ** 1.4;
+      const offset = (y * size + x) * 4;
+      rgba[offset] = 255;
+      rgba[offset + 1] = 255;
+      rgba[offset + 2] = 255;
+      rgba[offset + 3] = Math.round(alpha * 255);
+    }
+  }
+  return encodePng(size, size, rgba);
+}
+
 /** 道具图标的逻辑画布尺寸（放大到 tileSize 后仍然清晰）。 */
 const ICON = 32;
 

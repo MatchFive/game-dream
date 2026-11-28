@@ -1,8 +1,9 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { SceneLayout } from '../schema.js';
+import type { Kit, SceneLayout } from '../schema.js';
+import { findBuiltinKit } from '../kits.js';
 import { instanceNodes, prefabScene, type PrefabArt, type PrefabSpec } from './prefabs.js';
-import { buildTileLayers, encodeTileMapData, renderTileAtlas, tileSetResource } from './tiles.js';
+import { buildTileLayers, encodeTileMapData, renderLightTexture, renderTileAtlas, tileSetResource } from './tiles.js';
 
 export interface GodotExportResult {
   dir: string;
@@ -12,6 +13,8 @@ export interface GodotExportResult {
 }
 
 export interface GodotExportOptions {
+  /** 给出 kit 时按 kit 的 prefab.nodes 挂节点；不给就按 layout.kitId 找内置套件 */
+  kit?: Kit;
   /** 美术素材目录，约定为 <artDir>/<kitId>/<prefabId>.png；给了就用贴图代替色块 */
   artDir?: string;
   /**
@@ -19,6 +22,15 @@ export interface GodotExportOptions {
    * billboard：贴图等宽、底边对齐 footprint 底边、向上溢出（带立面的 3/4 视图，RPG 常见）
    */
   artStyle?: 'tile' | 'billboard';
+}
+
+/** kit 里某个 prefab 挂了几种节点——摘要与自检都用它当期望值。 */
+function kitNodeCount(
+  nodes: Map<string, Array<{ type: string }>>,
+  prefabId: string,
+  type: string,
+): number {
+  return (nodes.get(prefabId) ?? []).filter((node) => node.type === type).length;
 }
 
 /** 读 PNG 的 IHDR 得到尺寸，避免再引一个解码库。 */
@@ -95,19 +107,33 @@ const CHECK_SCRIPT = [
   '\tvar shapes := 0',
   '\tvar entrances := 0',
   '\tvar floors := 0',
+  '\tvar lights := 0',
+  '\tvar zones := 0',
+  '\tvar markers := 0',
   '\tfor child in get_node("Buildings").get_children():',
   '\t\tfloors += int(child.get_meta("floors", 0))',
   '\t\tfor sub in child.get_children():',
   '\t\t\tif sub is CollisionShape2D:',
   '\t\t\t\tshapes += 1',
   '\t\t\telif sub is Marker2D:',
-  '\t\t\t\tentrances += 1',
+  '\t\t\t\t# Entrance 是导出器加的正门；其余 Marker 是 kit 挂在 prefab 上的路点',
+  '\t\t\t\tif sub.name == "Entrance":',
+  '\t\t\t\t\tentrances += 1',
+  '\t\t\t\telse:',
+  '\t\t\t\t\tmarkers += 1',
+  '\t\t\telif sub is PointLight2D:',
+  '\t\t\t\tlights += 1',
+  '\t\t\telif sub is Area2D:',
+  '\t\t\t\tzones += 1',
   '\tvar anchors := get_node("Anchors").get_child_count()',
   '\tprint("GAMEDREAM_SCENE_BUILDINGS=%d" % buildings)',
   '\tprint("GAMEDREAM_SCENE_SHAPES=%d" % shapes)',
   '\tprint("GAMEDREAM_SCENE_ENTRANCES=%d" % entrances)',
   '\tprint("GAMEDREAM_SCENE_ANCHORS=%d" % anchors)',
   '\tprint("GAMEDREAM_SCENE_FLOORS=%d" % floors)',
+  '\tprint("GAMEDREAM_SCENE_LIGHTS=%d" % lights)',
+  '\tprint("GAMEDREAM_SCENE_ZONES=%d" % zones)',
+  '\tprint("GAMEDREAM_SCENE_MARKERS=%d" % markers)',
   '',
   '\tvar town_walls := get_node_or_null("TownWalls")',
   '\tvar cliffs := get_node_or_null("Cliffs")',
@@ -210,7 +236,20 @@ export function exportGodotScene(
     }
   }
 
-  // 3. prefab：每种 kit 建筑一个，场景里只放实例
+  // 3. prefab：每种 kit 建筑一个，场景里只放实例。
+  //    prefab 上挂什么节点来自 kit（门口一盏灯、一块交互区），不是写死在导出器里。
+  const kit = options.kit ?? findBuiltinKit(layout.kitId);
+  const kitNodes = new Map((kit?.prefabs ?? []).map((prefab) => [prefab.id, prefab.nodes ?? []]));
+
+  // 灯光贴图：只要有一个用到的 prefab 挂了灯就写一张，prefab 与场景共用同一张
+  const usedPrefabs = new Set(layout.buildings.map((building) => building.prefab));
+  const usesLights = [...usedPrefabs].some((id) => (kitNodes.get(id) ?? []).some((node) => node.type === 'light'));
+  let lightTexture: string | undefined;
+  if (usesLights) {
+    writeFileSync(join(sceneDir, 'light.png'), renderLightTexture());
+    lightTexture = 'res://scene/light.png';
+  }
+
   const prefabSpecs = new Map<string, PrefabSpec>();
   for (const building of layout.buildings) {
     if (prefabSpecs.has(building.prefab)) continue;
@@ -219,6 +258,8 @@ export function exportGodotScene(
       color: building.color,
       roof: building.roof,
       art: artTextures.get(building.prefab),
+      nodes: kitNodes.get(building.prefab) ?? [],
+      lightTexture,
     });
   }
   const prefabFiles: string[] = [];
@@ -432,6 +473,7 @@ export function exportGodotScene(
       'scene/layout.json',
       ...prefabFiles,
       ...[...artTextures.keys()].map((id) => `scene/art/${id}.png`),
+      ...(lightTexture ? ['scene/light.png'] : []),
     ],
     summary: {
       buildings: layout.buildings.length,
@@ -446,6 +488,11 @@ export function exportGodotScene(
       ramps: layout.ramps.length,
       terraces: layout.terraces.length,
       coastSide: layout.coastSide,
+      prefabNodes: {
+        lights: layout.buildings.reduce((sum, building) => sum + (kitNodeCount(kitNodes, building.prefab, 'light')), 0),
+        zones: layout.buildings.reduce((sum, building) => sum + (kitNodeCount(kitNodes, building.prefab, 'area')), 0),
+        markers: layout.buildings.reduce((sum, building) => sum + (kitNodeCount(kitNodes, building.prefab, 'marker')), 0),
+      },
       floors: {
         mean: layout.buildings.length === 0
           ? 0

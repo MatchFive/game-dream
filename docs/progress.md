@@ -39,13 +39,14 @@
 
 ```
 pnpm typecheck / build              9 包通过
-pnpm test                           449 passed / 15 skipped / 0 failed
+pnpm test                           451 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
 CI scene-export job                 有引擎跑真机加载；无引擎仍导出六工程做结构核对并写明 skip
   海岸 / 城墙 / 三级台阶            walls=22、cliffs=28 碰撞体与 layout 逐项相等
   地形 / 道路 / 道具三层             道具 84/99/37/97/113/91 格，与 layout.props 相等
-  楼层进引擎                         floors 和 75/142/27/116/161/121，与 layout 相等
+  楼层进引擎                         floors 和，与 layout 相等
+  附加节点进引擎                     lights/zones/markers 与 kit 声明逐项相等（六场景全绿）
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 19 带 unmet；too-sparse×3、missing-required×2
@@ -76,6 +77,9 @@ badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 
 - **道具进引擎**：树/井/灯/箱/牌/码头/花做成透明底瓦片，导出成 `Props` TileMapLayer
   （排在地形与道路之后）。之前它们只存在于预览 SVG，导出的城里全是空地。
   证据 `docs/evidence/s15-props/`
+- **prefab 附加节点**：`kit.prefabs[].nodes[]`（light/area/marker），位置按 footprint 比例，
+  `anchor: "entrance"` 的节点跟着门走；导出成 `PointLight2D`/`Area2D`/`Marker2D`，
+  引擎自检点数与 kit 声明对账。证据 `docs/evidence/s9-prefab-nodes/`
 - **路网参数**：`roads: { mainWidth, streetWidth, spacing }`（默认 4/2/18，间距下限 13），
   窄街老城与宽阔大道是同一套代码的两种参数；顺带修掉路面偏一格、每排尾巴空 4 格。
   证据 `docs/evidence/s14-roads/`
@@ -111,7 +115,6 @@ badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 
 
 | ID | 需求 | 价值（不做会怎样） | 验收标准 | 依赖 | 规模 |
 | --- | --- | --- | --- | --- | --- |
-| S9 | prefab 附加节点（kit 扩展） | prefab 只有贴图+碰撞，灯光/招牌/交互挂不上去，不算真 prefab | kit 支持 `nodes[]`（type/name/offset/props），导出写进 `prefabs/*.tscn`；引擎加载节点数匹配 | — | M |
 | S10 | 场景片段/模块复用 | 逐栋生成不可控；真实关卡是"广场围合、码头区、市场街"这类模块拼的 | `segments/` 定义 + 拼装规则；trace 记录用了哪些片段 | S7 | L |
 | S8 | 世界地图与区域连接 | 只能造单点聚落；RPG 需要"多场景 + 连接" | `WorldSpec`（聚落 + 道路 + 地形带）→ 世界布局；每个聚落可单独展开；导出含区域跳转标记 | S3 或 S2 | L |
 | U1 | Studio 场景编辑（拖拽/微调） | agent 出的布局总要人修两笔；不能改就只能重生成 | 画布拖动建筑、改门朝向，保存回 layout 并写 `origin=human-edit` 的 trace | — | L |

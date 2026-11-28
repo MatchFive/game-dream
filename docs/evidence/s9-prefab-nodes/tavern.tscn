@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://scene/light.png" id="2_light"]
+
+[sub_resource type="RectangleShape2D" id="body"]
+size = Vector2(32, 32)
+
+[node name="tavern" type="StaticBody2D"]
+
+[node name="Art" type="Polygon2D" parent="."]
+color = Color(0.7098, 0.4745, 0.2471, 1)
+polygon = PackedVector2Array(0, 0, 1, 0, 1, 1, 0, 1)
+
+[node name="Body" type="CollisionShape2D" parent="."]
+shape = SubResource("body")
+
+[node name="DoorLamp" type="PointLight2D" parent="."]
+position = Vector2(16.00, 28.80)
+texture = ExtResource("2_light")
+color = Color(1.0000, 0.8118, 0.5412, 1)
+energy = 1.2
+texture_scale = 1.600
+shadow_enabled = true
+
+[node name="SignBoard" type="Marker2D" parent="."]
+position = Vector2(16.00, 16.00)
+

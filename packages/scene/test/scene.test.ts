@@ -492,6 +492,80 @@ describe('skyline', () => {
   });
 });
 
+describe('prefab nodes from the kit', () => {
+  const spec = {
+    ...baseSpec,
+    id: 'nodes',
+    kind: 'town' as const,
+    bounds: { width: 110, height: 92 },
+    required: ['tavern', 'chapel', 'market-hall'],
+    water: 'none' as const,
+  };
+
+  it('carries lights, zones and markers from the kit into prefab scenes', () => {
+    const { layout } = buildScene(parseSceneSpec(spec), kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream prefab nodes '));
+    const result = exportGodotScene(layout, dir);
+
+    // 酒馆：门口一盏灯 + 一块招牌位
+    const tavern = readFileSync(join(dir, 'prefabs/tavern.tscn'), 'utf8');
+    expect(tavern).toContain('type="PointLight2D"');
+    expect(tavern).toContain('type="Marker2D"');
+    expect(tavern).toContain('texture = ExtResource("2_light")');
+    expect(tavern).toContain('energy = 1.2');
+    // PointLight2D 没有贴图就什么都不画：贴图必须真的落盘
+    expect(existsSync(join(dir, 'scene/light.png'))).toBe(true);
+
+    // 集市大厅：门口一块交互区，形状用子资源
+    const market = readFileSync(join(dir, 'prefabs/market-hall.tscn'), 'utf8');
+    expect(market).toContain('type="Area2D"');
+    expect(market).toContain('[sub_resource type="RectangleShape2D" id="area_0"]');
+    expect(market).toContain('parent="MarketStall"');
+
+    const nodes = result.summary.prefabNodes as { lights: number; zones: number; markers: number };
+    const expected = (type: string) => layout.buildings.reduce((sum, building) => {
+      const prefab = kit.prefabs.find((entry) => entry.id === building.prefab);
+      return sum + (prefab?.nodes ?? []).filter((node) => node.type === type).length;
+    }, 0);
+    expect(nodes.lights).toBe(expected('light'));
+    expect(nodes.zones).toBe(expected('area'));
+    expect(nodes.markers).toBe(expected('marker'));
+    expect(nodes.lights).toBeGreaterThan(0);
+  });
+
+  it('moves the node with the instance and keeps it at the door', () => {
+    const { layout } = buildScene(parseSceneSpec(spec), kit);
+    const dir = mkdtempSync(join(tmpdir(), 'gamedream prefab anchor '));
+    exportGodotScene(layout, dir);
+    const tscn = readFileSync(join(dir, 'scene/scene.tscn'), 'utf8');
+
+    // 每个带节点的 prefab 实例都要覆盖子节点位置；index 必须对上 prefab 里的顺序
+    for (const building of layout.buildings) {
+      const prefab = kit.prefabs.find((entry) => entry.id === building.prefab);
+      const declared = prefab?.nodes ?? [];
+      if (declared.length === 0) continue;
+      for (const [offset, node] of declared.entries()) {
+        const override = new RegExp(
+          `\\[node name="${node.name}" parent="Buildings/${building.id}" index="${offset + 2}"\\]\\nposition = Vector2\\(([-\\d.]+), ([-\\d.]+)\\)`,
+        );
+        const match = tscn.match(override);
+        expect(match).not.toBeNull();
+        const [px, py] = [Number(match?.[1]), Number(match?.[2])];
+        if (node.props.anchor === 'entrance') {
+          // 门朝哪边是逐栋算的，灯必须跟着门走，而不是钉在比例位置上
+          const expectedX = building.entrance[0] * 32 - building.rect.x * 32 + 16;
+          const expectedY = building.entrance[1] * 32 - building.rect.y * 32 + 16;
+          expect(px).toBeCloseTo(expectedX, 1);
+          expect(py).toBeCloseTo(expectedY, 1);
+        } else {
+          expect(px).toBeCloseTo(node.at[0] * building.rect.w * 32, 1);
+          expect(py).toBeCloseTo(node.at[1] * building.rect.h * 32, 1);
+        }
+      }
+    }
+  });
+});
+
 describe('street network parameters', () => {
   const townAt = (roads: Record<string, number>) => parseSceneSpec({
     ...baseSpec,
@@ -514,7 +588,7 @@ describe('street network parameters', () => {
   });
 
   it('honours narrow and wide widths all the way to the exported tiles', () => {
-    const narrow = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }), kit).layout;
+    const narrow = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 13 }), kit).layout;
     expect(new Set(narrow.roads.filter((road) => road.kind === 'main').map((road) => road.width))).toEqual(new Set([2]));
     expect(new Set(narrow.roads.filter((road) => road.kind === 'street').map((road) => road.width))).toEqual(new Set([1]));
 
@@ -528,8 +602,8 @@ describe('street network parameters', () => {
   });
 
   it('uses the spacing to decide how dense the grid is', () => {
-    const dense = buildScene(townAt({ spacing: 10 }), kit).layout;
-    const sparse = buildScene(townAt({ spacing: 26 }), kit).layout;
+    const dense = buildScene(townAt({ spacing: 13 }), kit).layout;
+    const sparse = buildScene(townAt({ spacing: 30 }), kit).layout;
     const count = (layout: SceneLayout) => layout.roads.filter((road) => road.kind === 'street').length;
     expect(count(dense)).toBeGreaterThan(count(sparse));
   });
@@ -559,12 +633,12 @@ describe('street network parameters', () => {
   });
 
   it('keeps every door reachable when the main road is only two tiles wide', () => {
-    const built = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }), kit);
+    const built = buildScene(townAt({ mainWidth: 2, streetWidth: 1, spacing: 13 }), kit);
     const spawn = built.layout.anchors.find((anchor) => anchor.kind === 'spawn');
     const reachable = built.grid.flood((spawn as { at: [number, number] }).at[0], (spawn as { at: [number, number] }).at[1]);
     const validation = validateScene(
       built.layout,
-      townAt({ mainWidth: 2, streetWidth: 1, spacing: 12 }),
+      townAt({ mainWidth: 2, streetWidth: 1, spacing: 13 }),
       (x, y) => built.grid.walkable(x, y),
       reachable,
     );

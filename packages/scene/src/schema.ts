@@ -92,6 +92,25 @@ export const sceneSpecSchema = z.object({
 
 export type SceneSpec = z.infer<typeof sceneSpecSchema>;
 
+/**
+ * prefab 里的附加节点：灯光、交互区、路点。
+ *
+ * 位置用**比例**（0–1）而不是格子：同一个 `tavern` 会用在 8×6 和 10×8 的地块上，
+ * 灯要落在这两种尺寸的门口，只能按 footprint 的比例算。比例位置在导出时乘上实例尺寸。
+ */
+export const prefabNodeSchema = z.object({
+  type: z.enum(['marker', 'light', 'area']),
+  name: z.string().min(1),
+  /** 相对 footprint 左上角的位置，0–1 */
+  at: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+  /**
+   * 引擎相关参数。导出器只认它认识的键，其余原样写成属性：
+   * light: color(hex) / energy / scale(×tileSize) / shadow(bool)
+   * area:  width / height（格）
+   */
+  props: z.record(z.union([z.string(), z.number(), z.boolean()])).default({}),
+});
+
 export const prefabSchema = z.object({
   id: z.string().min(1),
   role: z.enum(['house', 'shop', 'workshop', 'civic', 'landmark', 'dock']),
@@ -109,6 +128,8 @@ export const prefabSchema = z.object({
   roof: z.enum(['flat', 'gable', 'hip']).default('gable'),
   /** 是否必须贴主干道（市政、地标） */
   mainRoad: z.boolean().default(false),
+  /** 挂在 prefab 上的节点：门口一盏灯、一块交互区、一个路点 */
+  nodes: z.array(prefabNodeSchema).default([]),
 });
 
 export const kitSchema = z.object({
@@ -133,6 +154,7 @@ export const kitSchema = z.object({
 });
 
 export type Prefab = z.infer<typeof prefabSchema>;
+export type PrefabNode = z.infer<typeof prefabNodeSchema>;
 export type Kit = z.infer<typeof kitSchema>;
 
 export const roadSchema = z.object({

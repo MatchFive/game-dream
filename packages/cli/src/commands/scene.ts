@@ -55,7 +55,7 @@ function resolveKit(kitPath: string): Kit {
 function writeArtifacts(
   layout: SceneLayout,
   outDir: string,
-  options: { artDir?: string; artStyle?: 'tile' | 'billboard' } = {},
+  options: { artDir?: string; artStyle?: 'tile' | 'billboard'; kit?: Kit } = {},
 ): string[] {
   mkdirSync(outDir, { recursive: true });
   const files: string[] = [];
@@ -70,6 +70,8 @@ function writeArtifacts(
   const godot = exportGodotScene(layout, godotDir, {
     artDir: options.artDir ? resolve(options.artDir) : undefined,
     artStyle: options.artStyle ?? 'billboard',
+    // 透传 kit：prefab 上挂什么节点（门口灯、交互区）是 kit 说了算
+    kit: options.kit,
   });
   return [...files, ...godot.files.map((file) => join(godotDir, file))];
 }
@@ -138,7 +140,11 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
   }
 
   const files = result.finished
-    ? writeArtifacts(result.layout, options.outDir, { artDir: options.artDir, artStyle: options.artStyle })
+    ? writeArtifacts(result.layout, options.outDir, {
+      artDir: options.artDir,
+      artStyle: options.artStyle,
+      kit: resolveKit(options.kitPath),
+    })
     : [];
   return { ...result, files };
 }

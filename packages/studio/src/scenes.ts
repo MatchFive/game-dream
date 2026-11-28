@@ -287,6 +287,8 @@ export function exportScene(
   const result = exportGodotScene(scene.layout, dir, {
     artDir: artDir(root),
     artStyle: options.artStyle ?? 'billboard',
+    // 场景存的是 kitId，导出时要拿回 kit 才知道 prefab 上挂了哪些节点
+    kit: findBuiltinKit(scene.spec.kitId) ?? villageEuroKit,
   });
   return { dir, files: result.files.length, summary: result.summary };
 }

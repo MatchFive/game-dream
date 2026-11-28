@@ -27,6 +27,7 @@ export const villageEuroKit: Kit = {
       color: '#d9a15b',
       roof: 'gable',
       mainRoad: false,
+      nodes: [],
     },
     {
       id: 'house-long',
@@ -36,6 +37,7 @@ export const villageEuroKit: Kit = {
       color: '#c98f4f',
       roof: 'hip',
       mainRoad: false,
+      nodes: [],
     },
     {
       id: 'smithy',
@@ -45,6 +47,10 @@ export const villageEuroKit: Kit = {
       color: '#8f6b4a',
       roof: 'gable',
       mainRoad: false,
+      // 铁匠铺的火光：跟着正门走，白天也看得出这里是作坊
+      nodes: [
+        { type: 'light', name: 'ForgeGlow', at: [0.5, 0.5], props: { anchor: 'entrance', color: '#ff9b57', energy: 1.3, radius: 2.6 } },
+      ],
     },
     {
       id: 'tavern',
@@ -54,6 +60,11 @@ export const villageEuroKit: Kit = {
       color: '#b5793f',
       roof: 'hip',
       mainRoad: false,
+      // 酒馆：门口一盏灯 + 一块招牌位（招牌的图还没做，先留 Marker）
+      nodes: [
+        { type: 'light', name: 'DoorLamp', at: [0.5, 0.9], props: { anchor: 'entrance', color: '#ffcf8a', energy: 1.2, radius: 3.2, shadow: true } },
+        { type: 'marker', name: 'SignBoard', at: [0.5, 0.5], props: {} },
+      ],
     },
     {
       id: 'chapel',
@@ -63,6 +74,9 @@ export const villageEuroKit: Kit = {
       color: '#cbbfae',
       roof: 'gable',
       mainRoad: true,
+      nodes: [
+        { type: 'marker', name: 'ShrinePoint', at: [0.5, 0.5], props: {} },
+      ],
     },
     {
       id: 'market-hall',
@@ -72,6 +86,10 @@ export const villageEuroKit: Kit = {
       color: '#b99b6b',
       roof: 'flat',
       mainRoad: true,
+      // 集市大厅门口摆摊的区域：交给玩法去判定"能不能交易"
+      nodes: [
+        { type: 'area', name: 'MarketStall', at: [0.5, 1], props: { anchor: 'entrance', width: 3, height: 2 } },
+      ],
     },
     {
       id: 'dock-house',
@@ -81,6 +99,9 @@ export const villageEuroKit: Kit = {
       color: '#8b7355',
       roof: 'flat',
       mainRoad: false,
+      nodes: [
+        { type: 'light', name: 'QuayLamp', at: [0.5, 0.9], props: { anchor: 'entrance', color: '#ffd9a0', energy: 1, radius: 2.8 } },
+      ],
     },
   ],
 };

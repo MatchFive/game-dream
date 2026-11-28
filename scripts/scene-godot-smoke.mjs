@@ -87,6 +87,9 @@ for (const scene of cases) {
     const navReached = read('GAMEDREAM_NAV_REACHED');
     const townWalls = read('GAMEDREAM_SCENE_WALLS');
     const cliffs = read('GAMEDREAM_SCENE_CLIFFS');
+    const lights = read('GAMEDREAM_SCENE_LIGHTS');
+    const zones = read('GAMEDREAM_SCENE_ZONES');
+    const markers = read('GAMEDREAM_SCENE_MARKERS');
     const ok = output.includes('GAMEDREAM_SCENE_OK=1');
 
     const expected = layout.buildings.length;
@@ -106,11 +109,21 @@ for (const scene of cases) {
     const floors = read('GAMEDREAM_SCENE_FLOORS');
     const floorsExpected = layout.buildings.reduce((sum, b) => sum + b.floors, 0);
     if (floors !== floorsExpected) problems.push(`floors ${floors} != ${floorsExpected}`);
+
+    // kit 挂在 prefab 上的节点必须真的出现在引擎里：灯没贴图就不亮，区没有形状就触发不了
+    const countNodes = (type) => layout.buildings.reduce((sum, building) => {
+      const prefab = kit.prefabs.find((entry) => entry.id === building.prefab);
+      return sum + (prefab?.nodes ?? []).filter((node) => node.type === type).length;
+    }, 0);
+    if (lights !== countNodes('light')) problems.push(`lights ${lights} != ${countNodes('light')}`);
+    if (zones !== countNodes('area')) problems.push(`zones ${zones} != ${countNodes('area')}`);
+    if (markers !== countNodes('marker')) problems.push(`markers ${markers} != ${countNodes('marker')}`);
     if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing');
 
     engineLine = `buildings=${buildings} entrances=${entrances} nav=${navReached}/${navTotal}`
       + ` anchors=${anchors} tiles=${tilesGround}/${tilesRoads}/${tilesProps}`
       + ` walls=${townWalls} cliffs=${cliffs} floors=${read('GAMEDREAM_SCENE_FLOORS')}`
+      + ` lights=${lights} zones=${zones} markers=${markers}`
       + ` spawn=${(output.match(/GAMEDREAM_SCENE_SPAWN=([\d,]+)/) ?? [])[1] ?? 'n/a'}`;
   }
 
