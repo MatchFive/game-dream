@@ -40,20 +40,28 @@
 2. **每排尾巴固定空 4 格**。`while (along < limit - 4)` 在剩余正好 4 格时收手，
    短街区因此永远少一栋。改成 `limit - along >= 4`。
 
-## 三档实测（同一 seed、同一张 120×96 的图）
+## 三档实测（同一份真模型 spec，只改 roads）
+
+基准 spec **不是手写的**：取自 `traces-rerun.jsonl` 里"王都城郊的卫星镇，主路宽阔"那条
+真模型输出（120×90，seed 48291317），脚本只替换 `roads` 这一段做受控对照。
+
+```bash
+node scripts/scene-road-sweep.mjs \
+  --from docs/evidence/s14-roads/traces-rerun.jsonl --pick 主路宽阔 --out dist/s14-sweep
+```
 
 | 路网 | 主路 | 街 | 间距 | 建筑 | 街墙 / 院落 | 道路折线 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 窄街老城 | 2 | 1 | 13 | 92 | 70 / 22 | 107 |
-| 默认 | 4 | 2 | 18 | 73 | 61 / 12 | 94 |
-| 宽阔主路 | 6 | 3 | 22 | 91 | 88 / 3 | 101 |
+| 窄街 | 2 | 1 | 13 | 65 | 55 / 10 | 81 |
+| 默认 | 4 | 2 | 18 | 68 | 60 / 8 | 87 |
+| 宽阔 | 6 | 3 | 22 | 78 | 72 / 6 | 88 |
 
-- 窄街：街墙连成片，几乎每条巷子两侧都是房子
+- 窄街：巷子两侧几乎家家贴街，街区碎、院落少
 - 默认：街区之间留出院子
-- 宽街：主路明显是一条大道，街区更大、院落更多
+- 宽阔：主路明显是一条大道，街区更大、街墙更长（72/78）
 
-截图（Godot 真实窗口渲染，1200×1000）：`narrow.png` / `default.png` / `wide.png`，
-对应的 spec 在同名 `.spec.json` 里，可直接 `dream scene build --spec` 复现。
+截图是 Godot 真实窗口渲染（1200×1000）：`narrow.png` / `default.png` / `wide.png`。
+工程产物在 `dist/s14-sweep/<variant>/godot/`，随时可以重新生成。
 
 ## 真模型验证
 
@@ -75,9 +83,10 @@
 ## 复跑
 
 ```bash
-pnpm -w typecheck && pnpm -w test                       # 449 passed / 15 skipped
-node packages/cli/dist/index.js scene build \
-  --spec docs/evidence/s14-roads/narrow.spec.json --out dist/s14/narrow --art-style tile
+pnpm -w typecheck && pnpm -w test                       # 454 passed / 15 skipped
+# 受控对照（基准 spec 来自真模型 trace，只改 roads）
+node scripts/scene-road-sweep.mjs --out dist/s14-sweep
+# 真模型复跑（看它自己怎么读"宽阔/狭窄"）
 node packages/cli/dist/index.js scene batch \
   --prompts dist/s14-batch/prompts.txt --out dist/s14-batch --workspace <ws>
 ```

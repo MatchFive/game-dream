@@ -5,6 +5,10 @@
 
 ## 0. 硬约束（不可协商）
 
+> 2026-11-28 补记：场景库已搬进项目（`<project>/game/scenes/<id>/`），不再是
+> `.gamedream/studio/exports` 下的独立工程——见 `docs/evidence/s16-scenes-in-project/`。
+> 证据里的场景一律由项目 agent 产出（trace 重放），外部 agent 不再手写场景 spec。
+
 **所有涉及游戏本身的实现——玩法、关卡、场景、模板脚本、美术、游戏侧测试——只能由项目
 内置 agent 执行。** 外部编码 agent（WorkBuddy、Claude Code、Copilot 等）只能走三条通道：
 
@@ -51,7 +55,7 @@ CI scene-export job                 有引擎跑真机加载；无引擎仍导�
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 项目内加载场景（真实工程）        0 ERROR；buildings 22 / nav 22/22 / atlas true
-badcase 看板（演示数据可复现）       28 场景 / 24 过 / 4 未过 / 19 带 unmet；too-sparse×3、missing-required×2
+badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 24 带 unmet；missing-required×3、no-buildings×3
 真模型重跑两条"路宽"需求            2/2 过闸门，unmet 归零（宽阔→6、狭窄→2/1/13）
 ```
 

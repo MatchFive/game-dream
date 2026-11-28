@@ -49,26 +49,45 @@
 
 | 文件 | 看什么 |
 | --- | --- |
-| `board-issues.png` | 选中 `missing-required`：中间 2 份样本，右侧布局 + 失败的闸门明细 |
+| `board-issues.png` | 选中 `no-buildings`：三份样本，右侧是那张 40×36 的空布局 + "solver placed nothing" |
 | `board-unmet.png` | 选中 `coast`：布局本身过闸门（显式标注"它是因为 unmet 进这一簇的"），右侧列出 coast / cliffs / house orientation toward the sea |
 
 数据（`scripts/scene-insights-demo.mjs` 可复现）：
 
 ```
-seeded=28
-totals={"scenes":28,"pass":24,"fail":4,"withUnmet":19,"reviewed":5}
-issues=too-sparse×3, missing-required×2
-unmet=33 clusters
+seeded=29
+totals={"scenes":29,"pass":26,"fail":3,"withUnmet":24,"reviewed":4}
+issues=missing-required×3, no-buildings×3
+unmet=41 clusters
 ```
 
 - 24 条来自 `docs/evidence/scene-batch/traces-v2.jsonl`（真模型的 25 条需求，用今天的求解器重放）
-- 4 条是"地图装不下需求"的极端 spec（26×24 放三栋必需建筑、24×24 放四栋、30×24 切三级台阶、
-  28×26 被海吃掉一半）——**这是求解器今天真的会这么失败**，不是手写的假标签
+- 4 条来自 `dist/badcase/traces.jsonl`（真模型跑"超容量"需求的结果）
+
+**看板里的每一条都是 agent 产物**：脚本只负责把 trace 重放成场景，不写 spec、不编标签。
+第一版为了凑出失败样本，我手写了四份极端 spec——那等于自己造 badcase，
+已经删掉，改成真的让 agent 去跑：
+
+```bash
+cat > dist/badcase/prompts.txt <<'EOF'
+只有一个院子的边防哨所：26×24 格内要有礼拜堂、集市和酒馆
+巴掌大的矿工营地：24×24 里挤下酒馆、铁匠铺、礼拜堂和集市
+悬崖上一块 30×24 的小平台：三级台阶，还要放下礼拜堂
+EOF
+node packages/cli/dist/index.js scene batch \
+  --prompts dist/badcase/prompts.txt --out dist/badcase --workspace <ws>
+# → failed=3, no-buildings×3 / missing-required×3
+```
+
+这批失败很值得看：需求要 26×24，格式下限是 40×36，模型**声明了**这件事
+（`unmet: "26x24 map size (minimum bounds are 40x36)"`）然后按 40×36 去做，
+结果三栋市政建筑还是摆不下，`solver placed nothing`。也就是说"模型诚实 + 求解器装不下"
+会叠加成一种独立 badcase 类型——这正是看板要暴露的。
 
 复现：
 
 ```bash
-node scripts/scene-insights-demo.mjs --out dist/insights-demo
+node scripts/scene-insights-demo.mjs --out dist/insights-demo --extra dist/badcase/traces.jsonl
 node packages/cli/dist/index.js studio --path dist/insights-demo --port 4781
 # http://127.0.0.1:4781/scenes/insights
 ```

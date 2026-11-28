@@ -107,13 +107,15 @@ GAMEDREAM_SCENE_OK=1
 # 1) 准备一个真实项目
 cp -r dist/req-run/game dist/scene-in-project
 
-# 2) 用真模型产出的 spec 建场景并导出（走 Studio 的项目路径）
+# 2) 用真模型产出的 spec 建场景并导出（spec 从 trace 里取，不手写）
 node --input-type=module -e "
 import { readFileSync } from 'node:fs';
 import { buildScene, exportScene } from './packages/studio/dist/scenes.js';
 const root = 'dist/scene-in-project';
-const spec = JSON.parse(readFileSync(root + '/_agent-spec.json', 'utf8'));
-const outcome = await buildScene(root, { spec });
+const traces = readFileSync('docs/evidence/scene-batch/traces-v2.jsonl', 'utf8')
+  .trim().split('\\n').map((line) => JSON.parse(line));
+const trace = traces.find((item) => (item.spec?.name ?? '').includes('渔村'));
+const outcome = await buildScene(root, { spec: trace.spec });
 exportScene(root, outcome.scene.id);
 "
 
