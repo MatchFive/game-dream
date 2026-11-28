@@ -1,0 +1,19 @@
+attempt 1: pass {"buildings":74,"props":89,"roads":83,"streetWall":64,"courtyards":6,"standalone":4,"frontageShare":0.946,"attached":39,"unmet":0,"walls":0,"gates":0,"cliffs":17,"ramps":4,"terraces":2,"coast":0,"interactions":5,"interactionKinds":5,"floorMean":2.74,"floorMax":4,"tallShare":0.676,"elevationMax":1,"attachedShare":0.527,"density":0.219,"roadRatio":0.195,"greenRatio":0.127,"waterRatio":0.029,"reachableCells":7321,"entranceCoverage":1}
+Scene: Foothill Trading Town (74 buildings, 89 props)
+Gates: pass
+Scene: res://game/scenes/trade-town/scene.tscn
+Index: F:\game-dream\dist\s17\prompt\game\scenes\index.json
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\scene.json
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\scene.svg
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\scene.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\tiles.png
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\tiles.tres
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\scene_check.gd
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\layout.json
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\market-hall.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\tavern.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\house-small.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\smithy.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\dock-house.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\prefabs\house-long.tscn
+  F:\game-dream\dist\s17\prompt\game\scenes\trade-town\light.png

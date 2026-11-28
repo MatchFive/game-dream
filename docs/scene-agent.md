@@ -124,6 +124,7 @@
 | S2 | Godot 导出：锚点/建筑/碰撞/地面底图，真实引擎加载核对节点数 | **Done** |
 | S3 | Unity 导出：`.unity` 场景 + prefab 实例 + NavMesh 烘焙参数 | Next |
 | S4a | Agent 循环 + CLI：`dream scene build`，模型出 spec、闸门失败回喂重试、每次尝试落 trace | **Done** |
+| S16/S17 | 场景属于项目：`game/scenes/<id>/` + `index.json`；CLI `--project` 与 Studio 同一出口 | **Done** |
 | S4b | Studio 场景页：列表 / 预览 / 闸门详情 / 人工评审写回 trace | **Done** |
 | S5 | 数据管道：`dream scene dataset` 统计 + SFT / 偏好对导出 | **Done** |
 | S6 | 训练：在足量 trace 上做监督微调或独立的布局模型 | Backlog |
@@ -133,14 +134,29 @@
 命令行：
 
 ```bash
-# 模型写 spec，失败会把 issues 回喂重试（默认 3 次尝试）
+# 建进项目（项目 agent 用这条）：落到 <project>/game/scenes/<id>/，
+# 游戏侧 preload "res://game/scenes/<id>/scene.tscn"
 dream scene build --prompt "一个靠河的渔村，需要酒馆、教堂和铁匠铺" \
-  --kit packages/scene/kits/village-euro.json --out dist/scene/portside \
-  --provider auto --trace dist/scene/agent-traces.jsonl
+  --kit packages/scene/kits/village-euro.json --project ./my-game \
+  --provider auto --trace .gamedream/studio/traces.jsonl
 
-# 已经有 spec：跳过模型，直接构建与导出
-dream scene build --spec my-spec.json --kit ... --out ... 
+# 反复迭代同一个场景：复用目录，顺手清掉上一版多余的 prefab
+dream scene build --prompt "..." --project ./my-game --id portside --replace
+
+# 只想单独打开看看：独立工程出口（不属于任何项目）
+dream scene build --prompt "..." --out dist/scene/portside
+
+# 已经有 spec：跳过模型，直接构建
+dream scene build --spec my-spec.json --project ./my-game
 ```
+
+**为什么默认是 `--project` 而不是 `--out`**：场景是游戏的资产，不是旁边的一个演示工程。
+`--project` 与 Studio 的导出按钮调同一组函数（`studio/src/scenes.ts`），两条产品路径不会漂移；
+`--out` 留着只是方便单独打开检查。
+
+**目录名**：取 `spec.id`；被占用时加序号（`plaza` → `plaza-2`），`--id` 显式指定，
+`--replace` 复用（并清理上一版生成的 `prefabs/`、`art/`、`tiles.*`）。不给 `--replace`
+就另开一个目录——脚本化迭代时**记得带上**，否则 `game/scenes/` 会攒一堆同名目录。
 
 模型只被要求产出一件事：`SceneSpec`。几何仍然全部由求解器决定。
 

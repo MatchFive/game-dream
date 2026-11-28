@@ -8,6 +8,9 @@
 > 2026-11-28 补记：场景库已搬进项目（`<project>/game/scenes/<id>/`），不再是
 > `.gamedream/studio/exports` 下的独立工程——见 `docs/evidence/s16-scenes-in-project/`。
 > 证据里的场景一律由项目 agent 产出（trace 重放），外部 agent 不再手写场景 spec。
+>
+> 同日：CLI 也有 `--project` 出口，Studio 与 CLI 走同一组函数
+> （`studio/src/scenes.ts` 的 `buildScene` / `exportScene`）——见 `docs/evidence/s17-cli-project/`。
 
 **所有涉及游戏本身的实现——玩法、关卡、场景、模板脚本、美术、游戏侧测试——只能由项目
 内置 agent 执行。** 外部编码 agent（WorkBuddy、Claude Code、Copilot 等）只能走三条通道：
@@ -35,7 +38,7 @@
 | M1 Agent 运行生产化 | 预算、队列、审批策略、崩溃回收、重试 | 8/8 | Done |
 | M2 验证与试玩闭环 | Godot/Unity runtime、G6 视觉门、MCP 回归 | 7/7 | Done |
 | M3 资产管线 | 动画/图集/BGM/SFX/绑定 | 16/18 | 差 AS3（缺模型）/ AS6（3D） |
-| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 14/16 | **当前主线**（差 S3 Unity / S6 训练） |
+| S 场景构建 | 求解器 → 引擎工程 → 数据管道 | 16/18 | **当前主线**（差 S3 Unity / S6 训练） |
 | M4 内容深度 | 7 类游戏模板的短局循环 | 5/5 | Done |
 | M5 平台扩展 | Unity/Unreal/3D/协作 | 0/4 | Backlog |
 
@@ -43,7 +46,7 @@
 
 ```
 pnpm typecheck / build              9 包通过
-pnpm test                           454 passed / 15 skipped / 0 failed
+pnpm test                           461 passed / 15 skipped / 0 failed
 scene 三示例（河湾村/石十字镇/湖畔小村）  闸门全 PASS，入口可达率 1.0
 真实 Godot 4.4.1 导出（六场景）      nav 32/32、65/65、15/15、33/33、60/60、72/72
 CI scene-export job                 有引擎跑真机加载；无引擎仍导出六工程做结构核对并写明 skip
@@ -55,6 +58,7 @@ CI scene-export job                 有引擎跑真机加载；无引擎仍导�
 真模型重跑五条"地形"需求            5/5 过闸门，三条 unmet 归零
 Studio 导出按钮（产品路径）          26 实例 / 6912 地形格 / nav 26/26
 项目内加载场景（真实工程）        0 ERROR；buildings 22 / nav 22/22 / atlas true
+CLI `--project` 建进真实工程        0 ERROR；res://game/scenes/harbour-quarter；工程根 project.godot 未改
 badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 24 带 unmet；missing-required×3、no-buildings×3
 真模型重跑两条"路宽"需求            2/2 过闸门，unmet 归零（宽阔→6、狭窄→2/1/13）
 ```
@@ -63,7 +67,9 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 
 已经能用、且经过真实引擎验证的能力（不要当待做项重新规划）：
 
-- `dream scene build --prompt "临河小镇…"` → `SceneSpec` → 布局 → **可编辑 Godot 工程**
+- `dream scene build --prompt "临河小镇…" --project <root>` → `SceneSpec` → 布局 →
+  **项目里的场景**（`game/scenes/<id>/`，游戏侧 `preload("res://game/scenes/<id>/scene.tscn")`）；
+  `--out` 仍是独立工程出口（想单独打开看时用）
 - 工程内容：`TileMapLayer` ×3（地形/道路/道具）、`prefabs/*.tscn` 实例、碰撞、正门 Marker、
   `NavigationRegion2D`（出生点到每栋建筑的门都能寻路）、四面边界墙
 - 闸门 10 类（越界/重叠/压水/门口被堵/不可达/空场景/过密/过疏/缺要素/城墙围死）+ 形态指标
@@ -86,6 +92,9 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
 - **场景属于项目**：场景库在 `<project>/game/scenes/<id>/`（`scene.json` + 预览 + 引擎文件），
   `index.json` 给游戏侧发现；导出走 `res://game/scenes/<id>/scene.tscn`，真实 `dream create`
   工程里 0 条 ERROR 加载、nav 22/22。证据 `docs/evidence/s16-scenes-in-project/`
+- **CLI 与 Studio 同一个出口**：`dream scene build --project <root>` 直接落进项目（目录名取
+  `spec.id`，`--id` 指定、`--replace` 复用并清旧 prefab）；两条产品路径调的是同一组函数，
+  不会各写一套。证据 `docs/evidence/s17-cli-project/`
 - **场景交互点**：`kit.prefabs[].interactions[]`（rest/shop/trade/worship/craft/fish）→
   `layout.interactions[]`（落在正门那一格）→ 导出 `Area2D` + `metadata/kind`；
   新闸门 `interaction-blocked`，指标 `interactions`/`interactionKinds`。证据 `docs/evidence/s11-interactions/`
@@ -108,7 +117,9 @@ badcase 看板（演示数据可复现）       29 场景 / 26 过 / 3 未过 / 
    地形/墙/台阶已经在引擎无关层（`SceneLayout`）里表达完整，第二个出口可以直接吃同一份 layout。
    **阻塞**：本机没有 Unity 安装（`/c/Program Files` 下无 `Unity`，settings 里 `unityBin` 为空），
    只能写代码不能真机验收——按"不为看起来完成补 mock"的约定，先不硬做。
-2. **T1 真实 tileset / T2 建筑套图** —— 现在所有地表与道具都是程序生成的瓦片，
+2. **场景还没被游戏引用** —— `index.json` 只是接口，把场景接进 `main.tscn`（进关卡、切场景、
+   传交互点）属于游戏实现，必须走 `dream request`，不能由我改 `templates/**` / `modules/**`。
+3. **T1 真实 tileset / T2 建筑套图** —— 现在所有地表与道具都是程序生成的瓦片，
    楼层已经分层但引擎里看不出来（同一种 prefab 只有一张图）。这是"能用"和"好看"之间
    最后一段，也是 S7 留下的唯一缺口。
 

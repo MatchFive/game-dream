@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createProvider, type ModelProvider, type ProviderKind } from '@gamedream/agent';
+import { buildScene, exportScene, scenesDir } from '@gamedream/studio';
 import {
   buildSceneWithTrace,
   exportGodotScene,
@@ -17,7 +18,8 @@ export interface SceneBuildOptions {
   prompt?: string;
   specPath?: string;
   kitPath: string;
-  outDir: string;
+  /** 独立工程出口（`--out`）；给了 projectPath 时不需要 */
+  outDir?: string;
   seed?: number;
   attempts?: number;
   provider?: ProviderKind;
@@ -31,6 +33,16 @@ export interface SceneBuildOptions {
   artDir?: string;
   /** tile 铺满足迹 / billboard 底边对齐向上溢出 */
   artStyle?: 'tile' | 'billboard';
+  /**
+   * 建到项目里：产物落 `<project>/game/scenes/<id>/`，与 Studio 的导出按钮走同一条路径。
+   *
+   * 给了它就不再需要 `--out`——场景属于项目，不是另开一个能单独打开的工程。
+   */
+  projectPath?: string;
+  /** 场景目录名；不给则按 spec.id（可加序号）生成 */
+  id?: string;
+  /** 目录已存在时覆盖，而不是新开一个 `<id>-2` */
+  replace?: boolean;
   onAttempt?: (index: number, layout: SceneLayout, validation: SceneValidation, finished: boolean) => void;
 }
 
@@ -44,6 +56,72 @@ export interface SceneBuildResult {
   files: string[];
   /** 模型声明的"这份 format 做不到"的需求 */
   unmet: string[];
+  /** 落进项目时的场景坐标（`--project` 才有） */
+  scene?: {
+    /** 场景目录名（对比 spec.id 可能带序号） */
+    id: string;
+    dir: string;
+    /** 游戏侧 preload 的路径 */
+    resPath: string;
+    /** 场景索引文件 */
+    index: string;
+  };
+}
+
+/**
+ * 建到项目里：求解 → 落盘 `game/scenes/<id>/scene.json` → 导出引擎文件 → 更新索引。
+ *
+ * 与 Studio 的导出按钮调用同一组函数（studio/src/scenes.ts），所以两条产品路径不会漂移。
+ * 目录名默认取 `spec.id`；`--replace` 复用同一个目录，否则加序号（`plaza` → `plaza-2`），
+ * 这样反复迭代不会把 `game/scenes/` 堆成一堆时间戳。
+ */
+async function sceneBuildIntoProject(options: SceneBuildOptions): Promise<SceneBuildResult> {
+  const root = resolve(options.projectPath as string);
+  if (!existsSync(root)) throw new Error(`project not found: ${root}`);
+  const spec = options.specPath ? JSON.parse(readFileSync(options.specPath, 'utf8')) : undefined;
+  if (!spec && !options.prompt?.trim()) throw new Error('either --prompt or --spec is required');
+
+  // auto 时不在这里造 provider：交给 buildScene 用项目自己的设置（settings.json）
+  const provider = options.providerImpl ?? (options.provider && options.provider !== 'auto'
+    ? createProvider({ kind: options.provider, env: options.env ?? process.env, fetchImpl: options.fetchImpl })
+    : undefined);
+
+  const outcome = await buildScene(root, {
+    spec,
+    prompt: options.prompt,
+    kitPath: options.kitPath,
+    seed: options.seed,
+    attempts: options.attempts,
+    traceFile: options.traceFile,
+    env: options.env,
+    provider,
+    id: options.id,
+    // 有显式 --id 就听它的；否则用 spec.id 当目录名，而不是时间戳
+    stableId: true,
+    overwrite: options.replace,
+    onAttempt: options.onAttempt,
+  });
+  const exported = exportScene(root, outcome.scene.id, {
+    artStyle: options.artStyle ?? 'billboard',
+    artDir: options.artDir ? resolve(options.artDir) : undefined,
+  });
+  const id = outcome.scene.id;
+  return {
+    layout: outcome.scene.layout,
+    validation: outcome.scene.validation,
+    finished: outcome.finished,
+    failure: outcome.failure,
+    attempts: outcome.scene.attempts,
+    traces: outcome.scene.attempts,
+    unmet: outcome.scene.spec.unmet,
+    files: exported.list,
+    scene: {
+      id,
+      dir: exported.dir,
+      resPath: `res://game/scenes/${id}/scene.tscn`,
+      index: join(scenesDir(root), 'index.json'),
+    },
+  };
 }
 
 function resolveKit(kitPath: string): Kit {
@@ -81,6 +159,9 @@ function writeArtifacts(
  * 有 spec 文件就直接构建。两者的产物与 trace 落盘方式一致。
  */
 export async function sceneBuildCommand(options: SceneBuildOptions): Promise<SceneBuildResult> {
+  if (options.projectPath) return sceneBuildIntoProject(options);
+  const outDir = options.outDir;
+  if (!outDir) throw new Error('either --out (standalone engine project) or --project (into a game project) is required');
   const kit = resolveKit(options.kitPath);
   let result: {
     layout: SceneLayout;
@@ -140,7 +221,7 @@ export async function sceneBuildCommand(options: SceneBuildOptions): Promise<Sce
   }
 
   const files = result.finished
-    ? writeArtifacts(result.layout, options.outDir, {
+    ? writeArtifacts(result.layout, outDir, {
       artDir: options.artDir,
       artStyle: options.artStyle,
       kit: resolveKit(options.kitPath),

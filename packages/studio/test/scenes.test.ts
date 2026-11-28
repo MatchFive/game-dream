@@ -79,7 +79,9 @@ describe('studio scene store', () => {
     const result = exportScene(root, outcome.scene.id);
     // 场景属于项目：落在 game/scenes/<id>/，共用工程里的 res:// 路径
     expect(result.dir).toBe(join(scenesDir(root), outcome.scene.id));
-    expect(existsSync(join(result.dir, 'project.godot'))).toBe(true);
+    // project.godot 在工程根，不在场景目录：场景目录里塞一份假工程只会让人误开错目录
+    expect(existsSync(join(root, 'project.godot'))).toBe(true);
+    expect(existsSync(join(result.dir, 'project.godot'))).toBe(false);
     expect(existsSync(join(result.dir, 'scene.tscn'))).toBe(true);
     expect(existsSync(join(result.dir, 'tiles.tres'))).toBe(true);
     expect(existsSync(join(result.dir, 'prefabs', `${outcome.scene.layout.buildings[0].prefab}.tscn`))).toBe(true);

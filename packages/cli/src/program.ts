@@ -1390,7 +1390,10 @@ export function createProgram(): Command {
     .option('--prompt <text>', 'describe the settlement; the model writes the spec')
     .option('--spec <file>', 'build from a SceneSpec JSON instead of the model')
     .option('--kit <path>', 'building kit JSON', 'packages/scene/kits/village-euro.json')
-    .requiredOption('--out <dir>', 'output directory')
+    .option('--out <dir>', 'standalone output directory (a self-contained engine project)')
+    .option('--project <dir>', 'build into a game project: lands in <project>/game/scenes/<id>/')
+    .option('--id <name>', 'scene folder name (default: the spec id, with a suffix if taken)')
+    .option('--replace', 'overwrite an existing scene folder instead of creating <id>-2')
     .option('--seed <n>', 'layout seed', (value) => Number(value))
     .option('--attempts <n>', 'max model attempts', (value) => Number(value))
     .option('--provider <kind>', 'auto, fake, or openai', 'auto')
@@ -1403,7 +1406,10 @@ export function createProgram(): Command {
       prompt?: string;
       spec?: string;
       kit: string;
-      out: string;
+      out?: string;
+      project?: string;
+      id?: string;
+      replace?: boolean;
       seed?: number;
       attempts?: number;
       provider: string;
@@ -1414,11 +1420,19 @@ export function createProgram(): Command {
       json?: boolean;
     }) => {
       try {
+        if (!options.out && !options.project) {
+          printLine('either --out <dir> (standalone engine project) or --project <dir> (into a game project) is required');
+          process.exitCode = 1;
+          return;
+        }
         const result = await sceneBuildCommand({
           prompt: options.prompt,
           specPath: options.spec,
           kitPath: options.kit,
           outDir: options.out,
+          projectPath: options.project,
+          id: options.id,
+          replace: options.replace === true,
           seed: options.seed,
           attempts: options.attempts,
           provider: parseProviderKind(options.provider),
@@ -1445,6 +1459,7 @@ export function createProgram(): Command {
             attempts: result.attempts,
             failure: result.failure,
             metrics: result.validation.metrics,
+            scene: result.scene,
             files: result.files,
           });
         } else {
@@ -1454,6 +1469,11 @@ export function createProgram(): Command {
             // 布局过了闸门，但需求里有做不到的部分——这必须看得出来
             printLine(`Not supported by this format (${result.unmet.length}):`);
             for (const item of result.unmet) printLine(`  - ${item}`);
+          }
+          if (result.scene) {
+            // 游戏侧 preload 的就是这一行，直接抄
+            printLine(`Scene: ${result.scene.resPath}`);
+            printLine(`Index: ${result.scene.index}`);
           }
           for (const file of result.files) printLine(`  ${file}`);
         }

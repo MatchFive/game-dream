@@ -1,0 +1,6 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="game"
+run/main_scene="res://game/_generated/main.tscn"

@@ -1,0 +1,17 @@
+Scene: 河畔小渔村 (22 buildings, 56 props)
+Gates: pass
+Scene: res://game/scenes/harbour-quarter/scene.tscn
+Index: F:\game-dream\dist\s17\final\game\scenes\index.json
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\scene.json
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\scene.svg
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\scene.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\tiles.png
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\tiles.tres
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\scene_check.gd
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\layout.json
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\prefabs\chapel.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\prefabs\tavern.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\prefabs\dock-house.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\prefabs\house-long.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\prefabs\house-small.tscn
+  F:\game-dream\dist\s17\final\game\scenes\harbour-quarter\light.png

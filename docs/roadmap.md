@@ -183,6 +183,7 @@
 | S2.7 | 需求覆盖：`spec.unmet[]` + 提示词禁止静默替换 + 统计聚类 + Studio/CLI 展示；重跑同批 19/25 声明了做不到的需求 | Done |
 | S13 | 地形与边界表达力：`water: coast`（起伏岸线 + 沙岸）、`walls`（贴建成区成环、路口自动开门、`TownWalls` 碰撞体）、`elevation`（按 `step` 切台阶、错开 ±1 格走等高线、路穿崖处变坡道、`Cliffs` 碰撞体）；瓦片新增 `sand/rock/wall`；新闸门 `sealed-walls`。真引擎六场景 nav 全通（墙/崖碰撞体数与 layout 一致）；五条相关需求真模型重跑 5/5 过闸门，其中三条 unmet 归零 | Done |
 | Q1 | 场景导出进 CI：新增 `scene-export` job，`scripts/scene-godot-smoke.mjs` 支持"无引擎"分支（仍导出六工程 + 结构核对 + 显式 skip 与 job summary），确定有引擎时用 `--require` 跑真机加载 | Done |
+| S17 | CLI 也有「建进项目」出口：`dream scene build --project <root>`（目录名取 `spec.id`，`--id` 指定，`--replace` 复用并清掉上一版生成的 prefabs/art/tiles），与 Studio 调同一组 `buildScene`/`exportScene`；修掉 `exportGodotScene` 在 flat 模式往场景目录写 `project.godot` 的 bug（改由 `ensureGodotProject` 补工程根）；冒烟第七用例改走产品路径 | Done |
 | S16 | 场景属于项目（架构修正）：场景库从 `.gamedream/studio/scenes` 搬到 `<project>/game/scenes/<id>/`（`scene.json` + `scene.svg` + `layout.json` + 引擎文件），导出器新增 `resRoot`/`flat`/`writeProject`，前缀按"场景/prefab"分别算，`game/scenes/index.json` 作为发现入口；真实 `dream create` 工程内加载 0 ERROR、nav 22/22 | Done |
 | S11 | 场景交互点：`kit.prefabs[].interactions[] { kind, radius }` → `layout.interactions[]`（落在正门格）→ 导出 `Interactions/Area2D` + `metadata/kind`/`metadata/building`；新闸门 `interaction-blocked`；自检比较数量与 kind 集合 | Done |
 | S9 | prefab 附加节点：`kit.prefabs[].nodes[]`（light/area/marker，位置按 footprint 比例，`anchor:"entrance"` 跟门走），导出为 PointLight2D（共用生成的 `scene/light.png`）/ Area2D + RectangleShape2D / Marker2D，实例用 index 覆盖位置；`scene_check.gd` 点数与 kit 对账；顺带修正 prefab `load_steps` 数行数不数资源 | Done |

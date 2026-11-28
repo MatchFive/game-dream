@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createProvider } from '@gamedream/agent';
+import { createProvider, type ModelProvider } from '@gamedream/agent';
+import { loadStudioSettings, studioEnv } from './settings.js';
 import {
   appendTrace,
   buildSceneWithTrace,
@@ -60,6 +61,24 @@ export interface BuildSceneInput {
   attempts?: number;
   traceFile?: string;
   env?: NodeJS.ProcessEnv;
+  /** 显式传入的 provider：CLI 的 --provider fake 靠它，测试也不必碰真模型 */
+  provider?: ModelProvider;
+  /**
+   * 指定目录名。给了就用它（配合 overwrite 可以「重建同一个场景」），
+   * 不给则按 stableId 决定是否带时间戳——见下。
+   */
+  id?: string;
+  /**
+   * 用稳定目录名（`<spec.id>`）而不是 `<spec.id>-<时间戳>`。
+   *
+   * Studio 是人点按钮，多存几份历史版本无所谓；CLI / 项目 agent 是脚本化的，
+   * 每跑一次多一个目录会让 `game/scenes/` 长成垃圾场，游戏侧也没法固定 preload 路径。
+   */
+  stableId?: boolean;
+  /** 目录已存在时覆盖它（只在 id/stableId 指定时才有意义） */
+  overwrite?: boolean;
+  /** 每次尝试结束就回调：CLI 要打进度，Studio 不需要 */
+  onAttempt?: (index: number, layout: SceneLayout, validation: SceneValidation, finished: boolean) => void;
 }
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -174,10 +193,44 @@ export function resolveKit(input: BuildSceneInput): Kit {
   return villageEuroKit;
 }
 
+/** spec.id → 目录名。稳定、可预期：同一个场景反复构建落在同一个名字上。 */
+export function stableSceneId(spec: SceneSpec): string {
+  const base = spec.id.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+  return (base || 'scene').slice(0, 64);
+}
+
+/** 目录已存在时找一个不冲突的名字：`plaza` → `plaza-2` → `plaza-3`。 */
+export function uniqueSceneId(root: string, base: string): string {
+  if (!existsSync(join(scenesDir(root), base))) return base;
+  for (let index = 2; index < 100; index += 1) {
+    const candidate = `${base.slice(0, 60)}-${index}`;
+    if (!existsSync(join(scenesDir(root), candidate))) return candidate;
+  }
+  throw new Error(`too many scenes named ${base}`);
+}
+
 function nextId(spec: SceneSpec): string {
-  const base = spec.id.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'scene';
   const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-  return `${base}-${stamp}`.slice(0, 64);
+  return `${stableSceneId(spec).slice(0, 48)}-${stamp}`.slice(0, 64);
+}
+
+/**
+ * 落盘时用哪个目录名。
+ *
+ * 三种来源按优先级：显式 id → 稳定 id（可覆盖，否则加序号）→ 带时间戳的新目录。
+ */
+function chooseId(root: string, spec: SceneSpec, input: BuildSceneInput): string {
+  const explicit = input.id?.trim();
+  if (explicit) {
+    if (!ID_PATTERN.test(explicit)) throw new Error(`invalid scene id: ${explicit}`);
+    if (!input.overwrite && existsSync(join(scenesDir(root), explicit))) {
+      throw new Error(`scene already exists: ${explicit} (pass --replace to overwrite)`);
+    }
+    return explicit;
+  }
+  if (!input.stableId) return nextId(spec);
+  const base = stableSceneId(spec);
+  return input.overwrite ? base : uniqueSceneId(root, base);
 }
 
 /** 读全量场景记录（不经过摘要裁剪）。insights 与 listScenes 都走这里。 */
@@ -260,7 +313,7 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     const built = buildSceneWithTrace(spec, kit, { origin: 'manual' });
     appendTrace(traceFile, built.trace);
     const scene = saveScene(root, {
-      id: nextId(spec),
+      id: chooseId(root, spec, input),
       name: spec.name,
       createdAt: new Date().toISOString(),
       spec,
@@ -279,7 +332,11 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
   }
 
   if (!input.prompt?.trim()) throw new Error('send either a spec or a prompt');
-  const provider = createProvider({ kind: 'auto', env: input.env ?? process.env });
+  // 没显式给 env 时用**项目自己的**模型设置（`<root>/.gamedream/studio/settings.json`）。
+  // 这样 `dream scene build --project <root>` 不需要外面先 export 一堆密钥，
+  // 也让"这个项目用哪个模型"只有一处真相。
+  const env = input.env ?? studioEnv(loadStudioSettings(root, process.env));
+  const provider = input.provider ?? createProvider({ kind: 'auto', env });
   const agent = await runSceneAgent({
     prompt: input.prompt,
     kit,
@@ -287,17 +344,22 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     seed: input.seed,
     maxAttempts: input.attempts ?? 3,
     traceFile,
+    onAttempt: (attempt) => {
+      input.onAttempt?.(attempt.index, attempt.layout, attempt.validation, attempt.validation.pass);
+    },
   });
 
-  // 全是解析失败时没有可展示的布局，直接报错，别存一个空场景
-  const usable = agent.attempts.find((attempt) => attempt.layout.buildings.length > 0)
+  // 全是解析失败时没有可展示的布局，直接报错，别存一个空场景。
+  // 注意 attempt.layout 在解析失败时是 `{ id: 'invalid' }`（连 buildings 都没有）——
+  // 直接读 .buildings 会抛 TypeError，把"模型没按要求输出"变成看不懂的崩栈。
+  const usable = agent.attempts.find((attempt) => (attempt.layout?.buildings?.length ?? 0) > 0)
     ?? agent.attempts[agent.attempts.length - 1];
   if (!usable || usable.spec.id === 'invalid') {
     throw new Error(agent.failure ?? 'the model did not return a usable SceneSpec');
   }
 
   const scene = saveScene(root, {
-    id: nextId(usable.spec),
+    id: chooseId(root, usable.spec, input),
     name: usable.spec.name,
     createdAt: new Date().toISOString(),
     spec: usable.spec,
@@ -319,6 +381,8 @@ export interface SceneExportOutcome {
   /** 工程目录，可直接用 Godot 打开 */
   dir: string;
   files: number;
+  /** 落盘的文件（绝对路径），含 scene.json / scene.svg */
+  list: string[];
   summary: Record<string, unknown>;
 }
 
@@ -334,6 +398,35 @@ export function scenesOutDir(root: string): string {
 }
 
 /**
+ * 工程根缺 `project.godot` 时补一份（空目录试用、或这个项目还不是 Godot 工程）。
+ *
+ * 只补根，不补场景目录：以前 writeProject 把文件写进了 `game/scenes/<id>/`，
+ * 等于在场景里塞了个假工程，Godot 打开那个目录看到的是"一个没有场景的工程"。
+ */
+function ensureGodotProject(root: string, name: string, mainScene: string): void {
+  const file = join(root, 'project.godot');
+  if (existsSync(file)) return;
+  mkdirSync(root, { recursive: true });
+  writeFileSync(
+    file,
+    [
+      'config_version=5',
+      '',
+      '[application]',
+      `config/name="${name.replace(/"/g, '')}"`,
+      `run/main_scene="${mainScene}"`,
+      'config/features=PackedStringArray("4.4", "GL Compatibility")',
+      '',
+      '[rendering]',
+      'renderer/rendering_method="gl_compatibility"',
+      'renderer/rendering_method.mobile="gl_compatibility"',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+}
+
+/**
  * 把已保存的场景导出成一个可编辑的引擎工程。
  *
  * 产物不是一个"截图式的成品"，而是能继续做下去的东西：地面是 TileMapLayer
@@ -343,27 +436,55 @@ export function scenesOutDir(root: string): string {
  * 这个函数是项目能力的一部分：CLI 的 `dream scene build`、Studio 的导出按钮、
  * 以后 agent 的工具调用，走的都是同一个导出器。
  */
+/**
+ * 清掉上一次导出留下的产物，只清"这个导出器写的"那些。
+ *
+ * 不清的话，prefab 集合缩小（换了 kit、建筑变少）之后旧 prefab 会一直躺在目录里，
+ * 游戏侧或 agent 照着目录 preload 就会拿到一个已经不存在的建筑。
+ * `scene.json` / `scene.svg` 不动：它们是场景数据，由 saveScene 维护。
+ */
+function cleanGenerated(dir: string): void {
+  for (const entry of ['prefabs', 'art']) {
+    rmSync(join(dir, entry), { recursive: true, force: true });
+  }
+  for (const file of ['scene.tscn', 'tiles.png', 'tiles.tres', 'light.png', 'layout.json', 'scene_check.gd', 'scene_check.gd.uid']) {
+    rmSync(join(dir, file), { force: true });
+  }
+}
+
 export function exportScene(
   root: string,
   id: string,
-  options: { artStyle?: 'tile' | 'billboard' } = {},
+  options: { artStyle?: 'tile' | 'billboard'; artDir?: string } = {},
 ): SceneExportOutcome {
   const scene = loadScene(root, id);
   if (!scene) throw new Error(`scene not found: ${id}`);
   const dir = join(scenesOutDir(root), id);
+  mkdirSync(dir, { recursive: true });
+  cleanGenerated(dir);
   const result = exportGodotScene(scene.layout, dir, {
-    artDir: artDir(root),
+    artDir: options.artDir ?? artDir(root),
     artStyle: options.artStyle ?? 'billboard',
     // 场景存的是 kitId，导出时要拿回 kit 才知道 prefab 上挂了哪些节点
     kit: findBuiltinKit(scene.spec.kitId) ?? villageEuroKit,
-    // 嵌进项目：资源前缀是 game/scenes/<id>，平铺摆放，不写 project.godot
+    // 嵌进项目：资源前缀是 game/scenes/<id>，平铺摆放
     resRoot: `game/scenes/${id}`,
     flat: true,
-    // 项目根不是 Godot 工程时（比如空目录试用），顺手给一份，保证还能单独打开
-    writeProject: !existsSync(join(root, 'project.godot')),
+    // 场景目录里不写 project.godot——工程根才有资格有它
+    writeProject: false,
   });
+  ensureGodotProject(root, scene.name, `res://game/scenes/${id}/scene.tscn`);
   writeSceneIndex(root);
-  return { dir, files: result.files.length, summary: result.summary };
+  return {
+    dir,
+    files: result.files.length,
+    list: [
+      join(dir, 'scene.json'),
+      join(dir, 'scene.svg'),
+      ...result.files.map((file) => join(dir, file)),
+    ],
+    summary: result.summary,
+  };
 }
 
 export function reviewScene(

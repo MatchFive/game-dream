@@ -1,0 +1,12 @@
+{
+  "scenes": [
+    {
+      "id": "harbour-quarter",
+      "name": "河畔小渔村",
+      "createdAt": "2026-11-28T11:53:25.248Z",
+      "pass": true,
+      "resPath": "res://game/scenes/harbour-quarter/scene.tscn",
+      "dataPath": "res://game/scenes/harbour-quarter/scene.json"
+    }
+  ]
+}

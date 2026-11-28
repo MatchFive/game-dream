@@ -147,34 +147,45 @@ for (const scene of cases) {
   }
 }
 
-// 场景必须属于项目：再走一遍"嵌进已有工程"的路径。
-// 独立工程能跑不等于项目里能跑——资源前缀、res:// 解析、工程里的 autoload 都是另一套。
+// 场景必须属于项目：走**产品路径**（CLI `scene build --project`），而不是直接调导出器。
+// 独立工程能跑不等于项目里能跑——资源前缀、res:// 解析、工程根有没有 project.godot 都是另一套。
 {
+  const { sceneBuildCommand } = await import('../packages/cli/dist/commands/scene.js');
   const projectRoot = join(outRoot, 'in-project');
-  const id = 'embedded-scene';
   mkdirSync(projectRoot, { recursive: true });
+  const specPath = join(projectRoot, 'embedded.spec.json');
   writeFileSync(
-    join(projectRoot, 'project.godot'),
-    ['config_version=5', '', '[application]', 'config/name="embedded-project"', ''].join('\n'),
+    specPath,
+    JSON.stringify({ ...cases[0], name: 'embedded-scene', kitId: kit.id, tileSize: 32, decor: 0.5 }),
     'utf8',
   );
-  const spec = { ...cases[0], name: id, kitId: kit.id, tileSize: 32, decor: 0.5 };
-  const { layout, validation } = buildSceneWithTrace(spec, kit);
-  const sceneRoot = join(projectRoot, 'game', 'scenes', id);
-  exportGodotScene(layout, sceneRoot, {
-    kit,
-    resRoot: `game/scenes/${id}`,
-    flat: true,
-    writeProject: false,
+
+  const built = await sceneBuildCommand({
+    specPath,
+    kitPath: join(root, 'packages/scene/kits/village-euro.json'),
+    projectPath: projectRoot,
   });
+  const id = built.scene?.id ?? '';
+  const sceneRoot = join(projectRoot, 'game', 'scenes', id);
 
   const problems = [];
-  if (!validation.pass) problems.push('layout gates failed');
-  if (!existsSync(join(sceneRoot, 'scene.tscn'))) problems.push('scene.tscn missing');
-  // 平铺 + 自己的 res:// 前缀，别再把资源指到 res://scene/ 去
+  if (!built.finished) problems.push('layout gates failed');
+  if (!built.scene) problems.push('no scene handle returned');
+  if (built.scene?.resPath !== `res://game/scenes/${id}/scene.tscn`) problems.push('resPath not project-relative');
+  // 场景数据与引擎文件同处一个目录：游戏侧不用回读 .gamedream
+  for (const file of ['scene.json', 'scene.svg', 'scene.tscn', 'tiles.tres']) {
+    if (!existsSync(join(sceneRoot, file))) problems.push(`${file} missing`);
+  }
+  // project.godot 属于工程根，场景目录里不该有
+  if (!existsSync(join(projectRoot, 'project.godot'))) problems.push('root project.godot missing');
+  if (existsSync(join(sceneRoot, 'project.godot'))) problems.push('project.godot leaked into the scene folder');
+  const index = JSON.parse(readFileSync(join(projectRoot, 'game', 'scenes', 'index.json'), 'utf8'));
+  if (!index.scenes.some((entry) => entry.id === id)) problems.push('scene missing from index.json');
   const tscn = readFileSync(join(sceneRoot, 'scene.tscn'), 'utf8');
   if (!tscn.includes(`res://game/scenes/${id}/tiles.tres`)) problems.push('tiles path not embedded');
+  if (!tscn.includes(`res://game/scenes/${id}/prefabs/`)) problems.push('prefab path not embedded');
 
+  const buildings = built.layout.buildings.length;
   let engineLine = 'engine=skipped';
   if (hasEngine) {
     spawnSync(bin, ['--headless', '--path', projectRoot, '--import'], { cwd: projectRoot, encoding: 'utf8' });
@@ -190,9 +201,9 @@ for (const scene of cases) {
       return match ? Number(match[1]) : -1;
     };
     if (!output.includes('GAMEDREAM_SCENE_OK=1')) problems.push('scene did not run inside the project');
-    if (read('GAMEDREAM_SCENE_BUILDINGS') !== layout.buildings.length) problems.push('buildings mismatch in project');
+    if (read('GAMEDREAM_SCENE_BUILDINGS') !== buildings) problems.push('buildings mismatch in project');
     if (!output.includes('GAMEDREAM_TILES_ATLAS=true')) problems.push('tile atlas missing in project');
-    if (read('GAMEDREAM_NAV_REACHED') !== layout.buildings.length) problems.push('nav unreachable in project');
+    if (read('GAMEDREAM_NAV_REACHED') !== buildings) problems.push('nav unreachable in project');
     // 日志里不该有 ERROR：导航首帧的假报错会让人以为场景有问题
     if (/^ERROR:/m.test(output)) problems.push('engine reported errors');
     engineLine = `buildings=${read('GAMEDREAM_SCENE_BUILDINGS')} nav=${read('GAMEDREAM_NAV_REACHED')}`

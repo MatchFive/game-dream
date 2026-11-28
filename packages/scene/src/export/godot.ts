@@ -503,7 +503,9 @@ export function exportGodotScene(
 
   writeFileSync(join(sceneDir, 'scene.tscn'), lines.join('\n'), 'utf8');
 
-  if (writeProject) writeFileSync(
+  // 嵌入已有工程时（flat）绝不写 project.godot：它属于工程根，不属于某个场景目录。
+  // 以前这里真往 `game/scenes/<id>/project.godot` 写过——空项目下才暴露。
+  if (writeProject && !flat) writeFileSync(
     join(outDir, 'project.godot'),
     [
       'config_version=5',
@@ -526,7 +528,7 @@ export function exportGodotScene(
   return {
     dir: outDir,
     files: [
-      ...(writeProject ? ['project.godot'] : []),
+      ...(writeProject && !flat ? ['project.godot'] : []),
       `${flat ? '' : 'scene/'}scene.tscn`,
       `${flat ? '' : 'scene/'}tiles.png`,
       `${flat ? '' : 'scene/'}tiles.tres`,
