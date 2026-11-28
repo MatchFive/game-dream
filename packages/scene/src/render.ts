@@ -15,7 +15,7 @@ const shade = (hex: string, amount: number): string => {
  */
 export function renderSceneSvg(
   layout: SceneLayout,
-  options: { art?: Map<string, Buffer> } = {},
+  options: { art?: Map<string, Buffer>; artUrl?: (prefab: string) => string | undefined } = {},
 ): string {
   const t = 12;
   const width = layout.bounds.width * t;
@@ -57,9 +57,10 @@ export function renderSceneSvg(
     const roofShade = shade(building.color, 0.22);
     const inner = Math.max(2, Math.min(w, h) * 0.12);
     const art = options.art?.get(building.prefab);
-    if (art) {
-      // 有素材就直接铺贴图，预览与引擎看到的形态一致
-      const href = `data:image/png;base64,${art.toString('base64')}`;
+    const artLink = options.artUrl?.(building.prefab);
+    if (art || artLink) {
+      // 有素材就铺贴图：优先用 URL（可缓存、SVG 不会膨胀），否则内嵌 data-uri
+      const href = artLink ?? `data:image/png;base64,${(art as Buffer).toString('base64')}`;
       parts.push(`<image x="${x}" y="${y}" width="${w}" height="${h}" href="${href}" preserveAspectRatio="none"/>`);
       parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${roofShade}" stroke-width="0.6" opacity="0.5"/>`);
       const [ex, ey] = building.entrance;

@@ -66,16 +66,20 @@ export function artDir(root: string): string {
   return join(root, '.gamedream', 'studio', 'art');
 }
 
-/** 读取已存在的贴图，供 SVG 预览内嵌；缺图就退回色块。 */
-function loadArt(root: string, kitId: string, prefabIds: Iterable<string>): Map<string, Buffer> {
-  const art = new Map<string, Buffer>();
+/**
+ * 贴图引用：用稳定的 URL 而不是 base64 内嵌。
+ * 一套 1024² 贴图内嵌会让 SVG 涨到几 MB，页面直接卡死。
+ */
+function artUrlFor(root: string, kitId: string, prefabIds: Iterable<string>): (prefab: string) => string | undefined {
   const dir = join(artDir(root), kitId);
-  if (!existsSync(dir)) return art;
-  for (const prefab of prefabIds) {
-    const file = join(dir, `${prefab}.png`);
-    if (existsSync(file)) art.set(prefab, readFileSync(file));
+  const available = new Set<string>();
+  if (existsSync(dir)) {
+    for (const file of readdirSync(dir)) {
+      if (file.endsWith('.png')) available.add(file.slice(0, -4));
+    }
   }
-  return art;
+  const wanted = new Set(prefabIds);
+  return (prefab) => (wanted.has(prefab) && available.has(prefab) ? `/api/scenes/art/${kitId}/${prefab}.png` : undefined);
 }
 
 /** 没有素材时生成一套占位美术，让预览与导出立刻有东西可用。 */
@@ -180,7 +184,9 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
       spec,
       layout: built.layout,
       validation: built.validation,
-      svg: renderSceneSvg(built.layout, { art: loadArt(root, kit.id, built.layout.buildings.map((b) => b.prefab)) }),
+      svg: renderSceneSvg(built.layout, {
+        artUrl: artUrlFor(root, kit.id, built.layout.buildings.map((building) => building.prefab)),
+      }),
       traceId: built.trace.id,
       attempts: 1,
     });
@@ -213,7 +219,7 @@ export async function buildScene(root: string, input: BuildSceneInput): Promise<
     layout: agent.layout,
     validation: agent.validation,
     svg: renderSceneSvg(agent.layout, {
-      art: loadArt(root, kit.id, agent.layout.buildings.map((building) => building.prefab)),
+      artUrl: artUrlFor(root, kit.id, agent.layout.buildings.map((building) => building.prefab)),
     }),
     traceId: agent.traces[agent.traces.length - 1]?.id ?? 'unknown',
     attempts: agent.attempts.length,

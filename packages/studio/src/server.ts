@@ -20,7 +20,7 @@ import { ComfyAudioRunner, ComfyWorkflowRunner } from './comfyui.js';
 import { WorkflowRegistry } from './workflows.js';
 import { generateSfx } from './sfx.js';
 import { detectEngine } from './project.js';
-import { buildScene, ensureArtwork, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
+import { artDir, buildScene, ensureArtwork, listScenes, loadScene, reviewScene, resolveKit } from './scenes.js';
 import {
   assertTrustedMutation,
   HttpSecurityError,
@@ -1353,6 +1353,19 @@ async function handleApi(
     } catch (error) {
       json(response, 400, { error: (error as Error).message });
     }
+    return;
+  }
+
+  // 场景预览里的贴图：稳定 URL，浏览器直接缓存，避免把 base64 塞进 SVG
+  const sceneArtMatch = pathname.match(/^\/api\/scenes\/art\/([a-z0-9-]+)\/([a-z0-9-]+)\.png$/);
+  if (method === 'GET' && sceneArtMatch) {
+    const file = join(artDir(root), sceneArtMatch[1], `${sceneArtMatch[2]}.png`);
+    if (!existsSync(file)) {
+      json(response, 404, { error: 'artwork not found' });
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=300' });
+    createReadStream(file).pipe(response);
     return;
   }
 

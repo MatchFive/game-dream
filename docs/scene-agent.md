@@ -243,6 +243,28 @@ footprint 等比拉伸，所以同一张图能用于该 prefab 的所有尺寸�
 占位素材是程序画的，风格统一但细节有限；它的作用是让"布局 + 素材 + 导出"这条链路
 先跑通，真实美术到位后直接替换文件。
 
+### AI 生成（ComfyUI）
+
+`node scripts/scene-art-ai.mjs` 用 Studio 设置里配置的 ComfyUI 工作流，为每个 prefab
+生成一张正俯视屋顶图，落到同一个 art 目录，并在 `ai-manifest.json` 里记录每张图的
+prompt、seed、模型与裁剪后尺寸 —— 素材本身也可追溯。
+
+prompt 的要点：`strict orthographic top-down`、`only the roof is visible`、
+`transparent background`、`no walls, no ground shadow`。少了"top-down"会得到 3/4 视角
+的等距房子，塞进平面足迹会明显溢出。
+
+生成后按 alpha 裁掉透明边距：模型习惯把主体画在画面中央，四周留大量空白，直接缩放
+会让建筑比格子小一圈。
+
+**已知问题：风格不一致。** 7 张图各自生成，色调、笔触、视角都有差异（石砌教堂、
+深色铁匠铺、红瓦酒馆放在一起像三套素材）。后续要么用统一风格锚 + 参考图重生成，
+要么整套换成美术资源。
+
+### 预览不要内嵌 base64
+
+一套 1024² 贴图内嵌进 SVG 会让它涨到 7.6 MB，Studio 场景页直接卡死。现在 SVG 只写
+`<image href="/api/scenes/art/<kit>/<prefab>.png">`，同样的布局是 14 KB，浏览器还能缓存。
+
 ## 8. Godot 导出（S2）
 
 `exportGodotScene(layout, dir)` 产出一个可直接用 Godot 4.4 打开的项目：
